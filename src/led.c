@@ -1,7 +1,7 @@
-#include "led.h"
-#include "blink.pio.h"
-#include "hardware/pio.h"
-#include "pico/stdlib.h"
+#include <blink.pio.h>
+#include <hardware/pio.h>
+#include <led.h>
+#include <pico/stdlib.h>
 #include <stdio.h>
 
 static PIO pio = NULL;
@@ -21,7 +21,8 @@ int led_init(void)
 
 void led_blink_start(uint pin, uint freq)
 {
-    if (pio == NULL) {
+    if (pio == NULL)
+    {
         printf("Error: LED system not initialized\n");
         return;
     }

@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include "pico/stdlib.h"
-#include "wifi.h"
-#include "led.h"
+#include <pico/stdlib.h>
+#include <wifi.h>
+#include <led.h>
 
 // Configuration
 #define WIFI_SSID "Your Wi-Fi SSID"

@@ -1,5 +1,5 @@
 #include <wifi.h>
-#include "pico/cyw43_arch.h"
+#include <pico/cyw43_arch.h>
 #include <stdio.h>
 
 int wifi_init(void)
