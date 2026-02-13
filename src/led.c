@@ -1,38 +1,77 @@
-#include <blink.pio.h>
-#include <hardware/pio.h>
 #include <led.h>
+#include <ws2812.pio.h>
+#include <hardware/pio.h>
 #include <pico/stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 static PIO pio = NULL;
 static uint sm = 0;
-static uint offset = 0;
+static uint32_t *pixel_buffer = NULL;
+static uint num_pixels = 0;
 
-int led_init(void)
+void led_init(uint pin, uint num_leds)
 {
     pio = pio0;
     sm = 0;
+    num_pixels = num_leds;
 
-    offset = pio_add_program(pio, &blink_program);
-    printf("LED PIO program loaded at offset %d\n", offset);
-
-    return offset;
-}
-
-void led_blink_start(uint pin, uint freq)
-{
-    if (pio == NULL)
-    {
-        printf("Error: LED system not initialized\n");
+    // Allocate buffer for pixel data
+    pixel_buffer = calloc(num_leds, sizeof(uint32_t));
+    if (!pixel_buffer) {
+        printf("Failed to allocate LED buffer\n");
         return;
     }
 
-    blink_program_init(pio, sm, offset, pin);
-    pio_sm_set_enabled(pio, sm, true);
+    // Load WS2812 PIO program
+    uint offset = pio_add_program(pio, &ws2812_program);
+    ws2812_program_init(pio, sm, offset, pin, 800000, false);
 
-    printf("Blinking pin %d at %d Hz\n", pin, freq);
+    printf("WS2812 initialized on pin %d with %d LEDs\n", pin, num_leds);
+}
 
-    // PIO counter program takes 3 more cycles in total than we pass as
-    // input (wait for n + 1; mov; jmp)
-    pio->txf[sm] = (125000000 / (2 * freq)) - 3;
+void led_set_pixel(uint index, uint8_t r, uint8_t g, uint8_t b)
+{
+    if (index >= num_pixels || !pixel_buffer) {
+        return;
+    }
+
+    // WS2812 expects GRB format
+    pixel_buffer[index] = ((uint32_t)g << 16) | ((uint32_t)r << 8) | b;
+}
+
+void led_set_pixel_u32(uint index, uint32_t color)
+{
+    if (index >= num_pixels || !pixel_buffer) {
+        return;
+    }
+
+    // Convert RGB to GRB
+    uint8_t r = (color >> 16) & 0xFF;
+    uint8_t g = (color >> 8) & 0xFF;
+    uint8_t b = color & 0xFF;
+    pixel_buffer[index] = ((uint32_t)g << 16) | ((uint32_t)r << 8) | b;
+}
+
+void led_show(void)
+{
+    if (!pixel_buffer || !pio) {
+        return;
+    }
+
+    // Send all pixels to the PIO
+    for (uint i = 0; i < num_pixels; i++) {
+        pio_sm_put_blocking(pio, sm, pixel_buffer[i] << 8);
+    }
+}
+
+void led_clear(void)
+{
+    if (!pixel_buffer) {
+        return;
+    }
+
+    memset(pixel_buffer, 0, num_pixels * sizeof(uint32_t));
+    led_show();
 }
