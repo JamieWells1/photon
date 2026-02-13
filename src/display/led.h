@@ -1,8 +1,9 @@
 #ifndef LED_H
 #define LED_H
 
-#include <pico/types.h>
 #include <stdint.h>
+
+#include <pico/types.h>
 
 /**
  * Initialize the WS2812 LED system

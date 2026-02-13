@@ -1,6 +1,8 @@
-#include <pico/cyw43_arch.h>
-#include <stdio.h>
 #include <wifi.h>
+
+#include <stdio.h>
+
+#include <pico/cyw43_arch.h>
 
 // Private state
 static bool initialized = false;

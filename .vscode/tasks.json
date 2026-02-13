@@ -5,8 +5,7 @@
       "label": "Compile Project",
       "type": "shell",
       "isBuildCommand": true,
-      "command": "make",
-      "args": ["-C", "${workspaceFolder}/build", "-j4"],
+      "command": "cmake -B ${workspaceFolder}/build && cmake --build ${workspaceFolder}/build -- -j4",
       "group": "build",
       "presentation": {
         "reveal": "always",

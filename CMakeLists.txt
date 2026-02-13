@@ -35,34 +35,81 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(photon
+# Core sources
+set(CORE_SOURCES
         main.c
-        src/wifi.c
-        src/led.c
+)
+
+# Common utilities
+set(COMMON_SOURCES
+        src/common/const.c
+)
+
+# Display subsystem (graphics + LED control)
+set(DISPLAY_SOURCES
+        src/display/graphics.c
+        src/display/led.c
+)
+
+# Input handling
+set(INPUT_SOURCES
+        src/input/input.c
+)
+
+# Menu system
+set(MENU_SOURCES
+        src/menu.c
+)
+
+# Middleware (WiFi, HTTP)
+set(MIDDLEWARE_SOURCES
+        src/middleware/wifi.c
+        src/middleware/http.c
+)
+
+# Games
+set(GAME_SOURCES
+        src/modes/games/tetris.c
+)
+
+# Display modes
+set(MODE_SOURCES
+        src/modes/stocks.c
+)
+
+add_executable(photon
+        ${CORE_SOURCES}
+        ${COMMON_SOURCES}
+        ${DISPLAY_SOURCES}
+        ${INPUT_SOURCES}
+        ${MENU_SOURCES}
+        ${MIDDLEWARE_SOURCES}
+        ${GAME_SOURCES}
+        ${MODE_SOURCES}
 )
 
 pico_set_program_name(photon "photon")
 pico_set_program_version(photon "0.1")
 
-# Generate PIO header
 pico_generate_pio_header(photon ${CMAKE_CURRENT_LIST_DIR}/pio/ws2812.pio)
 
-# Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(photon 0)
 pico_enable_stdio_usb(photon 1)
 
-# Add the standard library to the build
 target_link_libraries(photon
         pico_stdlib)
 
-# Add the standard include files to the build
 target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
-        ${CMAKE_CURRENT_LIST_DIR}/include
         ${CMAKE_CURRENT_LIST_DIR}/src
+        ${CMAKE_CURRENT_LIST_DIR}/src/common
+        ${CMAKE_CURRENT_LIST_DIR}/src/display
+        ${CMAKE_CURRENT_LIST_DIR}/src/input
+        ${CMAKE_CURRENT_LIST_DIR}/src/middleware
+        ${CMAKE_CURRENT_LIST_DIR}/src/modes
+        ${CMAKE_CURRENT_LIST_DIR}/src/modes/games
 )
 
-# Add any user requested libraries
 target_link_libraries(photon
         hardware_pio
         pico_cyw43_arch_lwip_threadsafe_background
