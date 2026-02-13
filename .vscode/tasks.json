@@ -3,19 +3,16 @@
     "tasks": [
         {
             "label": "Compile Project",
-            "type": "process",
+            "type": "shell",
             "isBuildCommand": true,
-            "command": "${userHome}/.pico-sdk/ninja/v1.12.1/ninja",
-            "args": ["-C", "${workspaceFolder}/build"],
+            "command": "make",
+            "args": ["-C", "${workspaceFolder}/build", "-j4"],
             "group": "build",
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated"
             },
-            "problemMatcher": "$gcc",
-            "windows": {
-                "command": "${env:USERPROFILE}/.pico-sdk/ninja/v1.12.1/ninja.exe"
-            }
+            "problemMatcher": "$gcc"
         },
         {
             "label": "Run Project",

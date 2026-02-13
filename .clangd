@@ -1,0 +1,6 @@
+CompileFlags:
+  CompilationDatabase: build
+
+Diagnostics:
+  UnusedIncludes: None
+  MissingIncludes: None
