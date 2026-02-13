@@ -59,6 +59,7 @@ target_link_libraries(photon
 target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/include
+        ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 # Add any user requested libraries
@@ -68,4 +69,3 @@ target_link_libraries(photon
         )
 
 pico_add_extra_outputs(photon)
-

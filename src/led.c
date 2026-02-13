@@ -1,10 +1,10 @@
-#include <led.h>
-#include <ws2812.pio.h>
 #include <hardware/pio.h>
+#include <led.h>
 #include <pico/stdlib.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ws2812.pio.h>
 
 static PIO pio = NULL;
 static uint sm = 0;
@@ -19,7 +19,8 @@ void led_init(uint pin, uint num_leds)
 
     // Allocate buffer for pixel data
     pixel_buffer = calloc(num_leds, sizeof(uint32_t));
-    if (!pixel_buffer) {
+    if (!pixel_buffer)
+    {
         printf("Failed to allocate LED buffer\n");
         return;
     }
@@ -33,7 +34,8 @@ void led_init(uint pin, uint num_leds)
 
 void led_set_pixel(uint index, uint8_t r, uint8_t g, uint8_t b)
 {
-    if (index >= num_pixels || !pixel_buffer) {
+    if (index >= num_pixels || !pixel_buffer)
+    {
         return;
     }
 
@@ -43,7 +45,8 @@ void led_set_pixel(uint index, uint8_t r, uint8_t g, uint8_t b)
 
 void led_set_pixel_u32(uint index, uint32_t color)
 {
-    if (index >= num_pixels || !pixel_buffer) {
+    if (index >= num_pixels || !pixel_buffer)
+    {
         return;
     }
 
@@ -56,19 +59,22 @@ void led_set_pixel_u32(uint index, uint32_t color)
 
 void led_show(void)
 {
-    if (!pixel_buffer || !pio) {
+    if (!pixel_buffer || !pio)
+    {
         return;
     }
 
     // Send all pixels to the PIO
-    for (uint i = 0; i < num_pixels; i++) {
+    for (uint i = 0; i < num_pixels; i++)
+    {
         pio_sm_put_blocking(pio, sm, pixel_buffer[i] << 8);
     }
 }
 
 void led_clear(void)
 {
-    if (!pixel_buffer) {
+    if (!pixel_buffer)
+    {
         return;
     }
 

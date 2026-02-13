@@ -1,8 +1,8 @@
 #ifndef LED_H
 #define LED_H
 
-#include <stdint.h>
 #include <pico/types.h>
+#include <stdint.h>
 
 /**
  * Initialize the WS2812 LED system
@@ -44,7 +44,8 @@ void led_clear(void);
  * @param b Blue (0-255)
  * @return 32-bit color value
  */
-static inline uint32_t led_rgb(uint8_t r, uint8_t g, uint8_t b) {
+static inline uint32_t led_rgb(uint8_t r, uint8_t g, uint8_t b)
+{
     return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
 }
 
