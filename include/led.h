@@ -16,4 +16,4 @@ int led_init(void);
  */
 void led_blink_start(uint pin, uint freq);
 
-#endif // LED_H
+#endif  // LED_H

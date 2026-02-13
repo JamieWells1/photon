@@ -1,7 +1,7 @@
-#include <stdio.h>
-#include <pico/stdlib.h>
-#include <wifi.h>
 #include <led.h>
+#include <pico/stdlib.h>
+#include <stdio.h>
+#include <wifi.h>
 
 // Configuration
 #define WIFI_SSID "Your Wi-Fi SSID"
@@ -16,7 +16,8 @@ int main()
     stdio_init_all();
 
     // Initialize WiFi hardware
-    if (wifi_init() != 0) {
+    if (wifi_init() != 0)
+    {
         return -1;
     }
 
@@ -36,7 +37,8 @@ int main()
     wifi_enable_sta_mode();
 
     // Connect to WiFi
-    if (wifi_connect(WIFI_SSID, WIFI_PASSWORD, WIFI_TIMEOUT_MS) != 0) {
+    if (wifi_connect(WIFI_SSID, WIFI_PASSWORD, WIFI_TIMEOUT_MS) != 0)
+    {
         return 1;
     }
 
@@ -46,7 +48,8 @@ int main()
     printf("IP address %d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
 
     // Main loop
-    while (true) {
+    while (true)
+    {
         printf("Hello, world!\n");
         sleep_ms(1000);
     }

@@ -1,8 +1,8 @@
 #ifndef WIFI_H
 #define WIFI_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /**
  * Initialize the WiFi hardware (CYW43 chip)
@@ -30,4 +30,4 @@ void wifi_get_ip(uint8_t *ip_out);
  */
 void wifi_enable_sta_mode(void);
 
-#endif // WIFI_H
+#endif  // WIFI_H
