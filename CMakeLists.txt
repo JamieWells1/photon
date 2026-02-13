@@ -33,8 +33,6 @@ project(photon C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-# Add executable. Default name is the project name, version 0.1
-
 # Core sources
 set(CORE_SOURCES
         main.c
@@ -45,7 +43,7 @@ set(COMMON_SOURCES
         src/common/const.c
 )
 
-# Display subsystem (graphics + LED control)
+# Display subsystem
 set(DISPLAY_SOURCES
         src/display/graphics.c
         src/display/led.c
@@ -61,7 +59,7 @@ set(MENU_SOURCES
         src/menu.c
 )
 
-# Middleware (WiFi, HTTP)
+# Middleware
 set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
         src/middleware/http.c

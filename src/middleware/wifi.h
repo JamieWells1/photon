@@ -11,6 +11,6 @@
  * @param password The network password
  * @return 0 on success, non-zero on failure
  */
-int wifi_ensure_connected(const char *ssid, const char *password);
+int wifi_join(const char *ssid, const char *password);
 
 #endif  // WIFI_H

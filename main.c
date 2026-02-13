@@ -1,13 +1,12 @@
 #include <led.h>
 #include <wifi.h>
+#include <secrets.h>
 
 #include <stdio.h>
 
 #include <pico/stdlib.h>
 
 // Configuration
-#define WIFI_SSID "Your Wi-Fi SSID"
-#define WIFI_PASSWORD "Your Wi-Fi Password"
 #define LED_PIN 6
 #define NUM_LEDS 1
 
@@ -31,7 +30,7 @@ int main()
     sleep_ms(3000);  // Simulate playing for 3 seconds
 
     printf("User wants leaderboard, connecting to WiFi...\n");
-    if (wifi_ensure_connected(WIFI_SSID, WIFI_PASSWORD) == 0)
+    if (wifi_join(WIFI_SSID, WIFI_PASSWORD) == 0)
     {
         printf("WiFi ready! Show leaderboard\n");
     }

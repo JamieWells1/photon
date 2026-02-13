@@ -4,11 +4,9 @@
 
 #include <pico/cyw43_arch.h>
 
-// Private state
 static bool initialized = false;
 static bool connected = false;
 
-// Private functions (static = not visible outside this file)
 static int wifi_init(void)
 {
     if (initialized)
@@ -49,12 +47,11 @@ static int wifi_connect(const char *ssid, const char *password, uint32_t timeout
     return 0;
 }
 
-// Public function - the only one users should call
-int wifi_ensure_connected(const char *ssid, const char *password)
+int wifi_join(const char *ssid, const char *password)
 {
     if (connected)
     {
-        return 0;  // Already connected
+        return 0;
     }
 
     if (!initialized)

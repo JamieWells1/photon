@@ -3,4 +3,4 @@
 
 //
 
-#endif // STOCKS_H
+#endif  // STOCKS_H
