@@ -1,59 +1,61 @@
-#include <led.h>
-#include <wifi.h>
-#include <secrets.h>
-
+#include <pico/stdlib.h>
 #include <stdio.h>
 
-#include <pico/stdlib.h>
-
-// Configuration
-#define LED_PIN 6
-#define NUM_LEDS 1
+#define BUTTON_PIN_RIGHT 5  // GP5
+#define BUTTON_PIN_LEFT 9   // GP9
 
 int main()
 {
     stdio_init_all();
-    printf("Starting...\n");
+    sleep_ms(2000);
 
-    // Initialize LEDs - instant!
-    led_init(LED_PIN, NUM_LEDS);
+    printf("\n=== Two Button Test ===\n");
+    printf("RIGHT: GP5 | LEFT: GP9\n\n");
 
-    // Demo: Light up pixel
-    led_set_pixel(0, 255, 0, 0);  // Red
-    led_show();
+    // Initialize RIGHT button
+    gpio_init(BUTTON_PIN_RIGHT);
+    gpio_set_dir(BUTTON_PIN_RIGHT, GPIO_IN);
+    gpio_pull_up(BUTTON_PIN_RIGHT);
 
-    // Game runs immediately - NO WiFi delay!
-    printf("Playing Tetris...\n");
+    // Initialize LEFT button
+    gpio_init(BUTTON_PIN_LEFT);
+    gpio_set_dir(BUTTON_PIN_LEFT, GPIO_IN);
+    gpio_pull_up(BUTTON_PIN_LEFT);
 
-    // Only connect when user requests online feature
-    // For example, when they press a button:
-    sleep_ms(3000);  // Simulate playing for 3 seconds
+    // Track state for both buttons
+    bool last_state_right = true;
+    bool last_state_left = true;
 
-    printf("User wants leaderboard, connecting to WiFi...\n");
-    if (wifi_join(WIFI_SSID, WIFI_PASSWORD) == 0)
-    {
-        printf("WiFi ready! Show leaderboard\n");
-    }
-
-    // Main game loop
-    uint8_t hue = 0;
     while (true)
     {
-        // Rainbow animation
-        if (hue < 85)
+        // Read current states
+        bool current_state_right = gpio_get(BUTTON_PIN_RIGHT);
+        bool current_state_left = gpio_get(BUTTON_PIN_LEFT);
+
+        // Check RIGHT button
+        if (last_state_right == true && current_state_right == false)
         {
-            led_set_pixel(0, 255 - hue * 3, hue * 3, 0);
+            printf("RIGHT PRESSED!");
         }
-        else if (hue < 170)
+        if (last_state_right == false && current_state_right == true)
         {
-            led_set_pixel(0, 0, 255 - (hue - 85) * 3, (hue - 85) * 3);
+            printf("RIGHT released\n\n");
         }
-        else
+
+        // Check LEFT button
+        if (last_state_left == true && current_state_left == false)
         {
-            led_set_pixel(0, (hue - 170) * 3, 0, 255 - (hue - 170) * 3);
+            printf("LEFT PRESSED!");
         }
-        led_show();
-        hue++;
-        sleep_ms(20);
+        if (last_state_left == false && current_state_left == true)
+        {
+            printf("LEFT released\n\n");
+        }
+
+        // Update states
+        last_state_right = current_state_right;
+        last_state_left = current_state_left;
+
+        sleep_ms(10);  // Debouncing delay
     }
 }
