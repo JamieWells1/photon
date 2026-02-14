@@ -16,16 +16,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential
 
+      - name: Cache Pico SDK
+        id: cache-pico-sdk
+        uses: actions/cache@v4
+        with:
+          path: pico-sdk
+          key: pico-sdk-${{ runner.os }}-2.2.0
+
       - name: Install Pico SDK
+        if: steps.cache-pico-sdk.outputs.cache-hit != 'true'
         run: |
-          cd ~
-          git clone https://github.com/raspberrypi/pico-sdk.git --branch master --depth 1
+          git clone https://github.com/raspberrypi/pico-sdk.git --branch 2.2.0 --depth 1
           cd pico-sdk
           git submodule update --init
 
       - name: Build firmware
         env:
-          PICO_SDK_PATH: ${{ github.workspace }}/../pico-sdk
+          PICO_SDK_PATH: ${{ github.workspace }}/pico-sdk
         run: |
           cmake -B build -DPICO_BOARD=pico2_w
           cmake --build build -- -j4
