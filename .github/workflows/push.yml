@@ -1,0 +1,37 @@
+name: On Push
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Pico SDK dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential
+
+      - name: Install Pico SDK
+        run: |
+          cd ~
+          git clone https://github.com/raspberrypi/pico-sdk.git --branch master --depth 1
+          cd pico-sdk
+          git submodule update --init
+
+      - name: Build firmware
+        env:
+          PICO_SDK_PATH: ${{ github.workspace }}/../pico-sdk
+        run: |
+          cmake -B build -DPICO_BOARD=pico2_w
+          cmake --build build -- -j4
+
+      - name: Upload UF2 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: photon-uf2
+          path: build/photon.uf2

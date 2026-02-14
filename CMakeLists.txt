@@ -114,3 +114,9 @@ target_link_libraries(photon
         )
 
 pico_add_extra_outputs(photon)
+
+# ==============================================================================
+# Tests (standalone - build separately from tests/ directory)
+# ==============================================================================
+# Tests are built independently to run on host machine
+# See tests/README.md for instructions

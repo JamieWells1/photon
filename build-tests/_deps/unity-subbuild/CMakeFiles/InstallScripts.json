@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/jamie/Code/Projects/photon/build-tests/_deps/unity-subbuild/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

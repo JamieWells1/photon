@@ -1,0 +1,74 @@
+[
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc -DPICO_PROGRAM_NAME=\\\"photon\\\" -DPICO_PROGRAM_VERSION_STRING=\\\"0.1\\\" -DPICO_TARGET_NAME=\\\"photon\\\" -I/Users/jamie/Code/Projects/photon/build-tests -I/Users/jamie/Code/Projects/photon -I/Users/jamie/Code/Projects/photon/src -I/Users/jamie/Code/Projects/photon/src/common -I/Users/jamie/Code/Projects/photon/src/display -I/Users/jamie/Code/Projects/photon/src/input -I/Users/jamie/Code/Projects/photon/src/middleware -I/Users/jamie/Code/Projects/photon/src/modes -I/Users/jamie/Code/Projects/photon/src/modes/games -std=gnu11 -o CMakeFiles/photon.dir/main.c.o -c /Users/jamie/Code/Projects/photon/main.c",
+  "file": "/Users/jamie/Code/Projects/photon/main.c",
+  "output": "CMakeFiles/photon.dir/main.c.o"
+},
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc -DPICO_PROGRAM_NAME=\\\"photon\\\" -DPICO_PROGRAM_VERSION_STRING=\\\"0.1\\\" -DPICO_TARGET_NAME=\\\"photon\\\" -I/Users/jamie/Code/Projects/photon/build-tests -I/Users/jamie/Code/Projects/photon -I/Users/jamie/Code/Projects/photon/src -I/Users/jamie/Code/Projects/photon/src/common -I/Users/jamie/Code/Projects/photon/src/display -I/Users/jamie/Code/Projects/photon/src/input -I/Users/jamie/Code/Projects/photon/src/middleware -I/Users/jamie/Code/Projects/photon/src/modes -I/Users/jamie/Code/Projects/photon/src/modes/games -std=gnu11 -o CMakeFiles/photon.dir/src/common/const.c.o -c /Users/jamie/Code/Projects/photon/src/common/const.c",
+  "file": "/Users/jamie/Code/Projects/photon/src/common/const.c",
+  "output": "CMakeFiles/photon.dir/src/common/const.c.o"
+},
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc -DPICO_PROGRAM_NAME=\\\"photon\\\" -DPICO_PROGRAM_VERSION_STRING=\\\"0.1\\\" -DPICO_TARGET_NAME=\\\"photon\\\" -I/Users/jamie/Code/Projects/photon/build-tests -I/Users/jamie/Code/Projects/photon -I/Users/jamie/Code/Projects/photon/src -I/Users/jamie/Code/Projects/photon/src/common -I/Users/jamie/Code/Projects/photon/src/display -I/Users/jamie/Code/Projects/photon/src/input -I/Users/jamie/Code/Projects/photon/src/middleware -I/Users/jamie/Code/Projects/photon/src/modes -I/Users/jamie/Code/Projects/photon/src/modes/games -std=gnu11 -o CMakeFiles/photon.dir/src/display/graphics.c.o -c /Users/jamie/Code/Projects/photon/src/display/graphics.c",
+  "file": "/Users/jamie/Code/Projects/photon/src/display/graphics.c",
+  "output": "CMakeFiles/photon.dir/src/display/graphics.c.o"
+},
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc -DPICO_PROGRAM_NAME=\\\"photon\\\" -DPICO_PROGRAM_VERSION_STRING=\\\"0.1\\\" -DPICO_TARGET_NAME=\\\"photon\\\" -I/Users/jamie/Code/Projects/photon/build-tests -I/Users/jamie/Code/Projects/photon -I/Users/jamie/Code/Projects/photon/src -I/Users/jamie/Code/Projects/photon/src/common -I/Users/jamie/Code/Projects/photon/src/display -I/Users/jamie/Code/Projects/photon/src/input -I/Users/jamie/Code/Projects/photon/src/middleware -I/Users/jamie/Code/Projects/photon/src/modes -I/Users/jamie/Code/Projects/photon/src/modes/games -std=gnu11 -o CMakeFiles/photon.dir/src/display/led.c.o -c /Users/jamie/Code/Projects/photon/src/display/led.c",
+  "file": "/Users/jamie/Code/Projects/photon/src/display/led.c",
+  "output": "CMakeFiles/photon.dir/src/display/led.c.o"
+},
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc -DPICO_PROGRAM_NAME=\\\"photon\\\" -DPICO_PROGRAM_VERSION_STRING=\\\"0.1\\\" -DPICO_TARGET_NAME=\\\"photon\\\" -I/Users/jamie/Code/Projects/photon/build-tests -I/Users/jamie/Code/Projects/photon -I/Users/jamie/Code/Projects/photon/src -I/Users/jamie/Code/Projects/photon/src/common -I/Users/jamie/Code/Projects/photon/src/display -I/Users/jamie/Code/Projects/photon/src/input -I/Users/jamie/Code/Projects/photon/src/middleware -I/Users/jamie/Code/Projects/photon/src/modes -I/Users/jamie/Code/Projects/photon/src/modes/games -std=gnu11 -o CMakeFiles/photon.dir/src/input/input.c.o -c /Users/jamie/Code/Projects/photon/src/input/input.c",
+  "file": "/Users/jamie/Code/Projects/photon/src/input/input.c",
+  "output": "CMakeFiles/photon.dir/src/input/input.c.o"
+},
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc -DPICO_PROGRAM_NAME=\\\"photon\\\" -DPICO_PROGRAM_VERSION_STRING=\\\"0.1\\\" -DPICO_TARGET_NAME=\\\"photon\\\" -I/Users/jamie/Code/Projects/photon/build-tests -I/Users/jamie/Code/Projects/photon -I/Users/jamie/Code/Projects/photon/src -I/Users/jamie/Code/Projects/photon/src/common -I/Users/jamie/Code/Projects/photon/src/display -I/Users/jamie/Code/Projects/photon/src/input -I/Users/jamie/Code/Projects/photon/src/middleware -I/Users/jamie/Code/Projects/photon/src/modes -I/Users/jamie/Code/Projects/photon/src/modes/games -std=gnu11 -o CMakeFiles/photon.dir/src/menu.c.o -c /Users/jamie/Code/Projects/photon/src/menu.c",
+  "file": "/Users/jamie/Code/Projects/photon/src/menu.c",
+  "output": "CMakeFiles/photon.dir/src/menu.c.o"
+},
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc -DPICO_PROGRAM_NAME=\\\"photon\\\" -DPICO_PROGRAM_VERSION_STRING=\\\"0.1\\\" -DPICO_TARGET_NAME=\\\"photon\\\" -I/Users/jamie/Code/Projects/photon/build-tests -I/Users/jamie/Code/Projects/photon -I/Users/jamie/Code/Projects/photon/src -I/Users/jamie/Code/Projects/photon/src/common -I/Users/jamie/Code/Projects/photon/src/display -I/Users/jamie/Code/Projects/photon/src/input -I/Users/jamie/Code/Projects/photon/src/middleware -I/Users/jamie/Code/Projects/photon/src/modes -I/Users/jamie/Code/Projects/photon/src/modes/games -std=gnu11 -o CMakeFiles/photon.dir/src/middleware/wifi.c.o -c /Users/jamie/Code/Projects/photon/src/middleware/wifi.c",
+  "file": "/Users/jamie/Code/Projects/photon/src/middleware/wifi.c",
+  "output": "CMakeFiles/photon.dir/src/middleware/wifi.c.o"
+},
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc -DPICO_PROGRAM_NAME=\\\"photon\\\" -DPICO_PROGRAM_VERSION_STRING=\\\"0.1\\\" -DPICO_TARGET_NAME=\\\"photon\\\" -I/Users/jamie/Code/Projects/photon/build-tests -I/Users/jamie/Code/Projects/photon -I/Users/jamie/Code/Projects/photon/src -I/Users/jamie/Code/Projects/photon/src/common -I/Users/jamie/Code/Projects/photon/src/display -I/Users/jamie/Code/Projects/photon/src/input -I/Users/jamie/Code/Projects/photon/src/middleware -I/Users/jamie/Code/Projects/photon/src/modes -I/Users/jamie/Code/Projects/photon/src/modes/games -std=gnu11 -o CMakeFiles/photon.dir/src/middleware/http.c.o -c /Users/jamie/Code/Projects/photon/src/middleware/http.c",
+  "file": "/Users/jamie/Code/Projects/photon/src/middleware/http.c",
+  "output": "CMakeFiles/photon.dir/src/middleware/http.c.o"
+},
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc -DPICO_PROGRAM_NAME=\\\"photon\\\" -DPICO_PROGRAM_VERSION_STRING=\\\"0.1\\\" -DPICO_TARGET_NAME=\\\"photon\\\" -I/Users/jamie/Code/Projects/photon/build-tests -I/Users/jamie/Code/Projects/photon -I/Users/jamie/Code/Projects/photon/src -I/Users/jamie/Code/Projects/photon/src/common -I/Users/jamie/Code/Projects/photon/src/display -I/Users/jamie/Code/Projects/photon/src/input -I/Users/jamie/Code/Projects/photon/src/middleware -I/Users/jamie/Code/Projects/photon/src/modes -I/Users/jamie/Code/Projects/photon/src/modes/games -std=gnu11 -o CMakeFiles/photon.dir/src/modes/games/tetris.c.o -c /Users/jamie/Code/Projects/photon/src/modes/games/tetris.c",
+  "file": "/Users/jamie/Code/Projects/photon/src/modes/games/tetris.c",
+  "output": "CMakeFiles/photon.dir/src/modes/games/tetris.c.o"
+},
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc -DPICO_PROGRAM_NAME=\\\"photon\\\" -DPICO_PROGRAM_VERSION_STRING=\\\"0.1\\\" -DPICO_TARGET_NAME=\\\"photon\\\" -I/Users/jamie/Code/Projects/photon/build-tests -I/Users/jamie/Code/Projects/photon -I/Users/jamie/Code/Projects/photon/src -I/Users/jamie/Code/Projects/photon/src/common -I/Users/jamie/Code/Projects/photon/src/display -I/Users/jamie/Code/Projects/photon/src/input -I/Users/jamie/Code/Projects/photon/src/middleware -I/Users/jamie/Code/Projects/photon/src/modes -I/Users/jamie/Code/Projects/photon/src/modes/games -std=gnu11 -o CMakeFiles/photon.dir/src/modes/stocks.c.o -c /Users/jamie/Code/Projects/photon/src/modes/stocks.c",
+  "file": "/Users/jamie/Code/Projects/photon/src/modes/stocks.c",
+  "output": "CMakeFiles/photon.dir/src/modes/stocks.c.o"
+},
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests/pico-sdk/src/rp2350/boot_stage2",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc  -I/Users/jamie/.pico-sdk/sdk/2.2.0/src/rp2350/boot_stage2/asminclude  -o CMakeFiles/bs2_default.dir/compile_time_choice.S.o   -c /Users/jamie/.pico-sdk/sdk/2.2.0/src/rp2350/boot_stage2/compile_time_choice.S",
+  "file": "/Users/jamie/.pico-sdk/sdk/2.2.0/src/rp2350/boot_stage2/compile_time_choice.S",
+  "output": "pico-sdk/src/rp2350/boot_stage2/CMakeFiles/bs2_default.dir/compile_time_choice.S.o"
+},
+{
+  "directory": "/Users/jamie/Code/Projects/photon/build-tests/pico-sdk/src/rp2350/boot_stage2",
+  "command": "/Users/jamie/.pico-sdk/toolchain/14_2_Rel1/bin/arm-none-eabi-gcc    -o CMakeFiles/bs2_default_library.dir/bs2_default_padded_checksummed.S.o   -c /Users/jamie/Code/Projects/photon/build-tests/pico-sdk/src/rp2350/boot_stage2/bs2_default_padded_checksummed.S",
+  "file": "/Users/jamie/Code/Projects/photon/build-tests/pico-sdk/src/rp2350/boot_stage2/bs2_default_padded_checksummed.S",
+  "output": "pico-sdk/src/rp2350/boot_stage2/CMakeFiles/bs2_default_library.dir/bs2_default_padded_checksummed.S.o"
+}
+]

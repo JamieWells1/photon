@@ -1,0 +1,231 @@
+name: Auto Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.ref_name }}
+      SUMMARY_PREFIX: "Auto-generated summary for"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OpenAI dependency
+        run: pip install --quiet --upgrade openai
+
+      # ==============================================================
+      # STEP 1: AI generates section content (multi-line safe)
+      # ==============================================================
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so git diff and log can see all commits
+          fetch-tags: true
+
+      - name: Generate AI release content
+        id: ai_release
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -Eeuo pipefail
+
+          # --- Tag range resolution ---
+          CURR_TAG=${GITHUB_REF#refs/tags/}
+          PREV_TAG=$(git tag --sort=-creatordate | grep -A1 "^$CURR_TAG$" | tail -n1 || true)
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "No previous tag found; using first commit as start."
+            FIRST_COMMIT=$(git rev-list --max-parents=0 HEAD)
+            RANGE="$FIRST_COMMIT..$CURR_TAG"
+          else
+            RANGE="$PREV_TAG..$CURR_TAG"
+          fi
+
+          git log "$RANGE" --pretty=format:"%h %s" > commits.txt
+
+          # Generate concise diff: stat + changed files only (not full content)
+          git diff "$RANGE" --stat=200 > diff_stat.txt
+          git diff "$RANGE" --name-status > diff_files.txt
+
+          # Sample actual diff content from key files (limit to 5000 lines max)
+          git diff "$RANGE" -- '*.h' '*.c' '*.md' '*.yml' '*.json' '*.pio' | head -n 5000 > diff_sample.txt
+
+          # Combine into concise diff
+          {
+            echo "=== Changed Files ==="
+            cat diff_files.txt
+            echo ""
+            echo "=== Diff Statistics ==="
+            cat diff_stat.txt
+            echo ""
+            echo "=== Sample Changes (first 5000 lines) ==="
+            cat diff_sample.txt
+          } > diff.txt
+
+          # Create Python script
+          cat > generate_release.py << 'PYSCRIPT'
+          import os, json
+          from openai import OpenAI
+
+          api_key = os.getenv("OPENAI_API_KEY")
+          client = OpenAI(api_key=api_key)
+
+          commits = open("commits.txt").read()
+          diff = open("diff.txt").read()
+          tag = os.getenv("GITHUB_REF_NAME", "unknown")
+
+          prompt = f"Generate concise JSON release notes for {tag}.\n\n"
+          prompt += 'Output format: {"SHORT_TITLE": "...", "SUMMARY": "...", "FEATURE_GROUP": "...", "DETAILS": "...", "ENHANCEMENTS": "...", "BUG_DESCRIPTIONS": "...", "DOC_UPDATES": "..."}\n\n'
+          prompt += "Rules:\n- SHORT_TITLE: max 8 words\n- SUMMARY: max 3 sentences\n"
+          prompt += "- Focus on user-visible changes\n- Ignore formatting/trivial edits\n- Output valid JSON only\n\n"
+          prompt += f"Commits:\n{commits}\n\nDiff Summary:\n{diff}"
+
+          resp = client.chat.completions.create(
+              model="gpt-4o-mini",
+              messages=[
+                  {"role": "system", "content": "You produce strictly factual JSON release notes."},
+                  {"role": "user", "content": prompt},
+              ],
+          )
+
+          content = resp.choices[0].message.content
+
+          # Normalize response content
+          if not content:
+              raise RuntimeError("OpenAI returned no content")
+
+          if isinstance(content, list):
+              text = "".join(
+                  str(part.get("text", "")) for part in content
+                  if isinstance(part, dict)
+              )
+          else:
+              text = str(content)
+
+          # Clean and parse JSON
+          text = text.replace('```json', '').replace('```', '').strip()
+
+          if not text:
+              raise RuntimeError("Model output was empty after cleanup")
+
+          try:
+              data = json.loads(text)
+          except json.JSONDecodeError as e:
+              raise RuntimeError(f"Invalid JSON from model: {text} Error: {e}")
+
+          # Write outputs into GitHub Actions environment
+          with open(os.getenv("GITHUB_ENV"), "a") as envfile:
+              for key, value in data.items():
+                  value = str(value).replace("%", "%%")
+                  envfile.write(f"{key}<<EOF\n{value}\nEOF\n")
+          PYSCRIPT
+
+          python3 generate_release.py
+
+      # ==============================================================
+      # STEP 2: Substitute the placeholders with AI output
+      # ==============================================================
+
+      - name: Populate template with AI output (multiline safe)
+        id: populate
+        run: |
+          set -Eeuo pipefail
+          cp .github/RELEASE_TEMPLATE.md release_notes.md
+
+          awk -v VERSION="$VERSION" \
+              -v SHORT_TITLE="$SHORT_TITLE" \
+              -v SUMMARY="$SUMMARY" \
+              -v FEATURE_GROUP="$FEATURE_GROUP" \
+              -v DETAILS="$DETAILS" \
+              -v ENHANCEMENTS="$ENHANCEMENTS" \
+              -v BUG_DESCRIPTIONS="$BUG_DESCRIPTIONS" \
+              -v DOC_UPDATES="$DOC_UPDATES" '
+              {
+                gsub(/\{\{VERSION\}\}/, VERSION);
+                gsub(/\{\{SHORT_TITLE\}\}/, SHORT_TITLE);
+                gsub(/\{\{SUMMARY\}\}/, SUMMARY);
+                gsub(/\{\{FEATURE_GROUP\}\}/, FEATURE_GROUP);
+                gsub(/\{\{DETAILS\}\}/, DETAILS);
+                gsub(/\{\{ENHANCEMENTS\}\}/, ENHANCEMENTS);
+                gsub(/\{\{BUG_DESCRIPTIONS\}\}/, BUG_DESCRIPTIONS);
+                gsub(/\{\{DOC_UPDATES\}\}/, DOC_UPDATES);
+                print;
+              }' release_notes.md > release_notes_filled.md
+
+          mv release_notes_filled.md release_notes.md
+
+      # ==============================================================
+      # STEP 3: Build firmware
+      # ==============================================================
+
+      - name: Install Pico SDK dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential
+
+      - name: Install Pico SDK
+        run: |
+          cd ~
+          git clone https://github.com/raspberrypi/pico-sdk.git --branch master --depth 1
+          cd pico-sdk
+          git submodule update --init
+
+      - name: Build firmware
+        env:
+          PICO_SDK_PATH: ${{ github.workspace }}/../pico-sdk
+        run: |
+          cmake -B build -DPICO_BOARD=pico2_w
+          cmake --build build -- -j4
+
+      # ==============================================================
+      # STEP 4: Publish Release
+      # ==============================================================
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release_notes.md
+          files: build/photon.uf2
+          draft: false
+          prerelease: false
+
+  # ==============================================================
+  # STEP 5: Reset Workflow
+  # ==============================================================
+
+  reset_placeholders:
+    runs-on: ubuntu-latest
+    needs: release
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore placeholder workflow
+        run: |
+          set -Eeuo pipefail
+          git fetch origin main
+          git checkout origin/main -- .github/workflows/auto-release.yml || true
+          echo "✓ Workflow restored to placeholder defaults."
+
+      - name: Commit and push reset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .github/workflows/auto-release.yml
+            git commit -m "Reset auto-release.yml to placeholder defaults"
+            git push origin HEAD:main
+          else
+            echo "No workflow changes to reset."
+          fi

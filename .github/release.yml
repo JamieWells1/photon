@@ -1,0 +1,37 @@
+changelog:
+  categories:
+    - title: What's New
+      labels:
+        - enhancement
+    - title: Bug Fixes
+      labels:
+        - bug
+    - title: Documentation
+      labels:
+        - documentation
+    - title: Other Changes
+      labels:
+        - "*"
+  template: |
+    **Version {{version}} - {{title}}**
+
+    ---
+
+    ### Summary
+    {{description}}
+
+    ---
+
+    ### What's New
+    {{#each categories}}
+    #### {{title}}
+    {{#each items}}
+    - {{this.title}}
+    {{/each}}
+
+    {{/each}}
+
+    ---
+
+    ### 🔗 Release Links
+    - [Full Changelog]({{compare_url}})
