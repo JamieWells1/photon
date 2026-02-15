@@ -1,43 +1,14 @@
 #include <const.h>
+#include <input.h>
+#include <matrix.h>
 #include <print.h>
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <pico/stdlib.h>
 #include <ws2812.pio.h>
-
-#define BUTTON_LEFT_PIN 9   // GP9
-#define BUTTON_RIGHT_PIN 5  // GP5
-
-#define ROTATOR_CLK_PIN 18  // GP18
-#define ROTATOR_DT_PIN 19   // GP19
-#define ROTATOR_SW_PIN 20   // GP20
-
-#define LED_MATRIX_PIN 2  // GP2
-#define LED_DATA_FREQ 800000
-
-typedef struct
-{
-    uint8_t pin;
-    bool last_state;
-} Button;
-
-typedef struct
-{
-    uint8_t pin_clk;
-    uint8_t pin_dt;
-    uint8_t pin_sw;
-    bool last_clk_state;
-    bool last_sw_state;
-} Rotator;
-
-typedef struct
-{
-    uint8_t pin;
-    PIO pio;
-    uint8_t sm;
-} LED;
 
 Button* main_init_buttons()
 {
@@ -82,17 +53,17 @@ Rotator* main_init_rotator()
     return &rotator;
 }
 
-LED* main_init_led()
+Matrix* main_init_matrix()
 {
     PIO pio = pio0;
     int sm = 0;
     uint offset = pio_add_program(pio, &ws2812_program);
 
-    ws2812_program_init(pio, sm, offset, LED_MATRIX_PIN, LED_DATA_FREQ, false);
+    ws2812_program_init(pio, sm, offset, MATRIX_MATRIX_PIN, MATRIX_DATA_FREQ, false);
     debug("✓ WS2812 program initialised");
 
-    static LED led = {.pin = LED_MATRIX_PIN, .pio = pio0, .sm = 0};
-    return &led;
+    static Matrix matrix = {.pin = MATRIX_MATRIX_PIN, .pio = pio0, .sm = 0};
+    return &matrix;
 }
 
 int main()
@@ -105,24 +76,29 @@ int main()
         sleep_ms(100);
     }
 
-    // Time to screen into program to see debug logs
+    // Time buffer for screening into program to see initial debug logs
     sleep_ms(2000);
 
     if (DEBUG_LOGS)
     {
-        printf("[INFO]: DEBUG MODE ENABLED\n");
+        printf("[INFO]: DEBUG MODE ENABMATRIX\n");
     }
     else
     {
-        printf("[INFO]: DEBUG MODE DISABLED\n");
+        printf("[INFO]: DEBUG MODE DISABMATRIX\n");
     }
 
     Button* buttons = main_init_buttons();
     Button* button_left = &buttons[0];
     Button* button_right = &buttons[1];
     Rotator* rotator = main_init_rotator();
-    LED* led = main_init_led();
-    
+    Matrix* matrix = main_init_matrix();
+
+    // Initialize random seed and clear matrix
+    srand(get_absolute_time());
+    matrix_clear();
+    matrix_show(matrix);
+
     debug("✓✓✓ Main init complete. Starting main execution loop.");
 
     while (true)
@@ -130,20 +106,36 @@ int main()
         bool current_state_right = gpio_get(BUTTON_RIGHT_PIN);
         bool current_state_left = gpio_get(BUTTON_LEFT_PIN);
 
-        if (button_right->last_state == true && current_state_right == false)
+        if (input_btn_pressed(button_right))
         {
             debug("RIGHT PRESSED");
+
+            // Light up random pixel with random color
+            int x = rand() % MATRIX_WIDTH;
+            int y = rand() % MATRIX_HEIGHT;
+            uint8_t r = rand() % 256;
+            uint8_t g = rand() % 256;
+            uint8_t b = rand() % 256;
+
+            RGB colour = {.r = r, .g = g, .b = b};
+
+            matrix_set_pixel(x, y, colour);
+            matrix_show(matrix);
+            sleep_ms(1000);
+
+            matrix_clear();
+            matrix_show(matrix);
         }
-        if (button_right->last_state == false && current_state_right == true)
+        if (input_btn_released(button_right))
         {
             debug("RIGHT RELEASED");
         }
 
-        if (button_left->last_state == true && current_state_left == false)
+        if (input_btn_pressed(button_left))
         {
             debug("LEFT PRESSED");
         }
-        if (button_left->last_state == false && current_state_left == true)
+        if (input_btn_released(button_left))
         {
             debug("LEFT RELEASED");
         }
@@ -151,7 +143,6 @@ int main()
         button_right->last_state = current_state_right;
         button_left->last_state = current_state_left;
 
-        // Test rotary encoder rotation (Functionality 1: direction detection)
         bool current_clk = gpio_get(ROTATOR_CLK_PIN);
         if (current_clk != rotator->last_clk_state && current_clk == false)
         {

@@ -46,7 +46,7 @@ set(COMMON_SOURCES
 # Display subsystem
 set(DISPLAY_SOURCES
         src/display/graphics.c
-        src/display/led.c
+        src/display/matrix.c
 )
 
 # Input handling
