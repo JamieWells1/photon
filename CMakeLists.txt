@@ -75,6 +75,11 @@ set(MODE_SOURCES
         src/modes/stocks.c
 )
 
+# Utils
+set(UTILS_SOURCES
+        src/utils/print.c
+)
+
 add_executable(photon
         ${CORE_SOURCES}
         ${COMMON_SOURCES}
@@ -84,6 +89,7 @@ add_executable(photon
         ${MIDDLEWARE_SOURCES}
         ${GAME_SOURCES}
         ${MODE_SOURCES}
+        ${UTILS_SOURCES}
 )
 
 pico_set_program_name(photon "photon")
@@ -106,6 +112,7 @@ target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/middleware
         ${CMAKE_CURRENT_LIST_DIR}/src/modes
         ${CMAKE_CURRENT_LIST_DIR}/src/modes/games
+        ${CMAKE_CURRENT_LIST_DIR}/src/utils
         ${CMAKE_CURRENT_BINARY_DIR}
 )
 
