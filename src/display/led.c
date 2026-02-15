@@ -19,7 +19,6 @@ void led_init(uint pin, uint num_leds)
     sm = 0;
     num_pixels = num_leds;
 
-    // Allocate buffer for pixel data
     pixel_buffer = calloc(num_leds, sizeof(uint32_t));
     if (!pixel_buffer)
     {
@@ -27,7 +26,6 @@ void led_init(uint pin, uint num_leds)
         return;
     }
 
-    // Load WS2812 PIO program
     uint offset = pio_add_program(pio, &ws2812_program);
     ws2812_program_init(pio, sm, offset, pin, 800000, false);
 
@@ -66,7 +64,6 @@ void led_show(void)
         return;
     }
 
-    // Send all pixels to the PIO
     for (uint i = 0; i < num_pixels; i++)
     {
         pio_sm_put_blocking(pio, sm, pixel_buffer[i] << 8);

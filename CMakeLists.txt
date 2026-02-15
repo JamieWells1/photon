@@ -106,6 +106,7 @@ target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/middleware
         ${CMAKE_CURRENT_LIST_DIR}/src/modes
         ${CMAKE_CURRENT_LIST_DIR}/src/modes/games
+        ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 target_link_libraries(photon
@@ -114,9 +115,3 @@ target_link_libraries(photon
         )
 
 pico_add_extra_outputs(photon)
-
-# ==============================================================================
-# Tests (standalone - build separately from tests/ directory)
-# ==============================================================================
-# Tests are built independently to run on host machine
-# See tests/README.md for instructions

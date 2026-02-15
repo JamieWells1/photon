@@ -3,3 +3,4 @@ build
 .cache
 secrets.h
 INSTRUCTIONS.md
+.claude
