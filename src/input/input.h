@@ -22,4 +22,9 @@ typedef struct
 bool input_btn_pressed(Button* btn);
 bool input_btn_released(Button* btn);
 
+bool input_rotator_cw(Rotator* rtr);
+bool input_rotator_anti_cw(Rotator* rtr);
+bool input_rotator_pressed(Rotator* rtr);
+bool input_rotator_released(Rotator* rtr);
+
 #endif  // INPUT_H

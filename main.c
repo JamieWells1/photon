@@ -103,9 +103,6 @@ int main()
 
     while (true)
     {
-        bool current_state_right = gpio_get(BUTTON_RIGHT_PIN);
-        bool current_state_left = gpio_get(BUTTON_LEFT_PIN);
-
         if (input_btn_pressed(button_right))
         {
             debug("RIGHT PRESSED");
@@ -139,35 +136,6 @@ int main()
         {
             debug("LEFT RELEASED");
         }
-
-        button_right->last_state = current_state_right;
-        button_left->last_state = current_state_left;
-
-        bool current_clk = gpio_get(ROTATOR_CLK_PIN);
-        if (current_clk != rotator->last_clk_state && current_clk == false)
-        {
-            bool current_dt = gpio_get(ROTATOR_DT_PIN);
-            if (current_dt != current_clk)
-            {
-                debug("Encoder CLOCKWISE");
-            }
-            else
-            {
-                debug("Encoder COUNTER-CLOCKWISE");
-            }
-        }
-        rotator->last_clk_state = current_clk;
-
-        bool current_sw = gpio_get(ROTATOR_SW_PIN);
-        if (rotator->last_sw_state == true && current_sw == false)
-        {
-            debug("ENCODER BUTTON PRESSED");
-        }
-        if (rotator->last_sw_state == false && current_sw == true)
-        {
-            debug("ENCODER BUTTON released");
-        }
-        rotator->last_sw_state = current_sw;
 
         sleep_ms(10);
     }
