@@ -2,7 +2,7 @@
 #define CONST_H
 
 // Debug mode
-#define DEBUG_LOGS 1
+#define DEBUG_MODE 1
 
 // Matrix layout
 #define MATRIX_WIDTH 32
@@ -10,7 +10,7 @@
 #define NUM_PIXELS (MATRIX_WIDTH * MATRIX_HEIGHT)
 
 // Matrix pixels
-#define BRIGHTNESS_COEFFICIENT 0.5
+#define BRIGHTNESS_COEFFICIENT 0.05
 
 // GPIO pins
 #define BUTTON_LEFT_PIN 10  // GP10

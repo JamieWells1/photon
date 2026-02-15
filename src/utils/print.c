@@ -5,7 +5,7 @@
 
 void debug(const char* str)
 {
-    if (DEBUG_LOGS)
+    if (DEBUG_MODE)
     {
         printf("[DEBUG]: %s\n", str);
     }

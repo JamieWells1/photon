@@ -1,9 +1,6 @@
 #include <unity.h>
 
-void test_example(void)
-{
-    TEST_ASSERT_TRUE(1);
-}
+void test_example(void) { TEST_ASSERT_TRUE(1); }
 
 int main(void)
 {

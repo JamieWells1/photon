@@ -1,99 +1,81 @@
 #include <const.h>
+#include <hardware/gpio.h>
 #include <input.h>
 #include <print.h>
 
+#include <stdint.h>
 #include <ws2812.pio.h>
 
-bool input_button_pressed(Button* btn)
+void input_update_inputs(Button* btns, Rotator* rtr)
 {
-    bool current_state = gpio_get(btn->pin);
-    bool pressed = (btn->last_state == true && current_state == false);
-    btn->last_state = current_state;
+    // Update states of left and right buttons
+    input_btn_update(&btns[0]);
+    input_btn_update(&btns[1]);
 
-    if (pressed)
-    {
-        debug("Button pressed");
-        return true;
-    }
-    return false;
+    // Update states of rotary encoder
+    input_rtr_update(rtr);
 }
 
-bool input_button_released(Button* btn)
+void input_rtr_update(Rotator* rtr)
 {
-    bool current_state = gpio_get(btn->pin);
-    bool released = (btn->last_state == false && current_state == true);
-    btn->last_state = current_state;
+    rtr->last_clk_state = rtr->current_clk_state;
+    rtr->last_sw_state = rtr->current_sw_state;
 
-    if (released)
-    {
-        debug("Button released");
-        return true;
-    }
-    return false;
+    rtr->current_clk_state = gpio_get(rtr->pin_clk);
+    rtr->current_dt_state = gpio_get(rtr->pin_dt);
+    rtr->current_sw_state = gpio_get(rtr->pin_sw);
 }
 
-bool input_rotator_cw(Rotator* rtr)
+void input_btn_update(Button* btn)
 {
-    bool current_clk = gpio_get(rtr->pin_clk);
-    bool is_cw = false;
+    btn->last_state = btn->current_state;
+    btn->current_state = gpio_get(btn->pin);
+}
 
-    if (current_clk != rtr->last_clk_state && current_clk == false)
+bool input_btn_pressed(Button* btn)
+{
+    return btn->last_state == true && btn->current_state == false;
+}
+
+bool input_btn_released(Button* btn)
+{
+    return btn->last_state == false && btn->current_state == true;
+}
+
+bool input_rtr_cw(Rotator* rtr)
+{
+    // Check if CLK changed from HIGH to LOW
+    if (rtr->last_clk_state == true && rtr->current_clk_state == false)
     {
-        bool current_dt = gpio_get(rtr->pin_dt);
-        if (current_dt != current_clk)
+        // If DT is different from CLK, it's clockwise
+        if (rtr->current_dt_state != rtr->current_clk_state)
         {
-            debug("Encoder clockwise");
-            is_cw = true;
+            return true;
         }
     }
-
-    rtr->last_clk_state = current_clk;
-    return is_cw;
+    return false;
 }
 
-bool input_rotator_anti_cw(Rotator* rtr)
+bool input_rtr_anti_cw(Rotator* rtr)
 {
-    bool current_clk = gpio_get(rtr->pin_clk);
-    bool is_anti_cw = false;
-
-    if (current_clk != rtr->last_clk_state && current_clk == false)
+    // Check if CLK changed from HIGH to LOW
+    if (rtr->last_clk_state == true && rtr->current_clk_state == false)
     {
-        bool current_dt = gpio_get(rtr->pin_dt);
-        if (current_dt == current_clk)
+        // If DT is same as CLK, it's anti-clockwise
+        if (rtr->current_dt_state == rtr->current_clk_state)
         {
-            debug("Encoder anti-clockwise");
-            is_anti_cw = true;
+            return true;
         }
     }
-
-    rtr->last_clk_state = current_clk;
-    return is_anti_cw;
-}
-
-bool input_rotator_pressed(Rotator* rtr)
-{
-    bool current_sw = gpio_get(rtr->pin_sw);
-    bool pressed = (rtr->last_sw_state == true && current_sw == false);
-    rtr->last_sw_state = current_sw;
-
-    if (pressed)
-    {
-        debug("Encoder pressed");
-        return true;
-    }
     return false;
 }
 
-bool input_rotator_released(Rotator* rtr)
+bool input_rtr_pressed(Rotator* rtr)
 {
-    bool current_sw = gpio_get(rtr->pin_sw);
-    bool released = (rtr->last_sw_state == false && current_sw == true);
-    rtr->last_sw_state = current_sw;
+    return rtr->last_sw_state == true && rtr->current_sw_state == false;
+}
 
-    if (released)
-    {
-        debug("Encoder released");
-        return true;
-    }
-    return false;
+bool input_rtr_released(Rotator* rtr)
+{
+    return rtr->last_sw_state == false && rtr->current_sw_state == true;
 }
