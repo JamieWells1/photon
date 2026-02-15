@@ -52,7 +52,7 @@ Button* main_init_buttons()
     gpio_set_dir(buttons[1].pin, GPIO_IN);
     gpio_pull_up(buttons[1].pin);
 
-    debug("GPIO pins for buttons initialised");
+    debug("✓ GPIO pins for buttons initialised");
 
     return buttons;
 }
@@ -77,7 +77,7 @@ Rotator* main_init_rotator()
     gpio_set_dir(ROTATOR_SW_PIN, GPIO_IN);
     gpio_pull_up(ROTATOR_SW_PIN);
 
-    debug("GPIO pins for rotary encoder initialised");
+    debug("✓ GPIO pins for rotary encoder initialised");
 
     return &rotator;
 }
@@ -89,7 +89,7 @@ LED* main_init_led()
     uint offset = pio_add_program(pio, &ws2812_program);
 
     ws2812_program_init(pio, sm, offset, LED_MATRIX_PIN, LED_DATA_FREQ, false);
-    debug("WS2812 program initialised");
+    debug("✓ WS2812 program initialised");
 
     static LED led = {.pin = LED_MATRIX_PIN, .pio = pio0, .sm = 0};
     return &led;
@@ -106,24 +106,24 @@ int main()
     }
 
     // Time to screen into program to see debug logs
-    sleep_ms(5000);
+    sleep_ms(2000);
 
     if (DEBUG_LOGS)
     {
-        printf("\n[INFO]: DEBUG MODE ENABLED");
+        printf("[INFO]: DEBUG MODE ENABLED\n");
     }
     else
     {
-        printf("\n[INFO]: DEBUG MODE DISABLED");
+        printf("[INFO]: DEBUG MODE DISABLED\n");
     }
 
     Button* buttons = main_init_buttons();
     Button* button_left = &buttons[0];
     Button* button_right = &buttons[1];
-
     Rotator* rotator = main_init_rotator();
-
     LED* led = main_init_led();
+    
+    debug("✓✓✓ Main init complete. Starting main execution loop.");
 
     while (true)
     {
@@ -136,7 +136,7 @@ int main()
         }
         if (button_right->last_state == false && current_state_right == true)
         {
-            debug("RIGHT RELEASED\n\n");
+            debug("RIGHT RELEASED");
         }
 
         if (button_left->last_state == true && current_state_left == false)
@@ -145,7 +145,7 @@ int main()
         }
         if (button_left->last_state == false && current_state_left == true)
         {
-            debug("LEFT RELEASED\n\n");
+            debug("LEFT RELEASED");
         }
 
         button_right->last_state = current_state_right;
@@ -158,11 +158,11 @@ int main()
             bool current_dt = gpio_get(ROTATOR_DT_PIN);
             if (current_dt != current_clk)
             {
-                debug("Encoder CLOCKWISE\n");
+                debug("Encoder CLOCKWISE");
             }
             else
             {
-                debug("Encoder COUNTER-CLOCKWISE\n");
+                debug("Encoder COUNTER-CLOCKWISE");
             }
         }
         rotator->last_clk_state = current_clk;
@@ -170,11 +170,11 @@ int main()
         bool current_sw = gpio_get(ROTATOR_SW_PIN);
         if (rotator->last_sw_state == true && current_sw == false)
         {
-            debug("ENCODER BUTTON PRESSED\n");
+            debug("ENCODER BUTTON PRESSED");
         }
         if (rotator->last_sw_state == false && current_sw == true)
         {
-            debug("ENCODER BUTTON released\n\n");
+            debug("ENCODER BUTTON released");
         }
         rotator->last_sw_state = current_sw;
 
