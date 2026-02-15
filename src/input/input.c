@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <ws2812.pio.h>
 
-void input_update_inputs(Button* btns, Rotator* rtr)
+void input_update(Button* btns, Rotator* rtr)
 {
     // Update states of left and right buttons
     input_btn_update(&btns[0]);

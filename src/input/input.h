@@ -23,7 +23,7 @@ typedef struct
     bool last_sw_state;
 } Rotator;
 
-void input_update_inputs(Button* btns, Rotator* rtr);
+void input_update(Button* btns, Rotator* rtr);
 
 void input_btn_update(Button* btn);
 void input_rtr_update(Rotator* rtr);

@@ -149,7 +149,7 @@ int main()
 
     while (true)
     {
-        input_update_inputs(buttons, rotator);
+        input_update(buttons, rotator);
         if (DEBUG_MODE)
         {
             debug_inputs(buttons, rotator);
