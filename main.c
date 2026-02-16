@@ -11,6 +11,9 @@
 #include <pico/stdlib.h>
 #include <ws2812.pio.h>
 
+// Define DEBUG_LEVEL here (declared as extern in const.h)
+const DebugLevel DEBUG_LEVEL = TRACE;
+
 void debug_inputs(Button* btns, Rotator* rtr)
 {
     if (input_btn_pressed(&btns[0]))

@@ -2,6 +2,7 @@
 #include <input.h>
 #include <menu.h>
 #include <print.h>
+#include <graphics.h>
 
 #include <stdlib.h>
 
@@ -9,12 +10,14 @@
 
 void menu_start(Button* btns, Rotator* rtr, Matrix* matrix)
 {
+    graphics_display_start_screen(matrix);
+    graphics_display_main_menu(matrix);
+
     Button* btn_left = &btns[0];
     Button* btn_right = &btns[1];
 
     if (input_btn_pressed(btn_right))
     {
-        // Light up random pixel with random color
         int x = rand() % MATRIX_WIDTH;
         int y = rand() % MATRIX_HEIGHT;
         uint8_t r = rand() % 256;

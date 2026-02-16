@@ -8,8 +8,7 @@ typedef enum {
     INFO = 0,
 } DebugLevel;
 
-const DebugLevel DEBUG_LEVEL = TRACE;
-
+extern const DebugLevel DEBUG_LEVEL;
 
 // Matrix layout
 #define MATRIX_WIDTH 32

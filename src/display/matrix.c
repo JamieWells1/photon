@@ -5,15 +5,21 @@
 
 static uint32_t pixels[NUM_PIXELS];
 
-static int matrix_xy_to_index(int x, int y)
+static int matrix_xy_to_index(int input_x, int input_y)
 {
-    if (y % 2 == 0)
+    // Matrix is column-serpentine, starting bottom-right (i=0)
+    // Map (0,0) to top-left: x=0 should be leftmost column, y=0 should be top
+
+    int col = MATRIX_WIDTH - 1 - input_x;
+    int row = input_y;
+
+    if (col % 2 == 0)
     {
-        return y * MATRIX_WIDTH + x;
+        return col * MATRIX_HEIGHT + (MATRIX_HEIGHT - 1 - row);
     }
     else
     {
-        return y * MATRIX_WIDTH + (MATRIX_WIDTH - 1 - x);
+        return col * MATRIX_HEIGHT + row;
     }
 }
 
@@ -37,8 +43,9 @@ void matrix_set_pixel(int x, int y, RGB* col)
         pixels[index] = matrix_rgb_to_grb(&dimmed);
 
         char debug_msg[100];
-        snprintf(debug_msg, sizeof(debug_msg), "Colour (%u, %u, %u) set at pixel (%d, %d)", col->r,
-                 col->g, col->b, x, y);
+        snprintf(debug_msg, sizeof(debug_msg),
+                 "Colour (%u, %u, %u) set at pixel (%d, %d) with index %d", col->r, col->g, col->b,
+                 x, y, index);
         debug(debug_msg);
     }
 }
@@ -60,7 +67,7 @@ void matrix_clear(Matrix* matrix)
         pixels[i] = 0;
     }
     matrix_show(matrix);
-    debug("Matrix cleared");
+    debug("matrix_clear()");
 }
 
 // Show the matrix current state
@@ -70,5 +77,5 @@ void matrix_show(Matrix* matrix)
     {
         pio_sm_put_blocking(matrix->pio, matrix->sm, pixels[i] << 8u);
     }
-    debug("Matrix showing new state");
+    debug("matrix_show()");
 }
