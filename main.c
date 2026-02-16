@@ -1,6 +1,7 @@
 #include <const.h>
 #include <input.h>
 #include <matrix.h>
+#include <menu.h>
 #include <print.h>
 
 #include <stdint.h>
@@ -9,7 +10,6 @@
 
 #include <pico/stdlib.h>
 #include <ws2812.pio.h>
-#include "src/common/const.h"
 
 void debug_inputs(Button* btns, Rotator* rtr)
 {
@@ -152,7 +152,16 @@ int main()
 
     debug("✓✓✓ Main init complete. Starting main execution loop.");
 
-    menu_start(button_left, button_right, rotator, matrix);
+    while (true)
+    {
+        input_update(buttons, rotator);
+        if (DEBUG_LEVEL >= INPUTS)
+        {
+            debug_inputs(buttons, rotator);
+        }
+
+        menu_start(buttons, rotator, matrix);
+    }
 
     // Never reached
     return 0;

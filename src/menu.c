@@ -1,35 +1,36 @@
+#include <const.h>
+#include <input.h>
 #include <menu.h>
-#include "common/const.h"
+#include <print.h>
 
-void menu_start(Button* btn_left, Button* btn_right, Rotator* rtr, Matrix* matrix)
+#include <stdlib.h>
+
+#include <pico/time.h>
+
+void menu_start(Button* btns, Rotator* rtr, Matrix* matrix)
 {
-    while (true)
+    Button* btn_left = &btns[0];
+    Button* btn_right = &btns[1];
+
+    if (input_btn_pressed(btn_right))
     {
-        input_update(buttons, rotator);
-        if (DEBUG_LEVEL >= INPUTS)
-        {
-            debug_inputs(buttons, rotator);
-        }
+        // Light up random pixel with random color
+        int x = rand() % MATRIX_WIDTH;
+        int y = rand() % MATRIX_HEIGHT;
+        uint8_t r = rand() % 256;
+        uint8_t g = rand() % 256;
+        uint8_t b = rand() % 256;
 
-        if (input_btn_pressed(button_right))
-        {
-            // Light up random pixel with random color
-            int x = rand() % MATRIX_WIDTH;
-            int y = rand() % MATRIX_HEIGHT;
-            uint8_t r = rand() % 256;
-            uint8_t g = rand() % 256;
-            uint8_t b = rand() % 256;
+        RGB colour = {.r = r, .g = g, .b = b};
 
-            RGB colour = {.r = r, .g = g, .b = b};
-
-            matrix_set_pixel(x, y, &colour);
-            matrix_show(matrix);
-        }
-        if (input_btn_released(button_right))
-        {
-            matrix_clear(matrix);
-        }
-
-        sleep_ms(10);
+        matrix_set_pixel(x, y, &colour);
+        matrix_show(matrix);
     }
+
+    if (input_btn_released(btn_right))
+    {
+        matrix_clear(matrix);
+    }
+
+    sleep_ms(10);
 }
