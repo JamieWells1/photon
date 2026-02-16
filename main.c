@@ -9,6 +9,7 @@
 
 #include <pico/stdlib.h>
 #include <ws2812.pio.h>
+#include "src/common/const.h"
 
 void debug_inputs(Button* btns, Rotator* rtr)
 {
@@ -126,13 +127,17 @@ int main()
     // Time buffer for screening into program to see initial debug logs
     sleep_ms(100);
 
-    if (DEBUG_MODE)
+    if (DEBUG_LEVEL == TRACE)
     {
-        printf("[INFO]: Debug mode ENABLED. Debug logs will appear.\n");
+        printf("[INFO]: Debug level TRACE. Trace logs will appear.\n");
+    }
+    else if (DEBUG_LEVEL == INPUTS)
+    {
+        printf("[INFO]: Debug level INPUTS. Only debug logs for hardware inputs will appear.\n");
     }
     else
     {
-        printf("[INFO]: Debug mode DISABLED. Debug logs will not appear.\n");
+        printf("[INFO]: Debug level INFO. No debug logs will appear.\n");
     }
     // Get random seed
     srand(get_absolute_time());
@@ -147,35 +152,8 @@ int main()
 
     debug("✓✓✓ Main init complete. Starting main execution loop.");
 
-    while (true)
-    {
-        input_update(buttons, rotator);
-        if (DEBUG_MODE)
-        {
-            debug_inputs(buttons, rotator);
-        }
+    menu_start(button_left, button_right, rotator, matrix);
 
-        if (input_btn_pressed(button_right))
-        {
-            // Light up random pixel with random color
-            int x = rand() % MATRIX_WIDTH;
-            int y = rand() % MATRIX_HEIGHT;
-            uint8_t r = rand() % 256;
-            uint8_t g = rand() % 256;
-            uint8_t b = rand() % 256;
-
-            RGB colour = {.r = r, .g = g, .b = b};
-
-            matrix_set_pixel(x, y, &colour);
-            matrix_show(matrix);
-        }
-        if (input_btn_released(button_right))
-        {
-            matrix_clear(matrix);
-        }
-
-        sleep_ms(10);
-    }
-
+    // Never reached
     return 0;
 }

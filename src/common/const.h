@@ -1,8 +1,15 @@
 #ifndef CONST_H
 #define CONST_H
 
-// Debug mode
-#define DEBUG_MODE 1
+// Log level
+typedef enum {
+    TRACE = 2,
+    INPUTS = 1,
+    INFO = 0,
+} DebugLevel;
+
+const DebugLevel DEBUG_LEVEL = TRACE;
+
 
 // Matrix layout
 #define MATRIX_WIDTH 32

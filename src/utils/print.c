@@ -5,7 +5,7 @@
 
 void debug(const char* str)
 {
-    if (DEBUG_MODE)
+    if (DEBUG_LEVEL == TRACE)
     {
         printf("[DEBUG]: %s\n", str);
     }
