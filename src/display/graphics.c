@@ -6,7 +6,7 @@
 
 void graphics_display_start_screen(Matrix* mtrx)
 {
-    
+    // TODO: Display PHOTON logo
 
     matrix_show(mtrx);
     sleep_ms(2000);
