@@ -59,6 +59,11 @@ set(MENU_SOURCES
         src/menu.c
 )
 
+# Global state
+set(GLOBAL_SOURCES
+        src/global.c
+)
+
 # Middleware
 set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
@@ -86,6 +91,7 @@ add_executable(photon
         ${DISPLAY_SOURCES}
         ${INPUT_SOURCES}
         ${MENU_SOURCES}
+        ${GLOBAL_SOURCES}
         ${MIDDLEWARE_SOURCES}
         ${GAME_SOURCES}
         ${MODE_SOURCES}

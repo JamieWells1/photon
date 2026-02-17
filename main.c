@@ -3,6 +3,7 @@
 #include <matrix.h>
 #include <menu.h>
 #include <print.h>
+#include <global.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -115,6 +116,7 @@ Matrix* main_init_matrix()
     debug("✓ WS2812 program initialised");
 
     static Matrix matrix = {.pin = MATRIX_MATRIX_PIN, .pio = pio0, .sm = 0};
+    MATRIX_ORIENTATION = HORIZONTAL;
     return &matrix;
 }
 
@@ -149,9 +151,9 @@ int main()
     Button* button_left = &buttons[0];
     Button* button_right = &buttons[1];
     Rotator* rotator = main_init_rotator();
-    Matrix* matrix = main_init_matrix();
+    Matrix* mtrx = main_init_matrix();
 
-    matrix_clear(matrix);
+    matrix_clear(mtrx);
 
     debug("✓✓✓ Main init complete. Starting main execution loop.");
 
@@ -163,7 +165,7 @@ int main()
             debug_inputs(buttons, rotator);
         }
 
-        menu_start(buttons, rotator, matrix);
+        menu_start(buttons, rotator, mtrx);
     }
 
     // Never reached

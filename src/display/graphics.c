@@ -1,11 +1,11 @@
 #include <graphics.h>
 
-void graphics_display_start_screen(Matrix* matrix)
+void graphics_display_start_screen(Matrix* mtrx)
 {
     //
 }
 
-void graphics_display_main_menu(Matrix* matrix)
+void graphics_display_main_menu(Matrix* mtrx)
 {
     //
 }

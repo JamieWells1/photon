@@ -34,6 +34,6 @@ typedef struct
     StockMode stock_mode;
 } MenuState;
 
-void menu_start(Button* btns, Rotator* rtr, Matrix* matrix);
+void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx);
 
 #endif  // MENU_H

@@ -21,7 +21,7 @@ typedef struct
 void matrix_set_pixel(int x, int y, RGB* colour);
 void matrix_clear_pixel(int x, int y);
 
-void matrix_show(Matrix* matrix);
-void matrix_clear(Matrix* matrix);
+void matrix_show(Matrix* mtrx);
+void matrix_clear(Matrix* mtrx);
 
 #endif  // MATRIX_H

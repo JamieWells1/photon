@@ -1,17 +1,17 @@
 #include <const.h>
+#include <graphics.h>
 #include <input.h>
 #include <menu.h>
 #include <print.h>
-#include <graphics.h>
 
 #include <stdlib.h>
 
 #include <pico/time.h>
 
-void menu_start(Button* btns, Rotator* rtr, Matrix* matrix)
+void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    graphics_display_start_screen(matrix);
-    graphics_display_main_menu(matrix);
+    graphics_display_start_screen(mtrx);
+    graphics_display_main_menu(mtrx);
 
     Button* btn_left = &btns[0];
     Button* btn_right = &btns[1];
@@ -27,12 +27,12 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* matrix)
         RGB colour = {.r = r, .g = g, .b = b};
 
         matrix_set_pixel(x, y, &colour);
-        matrix_show(matrix);
+        matrix_show(mtrx);
     }
 
     if (input_btn_released(btn_right))
     {
-        matrix_clear(matrix);
+        matrix_clear(mtrx);
     }
 
     sleep_ms(10);
