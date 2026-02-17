@@ -1,9 +1,9 @@
 #include <const.h>
+#include <global.h>
 #include <input.h>
+#include <macro.h>
 #include <matrix.h>
 #include <menu.h>
-#include <print.h>
-#include <global.h>
 
 #include <stdint.h>
 #include <stdio.h>

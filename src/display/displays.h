@@ -1,0 +1,106 @@
+#ifndef DISPLAYS_H
+#define DISPLAYS_H
+
+#include <graphics.h>
+
+static const RGB DEFAULT_COLOUR = {255, 255, 255};
+static const RGB LOGO_COLOUR = {100, 200, 250};
+
+static Pixel ALPHABET[] = {
+    // A
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+};
+
+static Pixel PHOTON_LOGO[] = {
+    // P
+    {1, 1, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {1, 3, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {1, 5, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {3, 1, DEFAULT_COLOUR},
+    {3, 2, DEFAULT_COLOUR},
+    {3, 3, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+
+    // H
+    {5, 1, DEFAULT_COLOUR},
+    {5, 2, DEFAULT_COLOUR},
+    {5, 3, DEFAULT_COLOUR},
+    {5, 4, DEFAULT_COLOUR},
+    {5, 5, DEFAULT_COLOUR},
+    {6, 3, DEFAULT_COLOUR},
+    {7, 1, DEFAULT_COLOUR},
+    {7, 2, DEFAULT_COLOUR},
+    {7, 3, DEFAULT_COLOUR},
+    {7, 4, DEFAULT_COLOUR},
+    {7, 5, DEFAULT_COLOUR},
+
+    // O
+    {9, 1, DEFAULT_COLOUR},
+    {9, 2, DEFAULT_COLOUR},
+    {9, 3, DEFAULT_COLOUR},
+    {9, 4, DEFAULT_COLOUR},
+    {9, 5, DEFAULT_COLOUR},
+    {10, 1, DEFAULT_COLOUR},
+    {10, 5, DEFAULT_COLOUR},
+    {11, 1, DEFAULT_COLOUR},
+    {11, 2, DEFAULT_COLOUR},
+    {11, 3, DEFAULT_COLOUR},
+    {11, 4, DEFAULT_COLOUR},
+    {11, 5, DEFAULT_COLOUR},
+
+    // T
+    {13, 1, DEFAULT_COLOUR},
+    {14, 1, DEFAULT_COLOUR},
+    {15, 1, DEFAULT_COLOUR},
+    {14, 2, DEFAULT_COLOUR},
+    {14, 3, DEFAULT_COLOUR},
+    {14, 4, DEFAULT_COLOUR},
+    {14, 5, DEFAULT_COLOUR},
+
+    // O
+    {17, 1, DEFAULT_COLOUR},
+    {18, 1, DEFAULT_COLOUR},
+    {19, 1, DEFAULT_COLOUR},
+    {17, 2, DEFAULT_COLOUR},
+    {19, 2, DEFAULT_COLOUR},
+    {17, 3, DEFAULT_COLOUR},
+    {19, 3, DEFAULT_COLOUR},
+    {17, 4, DEFAULT_COLOUR},
+    {19, 4, DEFAULT_COLOUR},
+    {17, 5, DEFAULT_COLOUR},
+    {18, 5, DEFAULT_COLOUR},
+    {19, 5, DEFAULT_COLOUR},
+
+    // N
+    {21, 1, DEFAULT_COLOUR},
+    {21, 2, DEFAULT_COLOUR},
+    {21, 3, DEFAULT_COLOUR},
+    {21, 4, DEFAULT_COLOUR},
+    {21, 5, DEFAULT_COLOUR},
+    {22, 2, DEFAULT_COLOUR},
+    {23, 3, DEFAULT_COLOUR},
+    {24, 1, DEFAULT_COLOUR},
+    {24, 2, DEFAULT_COLOUR},
+    {24, 3, DEFAULT_COLOUR},
+    {24, 4, DEFAULT_COLOUR},
+    {24, 5, DEFAULT_COLOUR},
+
+    // Icon
+    {21, 1, DEFAULT_COLOUR},
+};
+
+#endif  // DISPLAYS_H

@@ -2,7 +2,6 @@
 #include <graphics.h>
 #include <input.h>
 #include <menu.h>
-#include <print.h>
 
 #include <stdlib.h>
 
@@ -24,9 +23,10 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
         uint8_t g = rand() % 256;
         uint8_t b = rand() % 256;
 
-        RGB colour = {.r = r, .g = g, .b = b};
+        RGB col = {.r = r, .g = g, .b = b};
+        Pixel pxl = {x, y, col};
 
-        matrix_set_pixel(x, y, &colour);
+        matrix_set_pixel(&pxl);
         matrix_show(mtrx);
     }
 
