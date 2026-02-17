@@ -1,13 +1,24 @@
+// Pre-built display functions for the matrix
+
 #ifndef DISPLAYS_H
 #define DISPLAYS_H
 
 #include <graphics.h>
 
+// Const values
 static const RGB DEFAULT_COLOUR = {255, 255, 255};
 static const RGB LOGO_COLOUR = {100, 200, 250};
 
+// Functions
+void write_letter(const char c, int x, int y);
+void write_word(const char* word, int x, int y);
+
+void draw_horiz_line(int x, int y, int length);
+void draw_vert_line(int x, int y, int length);
+
+// Letters
 static Pixel ALPHABET[] = {
-    // A
+    // A (3x5)
     {0, 0, DEFAULT_COLOUR},
     {0, 1, DEFAULT_COLOUR},
     {0, 2, DEFAULT_COLOUR},
@@ -20,87 +31,304 @@ static Pixel ALPHABET[] = {
     {2, 2, DEFAULT_COLOUR},
     {2, 3, DEFAULT_COLOUR},
     {2, 4, DEFAULT_COLOUR},
-};
 
-static Pixel PHOTON_LOGO[] = {
-    // P
+    // B (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+
+    // C (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+
+    // D (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+
+    // E (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+
+    // F (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+
+    // G (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+
+    // H (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+
+    // I (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
     {1, 1, DEFAULT_COLOUR},
     {1, 2, DEFAULT_COLOUR},
     {1, 3, DEFAULT_COLOUR},
     {1, 4, DEFAULT_COLOUR},
-    {1, 5, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+
+    // J (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
     {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+
+    // K (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+
+    // L (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+
+    // M (5x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+    {3, 1, DEFAULT_COLOUR},
+    {4, 0, DEFAULT_COLOUR},
+    {4, 1, DEFAULT_COLOUR},
+    {4, 2, DEFAULT_COLOUR},
+    {4, 3, DEFAULT_COLOUR},
+    {4, 4, DEFAULT_COLOUR},
+
+    // N (4x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+    {3, 0, DEFAULT_COLOUR},
     {3, 1, DEFAULT_COLOUR},
     {3, 2, DEFAULT_COLOUR},
     {3, 3, DEFAULT_COLOUR},
+    {3, 4, DEFAULT_COLOUR},
+
+    // O (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+
+    // P (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+
+    // Q (4x5)
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+    {3, 1, DEFAULT_COLOUR},
+    {3, 2, DEFAULT_COLOUR},
+    {3, 3, DEFAULT_COLOUR},
+    {3, 4, DEFAULT_COLOUR},
+
+    // R (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+
+    // S (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+
+    // T (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 1, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {1, 3, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+
+    // U (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+
+    // V (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
     {2, 3, DEFAULT_COLOUR},
 
-    // H
-    {5, 1, DEFAULT_COLOUR},
-    {5, 2, DEFAULT_COLOUR},
-    {5, 3, DEFAULT_COLOUR},
-    {5, 4, DEFAULT_COLOUR},
-    {5, 5, DEFAULT_COLOUR},
-    {6, 3, DEFAULT_COLOUR},
-    {7, 1, DEFAULT_COLOUR},
-    {7, 2, DEFAULT_COLOUR},
-    {7, 3, DEFAULT_COLOUR},
-    {7, 4, DEFAULT_COLOUR},
-    {7, 5, DEFAULT_COLOUR},
+    // W (5x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 3, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+    {3, 3, DEFAULT_COLOUR},
+    {4, 0, DEFAULT_COLOUR},
+    {4, 1, DEFAULT_COLOUR},
+    {4, 2, DEFAULT_COLOUR},
+    {4, 3, DEFAULT_COLOUR},
+    {4, 4, DEFAULT_COLOUR},
 
-    // O
-    {9, 1, DEFAULT_COLOUR},
-    {9, 2, DEFAULT_COLOUR},
-    {9, 3, DEFAULT_COLOUR},
-    {9, 4, DEFAULT_COLOUR},
-    {9, 5, DEFAULT_COLOUR},
-    {10, 1, DEFAULT_COLOUR},
-    {10, 5, DEFAULT_COLOUR},
-    {11, 1, DEFAULT_COLOUR},
-    {11, 2, DEFAULT_COLOUR},
-    {11, 3, DEFAULT_COLOUR},
-    {11, 4, DEFAULT_COLOUR},
-    {11, 5, DEFAULT_COLOUR},
+    // X (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
 
-    // T
-    {13, 1, DEFAULT_COLOUR},
-    {14, 1, DEFAULT_COLOUR},
-    {15, 1, DEFAULT_COLOUR},
-    {14, 2, DEFAULT_COLOUR},
-    {14, 3, DEFAULT_COLOUR},
-    {14, 4, DEFAULT_COLOUR},
-    {14, 5, DEFAULT_COLOUR},
+    // Y (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {1, 3, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
 
-    // O
-    {17, 1, DEFAULT_COLOUR},
-    {18, 1, DEFAULT_COLOUR},
-    {19, 1, DEFAULT_COLOUR},
-    {17, 2, DEFAULT_COLOUR},
-    {19, 2, DEFAULT_COLOUR},
-    {17, 3, DEFAULT_COLOUR},
-    {19, 3, DEFAULT_COLOUR},
-    {17, 4, DEFAULT_COLOUR},
-    {19, 4, DEFAULT_COLOUR},
-    {17, 5, DEFAULT_COLOUR},
-    {18, 5, DEFAULT_COLOUR},
-    {19, 5, DEFAULT_COLOUR},
-
-    // N
-    {21, 1, DEFAULT_COLOUR},
-    {21, 2, DEFAULT_COLOUR},
-    {21, 3, DEFAULT_COLOUR},
-    {21, 4, DEFAULT_COLOUR},
-    {21, 5, DEFAULT_COLOUR},
-    {22, 2, DEFAULT_COLOUR},
-    {23, 3, DEFAULT_COLOUR},
-    {24, 1, DEFAULT_COLOUR},
-    {24, 2, DEFAULT_COLOUR},
-    {24, 3, DEFAULT_COLOUR},
-    {24, 4, DEFAULT_COLOUR},
-    {24, 5, DEFAULT_COLOUR},
-
-    // Icon
-    {21, 1, DEFAULT_COLOUR},
+    // Z (3x5)
+    {0, 0, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
 };
 
 #endif  // DISPLAYS_H

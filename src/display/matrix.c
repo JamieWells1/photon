@@ -38,12 +38,15 @@ static void matrix_set_brightness(RGB* col)
     col->b *= BRIGHTNESS_COEFFICIENT;
 }
 
-static const uint32_t matrix_rgb_to_grb(RGB* col) { return (col->g << 16) | (col->r << 8) | col->b; }
+static const uint32_t matrix_rgb_to_grb(RGB* col)
+{
+    return (col->g << 16) | (col->r << 8) | col->b;
+}
 
 // Set a pixel's colour state on the matrix
 void matrix_set_pixel(Pixel* pxl)
 {
-    if (pxl->x >= 0 && pxl->x < MATRIX_WIDTH && pxl->y >= 0 && pxl->y < MATRIX_HEIGHT)
+    if (IN_BOUNDS(pxl->x, pxl->y))
     {
         // Copy RGB object to modify when dimming colour values
         RGB dimmed = pxl->col;
@@ -61,14 +64,14 @@ void matrix_set_pixel(Pixel* pxl)
 
         pixels[index] = matrix_rgb_to_grb(&dimmed);
 
-        debug("Colour (%u, %u, %u) set at pixel (%d, %d) with index %d", pxl->col.r, pxl->col.g, pxl->col.b,
-              pxl->x, pxl->y, index);
+        debug("Colour (%u, %u, %u) set at pixel (%d, %d) with index %d", pxl->col.r, pxl->col.g,
+              pxl->col.b, pxl->x, pxl->y, index);
     }
 }
 
 void matrix_clear_pixel(int x, int y)
 {
-    if (x >= 0 && x < MATRIX_WIDTH && y >= 0)
+    if (IN_BOUNDS(x, y))
     {
         int index;
         if (MATRIX_ORIENTATION == HORIZONTAL)
