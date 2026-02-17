@@ -1,7 +1,8 @@
+#include <menu.h>
+
 #include <const.h>
 #include <graphics.h>
 #include <input.h>
-#include <menu.h>
 
 #include <stdlib.h>
 

@@ -10,6 +10,9 @@ typedef enum {
 
 extern const DebugLevel DEBUG_LEVEL;
 
+// Display
+static const char* PROJECT_NAME = "PHOTON";
+
 // Matrix layout
 #define MATRIX_WIDTH 32
 #define MATRIX_HEIGHT 8

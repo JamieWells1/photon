@@ -1,12 +1,16 @@
-#include <displays.h>
 #include <graphics.h>
-#include <pico/time.h>
+
+#include <displays.h>
+#include <matrix.h>
+#include <const.h>
+
 #include <stdint.h>
-#include "matrix.h"
+
+#include <pico/time.h>
 
 void graphics_display_start_screen(Matrix* mtrx)
 {
-    // TODO: Display PHOTON logo
+    displays_word(PROJECT_NAME, 1, 1, &DEFAULT_COLOUR);
 
     matrix_show(mtrx);
     sleep_ms(2000);

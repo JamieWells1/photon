@@ -6,27 +6,38 @@
 #include <graphics.h>
 #include <macro.h>
 
-// Typedefs
+// ==========================
+// TYPEDEFS
+// ==========================
 typedef struct
 {
     const Pixel* pixels;
     size_t pxl_count;
     int width;
     int height;
-} Letter;
+} Glyph;
 
-// Const values
+// ==========================
+// CONST VALUES
+// ==========================
+
 static const RGB DEFAULT_COLOUR = {255, 255, 255};
 static const RGB LOGO_COLOUR = {100, 200, 250};
 
-// Functions
-void write_letter(const char c, int x, int y, RGB* col);
-void write_word(const char* word, int x, int y, RGB* col);
+// ==========================
+// FUNCTIONS
+// ==========================
 
-void draw_horiz_line(int x, int y, int length);
-void draw_vert_line(int x, int y, int length);
+void displays_letter(const char c, int x, int y, const RGB* col);
+void displays_word(const char* word, int x, int y, const RGB* col);
 
-// Letters
+void draw_horiz_line(int x, int y, int length, const RGB* col);
+void draw_vert_line(int x, int y, int length, const RGB* col);
+
+// ==========================
+// LETTERS
+// ==========================
+
 static const Pixel LETTER_A[] = {
     // 3x5
     {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR},
@@ -206,8 +217,11 @@ static const Pixel LETTER_Z[] = {
     {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
 };
 
-// Alphabet lookup table (index with char - 'A')
-static const Letter ALPHABET[26] = {
+// ==========================
+// ALPHABET LOOKUP TABLE
+// ==========================
+
+static const Glyph ALPHABET[26] = {
     {LETTER_A, ARRAY_SIZE(LETTER_A), 3, 5},  // A
     {LETTER_B, ARRAY_SIZE(LETTER_B), 3, 5},  // B
     {LETTER_C, ARRAY_SIZE(LETTER_C), 3, 5},  // C
@@ -236,13 +250,24 @@ static const Letter ALPHABET[26] = {
     {LETTER_Z, ARRAY_SIZE(LETTER_Z), 3, 5},  // Z
 };
 
-// Icons
-static Pixel Icons[] = {
+// ==========================
+// ICONS
+// ==========================
+
+static const Pixel ICON_PHOTON[] = {
     // Photon icon
     {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR},
     {1, 4, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR},
     {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR}, {3, 0, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR},
     {4, 0, DEFAULT_COLOUR}, {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR},
+};
+
+// ==========================
+// ICON LOOKUP TABLE
+// ==========================
+
+static const Glyph ICONS[1] = {
+    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},  // PHOTON ICON
 };
 
 #endif  // DISPLAYS_H
