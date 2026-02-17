@@ -28,6 +28,7 @@ static int matrix_xy_to_index_horizontal(int input_x, int input_y)
 static int matrix_xy_to_index_vertical(int input_x, int input_y)
 {
     // TODO: when turned 90 degrees clockwise
+    return 0;
 }
 
 static void matrix_set_brightness(RGB* col)
