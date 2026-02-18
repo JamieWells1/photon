@@ -80,3 +80,12 @@ bool input_rtr_released(Rotator* rtr)
 {
     return rtr->last_sw_state == false && rtr->current_sw_state == true;
 }
+
+bool input_any_btn_pressed(Button* btns, Rotator* rtr)
+{
+    if (input_btn_pressed(&btns[0]) || input_btn_pressed(&btns[1]) || input_rtr_pressed(rtr))
+    {
+        return true;
+    }
+    return false;
+}

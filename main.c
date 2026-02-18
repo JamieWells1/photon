@@ -164,8 +164,7 @@ int main()
             debug_inputs(buttons, rotator);
         }
 
-        if (input_btn_pressed(&buttons[0]) || input_btn_pressed(&buttons[1]) ||
-            input_rtr_pressed(rotator))
+        if (input_any_btn_pressed(buttons, rotator))
         {
             menu_active = true;
             graphics_display_start_screen(mtrx);

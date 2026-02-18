@@ -23,7 +23,7 @@ void matrix_clear(Matrix* mtrx);
 void matrix_display_letter(const char c, int x, int y, const RGB* col);
 void matrix_display_icon(IconType icon_type, int x, int y, const RGB* col);
 void matrix_display_word(const char* word, int x, int y, const RGB* col);
-void matrix_display_word_icon_pair(const char* word, const RGB* word_col, IconType icon);
+void matrix_display_word_icon_pair(const char* word, const RGB* word_col, IconType icon, int offset_x);
 
 void matrix_draw_horiz_line(int x, int y, int length, const RGB* col);
 void matrix_clear_horiz_line(int x, int y, int length);

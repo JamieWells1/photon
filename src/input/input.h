@@ -36,4 +36,6 @@ bool input_rtr_anti_cw(Rotator* rtr);
 bool input_rtr_pressed(Rotator* rtr);
 bool input_rtr_released(Rotator* rtr);
 
+bool input_any_btn_pressed(Button* btns, Rotator* rtr);
+
 #endif  // INPUT_H

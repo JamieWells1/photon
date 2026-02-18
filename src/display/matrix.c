@@ -228,11 +228,14 @@ void matrix_draw_vert_line(int x, int y, int length, const RGB* col)
     }
 }
 
-void matrix_display_word_icon_pair(const char* word, const RGB* word_col, IconType icon)
+void matrix_display_word_icon_pair(const char* word, const RGB* word_col, IconType icon, int offset_x)
 {
-    matrix_display_word(word, 1, 1, word_col);
+    matrix_display_word(word, 1 + offset_x, 1, word_col);
 
-    // Start the icon at the end of the screen
-    int icon_x = MATRIX_WIDTH - ICONS_ARR[icon].width - 1;
-    matrix_display_icon(icon, icon_x, 1, NULL);
+    if (strlen(word) <= 6)
+    {
+        // Start the icon at the end of the screen
+        int icon_x = MATRIX_WIDTH - ICONS_ARR[icon].width - 1 + offset_x;
+        matrix_display_icon(icon, icon_x, 1, NULL);
+    }
 }
