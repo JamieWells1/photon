@@ -3,6 +3,7 @@
 
 #include <input.h>
 #include <matrix.h>
+#include <displays.h>
 
 // Main modes
 typedef enum
@@ -10,7 +11,7 @@ typedef enum
     MENU_GAMES,
     MENU_STOCKS,
     MENU_WEATHER
-} MenuMode;
+} ModeType;
 
 // Games sub-modes
 typedef enum
@@ -29,10 +30,22 @@ typedef enum
 // Menu state struct
 typedef struct
 {
-    MenuMode mode;
-    GameMode game_mode;
-    StockMode stock_mode;
+    ModeType main_mode;
+    GameMode sub_game_mode;
+    StockMode sub_stock_mode;
 } MenuState;
+
+// Structs
+typedef struct
+{
+    const ModeType mode;
+    const char* name;
+    const IconType icon;
+} MenuMode;
+
+static const MenuMode MENU_MODES[] = {
+    {MENU_STOCKS, "STOCKS", STOCKS}
+};
 
 void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx);
 

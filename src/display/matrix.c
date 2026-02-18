@@ -1,13 +1,21 @@
+#include <matrix.h>
+
 #include <const.h>
 #include <global.h>
 #include <macro.h>
-#include <matrix.h>
+
+#include <ctype.h>
+#include <string.h>
 
 #include <stdio.h>
 
+// ==========================
+// STATIC
+// ==========================
+
 static uint32_t pixels[NUM_PIXELS];
 
-static const int matrix_xy_to_index_horizontal(int input_x, int input_y)
+static int matrix_xy_to_index_horizontal(int input_x, int input_y)
 {
     // Matrix is column-serpentine, starting bottom-right (i=0)
     // Map (0,0) to top-left: x=0 should be leftmost column, y=0 should be top
@@ -25,7 +33,7 @@ static const int matrix_xy_to_index_horizontal(int input_x, int input_y)
     }
 }
 
-static const int matrix_xy_to_index_vertical(int input_x, int input_y)
+static int matrix_xy_to_index_vertical(int input_x, int input_y)
 {
     // TODO: when turned 90 degrees clockwise
     return 0;
@@ -38,10 +46,24 @@ static void matrix_set_brightness(RGB* col)
     col->b *= BRIGHTNESS_COEFFICIENT;
 }
 
-static const uint32_t matrix_rgb_to_grb(RGB* col)
+static uint32_t matrix_rgb_to_grb(RGB* col) { return (col->g << 16) | (col->r << 8) | col->b; }
+
+
+static const Glyph* matrix_letter_in_pxls(char ch)
 {
-    return (col->g << 16) | (col->r << 8) | col->b;
+    ch = toupper(ch);
+
+    if (ch < 'A' || ch > 'Z')
+    {
+        return NULL;
+    }
+
+    return &ALPHABET[ch - 'A'];
 }
+
+// ==========================
+// PUBLIC
+// ==========================
 
 // Set a pixel's colour state on the matrix
 void matrix_set_pixel(Pixel* pxl)
@@ -102,4 +124,91 @@ void matrix_show(Matrix* mtrx)
         pio_sm_put_blocking(mtrx->pio, mtrx->sm, pixels[i] << 8u);
     }
     debug("matrix_show()");
+}
+
+// Only writes letter to state, not matrix
+void matrix_display_letter(const char c, int x, int y, const RGB* col)
+{
+    const Glyph* letter = matrix_letter_in_pxls(c);
+    if (!letter)
+    {
+        debug("Cannot display invalid character: '%c'", c);
+        return;
+    }
+
+    for (size_t i = 0; i < letter->pxl_count; i++)
+    {
+        int transformed_x = letter->pixels[i].x + x;
+        int transformed_y = letter->pixels[i].y + y;
+
+        if (!IN_BOUNDS(transformed_x, transformed_y)) continue;
+
+        Pixel pxl = {transformed_x, transformed_y, *col};
+        matrix_set_pixel(&pxl);
+        debug("Character '%c' set on matrix, position (%d, %d)", c, transformed_x, transformed_y);
+    }
+}
+
+void displays_icon(IconType icon_type, int x, int y, const RGB* col)
+{
+    const Glyph* letter = &ICONS_ARR[icon_type];
+
+    for (size_t i = 0; i < letter->pxl_count; i++)
+    {
+        int transformed_x = letter->pixels[i].x + x;
+        int transformed_y = letter->pixels[i].y + y;
+
+        if (!IN_BOUNDS(transformed_x, transformed_y)) continue;
+
+        Pixel pxl = {transformed_x, transformed_y, *col};
+        matrix_set_pixel(&pxl);
+    }
+}
+
+// Only writes word to state, not matrix
+void matrix_display_word(const char* word, int x, int y, const RGB* col)
+{
+    int current_x = x;
+
+    for (size_t i = 0; i < strlen(word); i++)
+    {
+        char ch = word[i];
+        const Glyph* letter = matrix_letter_in_pxls(ch);
+
+        if (!letter)
+        {
+            current_x += 2;
+            continue;
+        }
+
+        matrix_display_letter(ch, current_x, y, col);
+
+        current_x += letter->width;
+        if (i < strlen(word) - 1)
+        {
+            current_x++;
+        }
+    }
+}
+
+void matrix_draw_horiz_line(int x, int y, int length, const RGB* col)
+{
+    int current_x = x;
+    for (int i = 0; i < length; i++)
+    {
+        Pixel pxl = {current_x, y, *col};
+        matrix_set_pixel(&pxl);
+        current_x++;
+    }
+}
+
+void matrix_draw_vert_line(int x, int y, int length, const RGB* col)
+{
+    int current_y = y;
+    for (int i = 0; i < length; i++)
+    {
+        Pixel pxl = {x, current_y, *col};
+        matrix_set_pixel(&pxl);
+        current_y++;
+    }
 }

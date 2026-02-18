@@ -147,8 +147,6 @@ int main()
     }
 
     Button* buttons = main_init_buttons();
-    Button* button_left = &buttons[0];
-    Button* button_right = &buttons[1];
     Rotator* rotator = main_init_rotator();
     Matrix* mtrx = main_init_matrix();
 
@@ -168,6 +166,7 @@ int main()
         }
 
         menu_start(buttons, rotator, mtrx);
+        sleep_ms(10);
     }
 
     // Never reached

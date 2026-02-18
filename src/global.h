@@ -3,6 +3,7 @@
 
 // For global state
 
+#include "menu.h"
 typedef enum
 {
     HORIZONTAL,
@@ -10,5 +11,7 @@ typedef enum
 } MatrixOrientation;
 
 extern MatrixOrientation MATRIX_ORIENTATION;
+
+extern MenuState MENU_STATE;
 
 #endif // GLOBAL_H

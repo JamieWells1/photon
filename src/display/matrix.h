@@ -1,6 +1,8 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+#include <displays.h>
+
 #include <stdint.h>
 #include <ws2812.pio.h>
 
@@ -11,24 +13,18 @@ typedef struct
     uint8_t sm;
 } Matrix;
 
-typedef struct
-{
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-} RGB;
-
-typedef struct
-{
-    uint8_t x;
-    uint8_t y;
-    RGB col;
-} Pixel;
-
 void matrix_set_pixel(Pixel* pxl);
 void matrix_clear_pixel(int x, int y);
 
 void matrix_show(Matrix* mtrx);
 void matrix_clear(Matrix* mtrx);
+
+
+void matrix_display_letter(const char c, int x, int y, const RGB* col);
+void matrix_display_icon(IconType icon_type, int x, int y, const RGB* col);
+void matrix_display_word(const char* word, int x, int y, const RGB* col);
+
+void matrix_draw_horiz_line(int x, int y, int length, const RGB* col);
+void matrix_draw_vert_line(int x, int y, int length, const RGB* col);
 
 #endif  // MATRIX_H

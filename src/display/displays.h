@@ -3,12 +3,29 @@
 #ifndef DISPLAYS_H
 #define DISPLAYS_H
 
-#include <graphics.h>
 #include <macro.h>
+
+#include <stddef.h>
+#include <stdint.h>
 
 // ==========================
 // TYPEDEFS
 // ==========================
+
+typedef struct
+{
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+} RGB;
+
+typedef struct
+{
+    uint8_t x;
+    uint8_t y;
+    RGB col;
+} Pixel;
+
 typedef struct
 {
     const Pixel* pixels;
@@ -18,28 +35,22 @@ typedef struct
 } Glyph;
 
 // When adding to this enum, also add the icon to the end of the ICONS array
-typedef enum {
+typedef enum
+{
     PHOTON = 0,
+    STOCKS,
     ICON_COUNT
 } IconType;
 
 // ==========================
-// CONST VALUES
+// COLOURS
 // ==========================
 
 static const RGB DEFAULT_COLOUR = {255, 255, 255};
 static const RGB LOGO_COLOUR = {100, 200, 250};
 
-// ==========================
-// FUNCTIONS
-// ==========================
-
-void displays_letter(const char c, int x, int y, const RGB* col);
-void displays_icon(IconType icon_type, int x, int y, const RGB* col);
-void displays_word(const char* word, int x, int y, const RGB* col);
-
-void draw_horiz_line(int x, int y, int length, const RGB* col);
-void draw_vert_line(int x, int y, int length, const RGB* col);
+static const RGB STOCKS_GREEN = {50, 200, 50};
+static const RGB STOCKS_RED = {200, 50, 50};
 
 // ==========================
 // LETTERS
@@ -269,12 +280,19 @@ static const Pixel ICON_PHOTON[] = {
     {4, 0, DEFAULT_COLOUR}, {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR},
 };
 
+static const Pixel ICON_STOCKS[] = {
+    // Stock chart: downward trend (red) then upward trend (green)
+    {0, 4, STOCKS_GREEN}, {0, 3, STOCKS_GREEN}, {1, 2, STOCKS_GREEN}, {2, 3, STOCKS_RED},
+    {3, 2, STOCKS_GREEN}, {4, 1, STOCKS_GREEN}, {4, 0, STOCKS_GREEN},
+};
+
 // ==========================
 // ICON LOOKUP TABLE
 // ==========================
 
-static const Glyph ICONS[1] = {
+static const Glyph ICONS_ARR[2] = {
     {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},  // PHOTON ICON
+    {ICON_STOCKS, ARRAY_SIZE(ICON_STOCKS), 5, 5},  // STOCKS ICON
 };
 
 #endif  // DISPLAYS_H
