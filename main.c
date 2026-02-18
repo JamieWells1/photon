@@ -1,5 +1,6 @@
 #include <const.h>
 #include <global.h>
+#include <graphics.h>
 #include <input.h>
 #include <macro.h>
 #include <matrix.h>
@@ -112,10 +113,10 @@ Matrix* main_init_matrix()
     int sm = 0;
     uint offset = pio_add_program(pio, &ws2812_program);
 
-    ws2812_program_init(pio, sm, offset, MATRIX_MATRIX_PIN, MATRIX_DATA_FREQ, false);
+    ws2812_program_init(pio, sm, offset, MATRIX_DIN_PIN, MATRIX_DATA_FREQ, false);
     debug("✓ WS2812 program initialised");
 
-    static Matrix matrix = {.pin = MATRIX_MATRIX_PIN, .pio = pio0, .sm = 0};
+    static Matrix matrix = {.pin = MATRIX_DIN_PIN, .pio = pio0, .sm = 0};
     MATRIX_ORIENTATION = HORIZONTAL;
     return &matrix;
 }
@@ -144,8 +145,6 @@ int main()
     {
         printf("[INFO]: Debug level INFO. No debug logs will appear.\n");
     }
-    // Get random seed
-    srand(get_absolute_time());
 
     Button* buttons = main_init_buttons();
     Button* button_left = &buttons[0];
@@ -156,6 +155,9 @@ int main()
     matrix_clear(mtrx);
 
     debug("✓✓✓ Main init complete. Starting main execution loop.");
+
+    graphics_display_start_screen(mtrx);
+    graphics_display_main_menu(mtrx);
 
     while (true)
     {

@@ -48,7 +48,7 @@ set(COMMON_SOURCES
 set(DISPLAY_SOURCES
         src/display/graphics.c
         src/display/matrix.c
-        src/display/displays.h
+        src/display/displays.c
 )
 
 # Input handling
@@ -101,6 +101,14 @@ pico_generate_pio_header(photon ${CMAKE_CURRENT_LIST_DIR}/pio/ws2812.pio)
 
 pico_enable_stdio_uart(photon 0)
 pico_enable_stdio_usb(photon 1)
+
+# Enable strict compiler warnings to catch bugs early
+target_compile_options(photon PRIVATE
+        -Wall
+        -Wextra
+        -Werror=return-type
+        -Wno-unused-parameter
+)
 
 target_link_libraries(photon
         pico_stdlib)

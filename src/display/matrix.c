@@ -55,17 +55,14 @@ void matrix_set_pixel(Pixel* pxl)
         int index = 0;
         if (MATRIX_ORIENTATION == HORIZONTAL)
         {
-            int index = matrix_xy_to_index_horizontal(pxl->x, pxl->y);
+            index = matrix_xy_to_index_horizontal(pxl->x, pxl->y);
         }
         else
         {
-            int index = matrix_xy_to_index_vertical(pxl->x, pxl->y);
+            index = matrix_xy_to_index_vertical(pxl->x, pxl->y);
         }
 
         pixels[index] = matrix_rgb_to_grb(&dimmed);
-
-        debug("Colour (%u, %u, %u) set at pixel (%d, %d) with index %d", pxl->col.r, pxl->col.g,
-              pxl->col.b, pxl->x, pxl->y, index);
     }
 }
 
@@ -76,11 +73,11 @@ void matrix_clear_pixel(int x, int y)
         int index;
         if (MATRIX_ORIENTATION == HORIZONTAL)
         {
-            int index = matrix_xy_to_index_horizontal(x, y);
+            index = matrix_xy_to_index_horizontal(x, y);
         }
         else
         {
-            int index = matrix_xy_to_index_vertical(x, y);
+            index = matrix_xy_to_index_vertical(x, y);
         }
         pixels[index] = 0;
     }

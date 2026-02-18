@@ -1,9 +1,10 @@
-#include <const.h>
-#include <hardware/gpio.h>
 #include <input.h>
-#include <print.h>
+
+#include <const.h>
 
 #include <stdint.h>
+
+#include <hardware/gpio.h>
 #include <ws2812.pio.h>
 
 void input_update(Button* btns, Rotator* rtr)

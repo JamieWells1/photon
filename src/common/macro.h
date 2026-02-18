@@ -8,7 +8,28 @@
 
 // Debug levels
 #if DEBUG_LEVEL == TRACE
-#define debug(fmt, ...) printf("[DEBUG] %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define debug(fmt, ...) printf("[TRACE] %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define debug(fmt, ...) ((void)0)
 #endif
+
+// Assert macro that panics with useful information
+#define ASSERT(condition, msg, ...)                                                                \
+    do {                                                                                           \
+        if (!(condition)) {                                                                        \
+            printf("\n*** ASSERTION FAILED ***\n");                                               \
+            printf("File: %s\n", __FILE__);                                                        \
+            printf("Line: %d\n", __LINE__);                                                        \
+            printf("Condition: %s\n", #condition);                                                 \
+            printf("Message: " msg "\n", ##__VA_ARGS__);                                           \
+            panic("Assertion failed: %s", #condition);                                             \
+        }                                                                                          \
+    } while (0)
+
+// Null pointer check
+#define ASSERT_NOT_NULL(ptr) ASSERT((ptr) != NULL, "Pointer '%s' is NULL", #ptr)
+
+// Bounds check
+#define ASSERT_IN_RANGE(value, min, max)                                                           \
+    ASSERT((value) >= (min) && (value) <= (max), "Value %d out of range [%d, %d]", (int)(value),  \
+           (int)(min), (int)(max))

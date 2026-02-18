@@ -17,6 +17,12 @@ typedef struct
     int height;
 } Glyph;
 
+// When adding to this enum, also add the icon to the end of the ICONS array
+typedef enum {
+    PHOTON = 0,
+    ICON_COUNT
+} IconType;
+
 // ==========================
 // CONST VALUES
 // ==========================
@@ -29,6 +35,7 @@ static const RGB LOGO_COLOUR = {100, 200, 250};
 // ==========================
 
 void displays_letter(const char c, int x, int y, const RGB* col);
+void displays_icon(IconType icon_type, int x, int y, const RGB* col);
 void displays_word(const char* word, int x, int y, const RGB* col);
 
 void draw_horiz_line(int x, int y, int length, const RGB* col);

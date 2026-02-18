@@ -38,6 +38,23 @@ void displays_letter(const char c, int x, int y, const RGB* col)
 
         Pixel pxl = {transformed_x, transformed_y, *col};
         matrix_set_pixel(&pxl);
+        debug("Character '%c' set on matrix, position (%d, %d)", c, transformed_x, transformed_y);
+    }
+}
+
+void displays_icon(IconType icon_type, int x, int y, const RGB* col)
+{
+    const Glyph* letter = &ICONS[icon_type];
+
+    for (size_t i = 0; i < letter->pxl_count; i++)
+    {
+        int transformed_x = letter->pixels[i].x + x;
+        int transformed_y = letter->pixels[i].y + y;
+
+        if (!IN_BOUNDS(transformed_x, transformed_y)) continue;
+
+        Pixel pxl = {transformed_x, transformed_y, *col};
+        matrix_set_pixel(&pxl);
     }
 }
 
@@ -51,16 +68,19 @@ void displays_word(const char* word, int x, int y, const RGB* col)
         char ch = word[i];
         const Glyph* letter = displays_letter_in_pxls(ch);
 
-        // Determine where to write next letter, accounting for 1px gap
-        int letter_width = letter->width;
-        if (i > 0 && i != strlen(word) - 1)
+        if (!letter)
         {
-            // Gap in between each letter exluding first and last
-            letter_width++;
+            current_x += 2;
+            continue;
         }
-        current_x += letter_width;
 
         displays_letter(ch, current_x, y, col);
+
+        current_x += letter->width;
+        if (i < strlen(word) - 1)
+        {
+            current_x++;
+        }
     }
 }
 
