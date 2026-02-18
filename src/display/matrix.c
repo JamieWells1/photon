@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include <stdio.h>
+#include "displays.h"
 
 // ==========================
 // STATIC
@@ -47,7 +48,6 @@ static void matrix_set_brightness(RGB* col)
 }
 
 static uint32_t matrix_rgb_to_grb(RGB* col) { return (col->g << 16) | (col->r << 8) | col->b; }
-
 
 static const Glyph* matrix_letter_in_pxls(char ch)
 {
@@ -149,7 +149,7 @@ void matrix_display_letter(const char c, int x, int y, const RGB* col)
     }
 }
 
-void displays_icon(IconType icon_type, int x, int y, const RGB* col)
+void matrix_display_icon(IconType icon_type, int x, int y, const RGB* col)
 {
     const Glyph* letter = &ICONS_ARR[icon_type];
 
@@ -160,7 +160,10 @@ void displays_icon(IconType icon_type, int x, int y, const RGB* col)
 
         if (!IN_BOUNDS(transformed_x, transformed_y)) continue;
 
-        Pixel pxl = {transformed_x, transformed_y, *col};
+        // Use icon's own color if no override provided
+        const RGB* pixel_col = col ? col : &letter->pixels[i].col;
+
+        Pixel pxl = {transformed_x, transformed_y, *pixel_col};
         matrix_set_pixel(&pxl);
     }
 }
@@ -200,6 +203,18 @@ void matrix_draw_horiz_line(int x, int y, int length, const RGB* col)
         matrix_set_pixel(&pxl);
         current_x++;
     }
+    debug("matrix_draw_horiz_line() of length %d at (%d, %d)", length, x, y);
+}
+
+void matrix_clear_horiz_line(int x, int y, int length)
+{
+    int current_x = x;
+    for (int i = 0; i < length; i++)
+    {
+        matrix_clear_pixel(current_x, y);
+        current_x++;
+    }
+    debug("matrix_clear_horiz_line() of length %d at (%d, %d)", length, x, y);
 }
 
 void matrix_draw_vert_line(int x, int y, int length, const RGB* col)
@@ -211,4 +226,13 @@ void matrix_draw_vert_line(int x, int y, int length, const RGB* col)
         matrix_set_pixel(&pxl);
         current_y++;
     }
+}
+
+void matrix_display_word_icon_pair(const char* word, const RGB* word_col, IconType icon)
+{
+    matrix_display_word(word, 1, 1, word_col);
+
+    // Start the icon at the end of the screen
+    int icon_x = MATRIX_WIDTH - ICONS_ARR[icon].width - 1;
+    matrix_display_icon(icon, icon_x, 1, NULL);
 }

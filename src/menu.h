@@ -1,16 +1,16 @@
 #ifndef MENU_H
 #define MENU_H
 
+#include <displays.h>
 #include <input.h>
 #include <matrix.h>
-#include <displays.h>
 
 // Main modes
 typedef enum
 {
-    MENU_GAMES,
-    MENU_STOCKS,
-    MENU_WEATHER
+    MENU_STOCKS = 0,
+    MENU_GAMES = 1,
+    MENU_WEATHER = 2,
 } ModeType;
 
 // Games sub-modes
@@ -43,8 +43,10 @@ typedef struct
     const IconType icon;
 } MenuMode;
 
-static const MenuMode MENU_MODES[] = {
-    {MENU_STOCKS, "STOCKS", STOCKS}
+static const MenuMode MENU_MODES[3] = {
+    {MENU_STOCKS, "STOCKS", STOCKS},
+    {MENU_GAMES, "GAMES", GAMES},
+    {MENU_WEATHER, "WEATHER", WEATHER},
 };
 
 void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx);

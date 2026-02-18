@@ -38,7 +38,9 @@ typedef struct
 typedef enum
 {
     PHOTON = 0,
-    STOCKS,
+    STOCKS = 1,
+    GAMES = 2,
+    WEATHER = 3,
     ICON_COUNT
 } IconType;
 
@@ -49,8 +51,9 @@ typedef enum
 static const RGB DEFAULT_COLOUR = {255, 255, 255};
 static const RGB LOGO_COLOUR = {100, 200, 250};
 
-static const RGB STOCKS_GREEN = {50, 200, 50};
-static const RGB STOCKS_RED = {200, 50, 50};
+static const RGB GREEN = {50, 200, 50};
+static const RGB RED = {200, 50, 50};
+static const RGB YELLOW = {250, 200, 50};
 
 // ==========================
 // LETTERS
@@ -274,25 +277,41 @@ static const Glyph ALPHABET[26] = {
 
 static const Pixel ICON_PHOTON[] = {
     // Photon icon
-    {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR},
-    {1, 4, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR},
-    {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR}, {3, 0, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR},
-    {4, 0, DEFAULT_COLOUR}, {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR},
+    {0, 2, LOGO_COLOUR}, {0, 3, LOGO_COLOUR}, {0, 4, LOGO_COLOUR}, {1, 2, LOGO_COLOUR},
+    {1, 4, LOGO_COLOUR}, {2, 0, LOGO_COLOUR}, {2, 1, LOGO_COLOUR}, {2, 2, LOGO_COLOUR},
+    {2, 3, LOGO_COLOUR}, {2, 4, LOGO_COLOUR}, {3, 0, LOGO_COLOUR}, {3, 2, LOGO_COLOUR},
+    {4, 0, LOGO_COLOUR}, {4, 1, LOGO_COLOUR}, {4, 2, LOGO_COLOUR},
 };
 
 static const Pixel ICON_STOCKS[] = {
-    // Stock chart: downward trend (red) then upward trend (green)
-    {0, 4, STOCKS_GREEN}, {0, 3, STOCKS_GREEN}, {1, 2, STOCKS_GREEN}, {2, 3, STOCKS_RED},
-    {3, 2, STOCKS_GREEN}, {4, 1, STOCKS_GREEN}, {4, 0, STOCKS_GREEN},
+    {0, 4, GREEN}, {0, 3, GREEN}, {1, 2, RED}, {2, 3, RED},
+    {3, 2, GREEN}, {4, 1, GREEN}, {4, 0, GREEN},
+};
+
+static const Pixel ICON_GAMES[] = {
+    {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR}, {1, 1, GREEN},          {1, 2, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR}, {3, 0, DEFAULT_COLOUR}, {3, 1, RED},
+    {3, 2, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR}, {4, 3, DEFAULT_COLOUR},
+    {4, 4, DEFAULT_COLOUR},
+};
+
+static const Pixel ICON_WEATHER[] = {
+    {0, 4, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR}, {2, 0, YELLOW},
+    {2, 1, YELLOW},         {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+    {3, 0, YELLOW},         {3, 1, YELLOW},         {3, 2, YELLOW},         {3, 3, DEFAULT_COLOUR},
+    {3, 4, DEFAULT_COLOUR}, {4, 0, YELLOW},         {4, 1, YELLOW},         {4, 2, YELLOW},
 };
 
 // ==========================
 // ICON LOOKUP TABLE
 // ==========================
 
-static const Glyph ICONS_ARR[2] = {
-    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},  // PHOTON ICON
-    {ICON_STOCKS, ARRAY_SIZE(ICON_STOCKS), 5, 5},  // STOCKS ICON
+static const Glyph ICONS_ARR[4] = {
+    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},    // PHOTON ICON
+    {ICON_STOCKS, ARRAY_SIZE(ICON_STOCKS), 5, 5},    // STOCKS ICON
+    {ICON_GAMES, ARRAY_SIZE(ICON_GAMES), 5, 5},      // GAMES ICON
+    {ICON_WEATHER, ARRAY_SIZE(ICON_WEATHER), 5, 5},  // WEATHER ICON
 };
 
 #endif  // DISPLAYS_H

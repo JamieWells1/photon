@@ -151,11 +151,10 @@ int main()
     Matrix* mtrx = main_init_matrix();
 
     matrix_clear(mtrx);
-
     debug("✓✓✓ Main init complete. Starting main execution loop.");
+    debug("PRESS ANY BUTTON TO START");
 
-    graphics_display_start_screen(mtrx);
-    graphics_display_main_menu(mtrx);
+    bool menu_active = false;
 
     while (true)
     {
@@ -165,7 +164,19 @@ int main()
             debug_inputs(buttons, rotator);
         }
 
-        menu_start(buttons, rotator, mtrx);
+        if (input_btn_pressed(&buttons[0]) || input_btn_pressed(&buttons[1]) ||
+            input_rtr_pressed(rotator))
+        {
+            menu_active = true;
+            graphics_display_start_screen(mtrx);
+            debug("Menu activated!");
+        }
+
+        if (menu_active)
+        {
+            menu_start(buttons, rotator, mtrx);
+        }
+
         sleep_ms(10);
     }
 
