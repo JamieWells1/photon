@@ -60,6 +60,9 @@ static void slide_menu_right(Matrix* mtrx)
     int index_next = (MENU_STATE.main_mode + 1) % ARRAY_SIZE(MENU_MODES);
     MenuMode nextMode = MENU_MODES[index_next];
 
+    // Quadratic smoothing for sliding menu
+    int sliding_coefficient = -(MATRIX_WIDTH / 2);
+
     for (int offset = 0; offset <= MATRIX_WIDTH; offset++)
     {
         matrix_clear(mtrx);
@@ -71,7 +74,8 @@ static void slide_menu_right(Matrix* mtrx)
                                       MATRIX_WIDTH - offset);
 
         matrix_show(mtrx);
-        sleep_ms(20);
+        sleep_ms((sliding_coefficient * sliding_coefficient) / 10);
+        sliding_coefficient++;
     }
 
     MENU_STATE.main_mode = index_next;

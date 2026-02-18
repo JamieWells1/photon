@@ -46,7 +46,7 @@ typedef struct
 static const MenuMode MENU_MODES[3] = {
     {MENU_STOCKS, "STOCKS", STOCKS},
     {MENU_GAMES, "GAMES", GAMES},
-    {MENU_WEATHER, "WTHR", WEATHER},
+    {MENU_WEATHER, "TEMP", WEATHER},
 };
 
 void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx);

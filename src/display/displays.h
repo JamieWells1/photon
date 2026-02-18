@@ -54,6 +54,7 @@ static const RGB LOGO_COLOUR = {100, 200, 250};
 static const RGB GREEN = {50, 200, 50};
 static const RGB RED = {200, 50, 50};
 static const RGB YELLOW = {250, 200, 50};
+static const RGB LIGHT_BLUE = {150, 250, 250};
 
 // ==========================
 // LETTERS
@@ -289,11 +290,11 @@ static const Pixel ICON_STOCKS[] = {
 };
 
 static const Pixel ICON_GAMES[] = {
-    {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR},
-    {1, 0, DEFAULT_COLOUR}, {1, 1, GREEN},          {1, 2, DEFAULT_COLOUR},
-    {2, 1, DEFAULT_COLOUR}, {3, 0, DEFAULT_COLOUR}, {3, 1, RED},
-    {3, 2, DEFAULT_COLOUR}, {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR}, {4, 3, DEFAULT_COLOUR},
-    {4, 4, DEFAULT_COLOUR},
+    {0, 1, LIGHT_BLUE}, {0, 2, LIGHT_BLUE}, {0, 3, LIGHT_BLUE}, {0, 4, LIGHT_BLUE},
+    {1, 0, LIGHT_BLUE}, {1, 1, GREEN},          {1, 2, LIGHT_BLUE},
+    {2, 1, LIGHT_BLUE}, {3, 0, LIGHT_BLUE}, {3, 1, RED},
+    {3, 2, LIGHT_BLUE}, {4, 1, LIGHT_BLUE}, {4, 2, LIGHT_BLUE}, {4, 3, LIGHT_BLUE},
+    {4, 4, LIGHT_BLUE},
 };
 
 static const Pixel ICON_WEATHER[] = {
