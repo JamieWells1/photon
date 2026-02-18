@@ -27,12 +27,20 @@ typedef enum
     STOCK_AAPL
 } StockMode;
 
+// Weather sub-modes
+typedef enum
+{
+    WEATHER_CURRENT,
+    WEATHER_HOURLY,
+} WeatherMode;
+
 // Menu state struct
 typedef struct
 {
     ModeType main_mode;
     GameMode sub_game_mode;
     StockMode sub_stock_mode;
+    WeatherMode sub_weather_mode;
 } MenuState;
 
 // Structs
