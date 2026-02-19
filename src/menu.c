@@ -122,6 +122,34 @@ static void slide_menu_left(Matrix* mtrx)
     reset_states(mtrx);
 }
 
+static void menu_display_stock(StockMode stock_to_display)
+{
+    //
+}
+
+static void menu_display_game(GameMode game_to_display)
+{
+    //
+}
+
+static void menu_display_weather(WeatherMode weather_mode)
+{
+    //
+}
+
+static void menu_enter_sub_menu(ModeType main_menu_mode)
+{
+    switch (main_menu_mode)
+    {
+        case MENU_STOCKS:
+            menu_display_stock(MENU_STATE.sub_stock_mode);
+        case MENU_GAMES:
+            menu_display_game(MENU_STATE.sub_game_mode);
+        case MENU_WEATHER:
+            menu_display_weather(MENU_STATE.sub_weather_mode);
+    }
+}
+
 void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     // Reset to avoid integer overflow for long running idle programs
@@ -149,5 +177,10 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
     if (input_rtr_anti_cw(rtr))
     {
         slide_menu_left(mtrx);
+    }
+
+    if (input_any_btn_pressed(btns, rtr))
+    {
+        menu_enter_sub_menu(MENU_STATE.main_mode);
     }
 }
