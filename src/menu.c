@@ -104,14 +104,14 @@ static void slide_menu_left(Matrix* mtrx)
     }
     MenuMode nextMode = MENU_MODES[index_previous];
 
-    slide_menu(mtrx, currentMode, nextMode, -1);
+    slide_menu(mtrx, currentMode, nextMode, 1);
     MENU_STATE.main_mode = index_previous;
     reset_states(mtrx);
 }
 
 static void menu_enter_sub_menu(MainMode main_menu_mode)
 {
-    //
+    // TODO
 }
 
 void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
