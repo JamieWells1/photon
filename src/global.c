@@ -4,4 +4,4 @@
 MatrixOrientation MATRIX_ORIENTATION = HORIZONTAL;
 
 MenuState MENU_STATE = {
-    .main_mode = MENU_STOCKS, .sub_stock_mode = STOCK_BTC, .sub_game_mode = GAME_TETRIS};
+    .main_mode = MENU_STOCKS, .sub_mode = TKR_BTC};

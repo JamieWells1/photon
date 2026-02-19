@@ -3,7 +3,8 @@
 
 // For global state
 
-#include "menu.h"
+#include <menu.h>
+
 typedef enum
 {
     HORIZONTAL,

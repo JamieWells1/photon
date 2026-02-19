@@ -6,9 +6,9 @@
 #include <input.h>
 #include <matrix.h>
 
+#include <displays.h>
 #include <pico/time.h>
 #include <stdlib.h>
-#include "displays.h"
 
 static bool display_initialized = false;
 static int tick = 0;
@@ -34,7 +34,7 @@ static void menu_set_initial_display()
     // MenuState already initialised in global.c
     MenuMode currentMode = MENU_MODES[MENU_STATE.main_mode];
 
-    matrix_display_word_icon_pair(currentMode.name, &DEFAULT_COLOUR, currentMode.icon, 0);
+    matrix_display_word_icon_pair(currentMode.text, &DEFAULT_COLOUR, currentMode.icon, 0);
     display_initialized = true;
 }
 
@@ -50,6 +50,27 @@ static void reset_states(Matrix* mtrx)
     matrix_show(mtrx);
 }
 
+static void slide_menu(Matrix* mtrx, MenuMode currentMode, MenuMode nextMode, int direction)
+{
+    int sliding_coefficient = -(MATRIX_WIDTH / 2);
+    for (int offset = 0; offset <= MATRIX_WIDTH; offset++)
+    {
+        matrix_clear(mtrx);
+
+        // Move current out
+        matrix_display_word_icon_pair(currentMode.text, &DEFAULT_COLOUR, currentMode.icon,
+                                      direction * offset);
+        // Move next in
+        matrix_display_word_icon_pair(nextMode.text, &DEFAULT_COLOUR, nextMode.icon,
+                                      direction * offset - (direction * MATRIX_WIDTH));
+
+        matrix_show(mtrx);
+        // Quadratic smoothing for sliding menu
+        sleep_ms((sliding_coefficient * sliding_coefficient) / 10);
+        sliding_coefficient++;
+    }
+}
+
 // From clockwise turn
 static void slide_menu_right(Matrix* mtrx)
 {
@@ -60,24 +81,7 @@ static void slide_menu_right(Matrix* mtrx)
     int index_next = (MENU_STATE.main_mode + 1) % ARRAY_SIZE(MENU_MODES);
     MenuMode nextMode = MENU_MODES[index_next];
 
-    // Quadratic smoothing for sliding menu
-    int sliding_coefficient = -(MATRIX_WIDTH / 2);
-
-    for (int offset = 0; offset <= MATRIX_WIDTH; offset++)
-    {
-        matrix_clear(mtrx);
-
-        // Move current out
-        matrix_display_word_icon_pair(currentMode.name, &DEFAULT_COLOUR, currentMode.icon, -offset);
-        // Move next in
-        matrix_display_word_icon_pair(nextMode.name, &DEFAULT_COLOUR, nextMode.icon,
-                                      MATRIX_WIDTH - offset);
-
-        matrix_show(mtrx);
-        sleep_ms((sliding_coefficient * sliding_coefficient) / 10);
-        sliding_coefficient++;
-    }
-
+    slide_menu(mtrx, currentMode, nextMode, -1);
     MENU_STATE.main_mode = index_next;
     reset_states(mtrx);
 }
@@ -100,54 +104,14 @@ static void slide_menu_left(Matrix* mtrx)
     }
     MenuMode nextMode = MENU_MODES[index_previous];
 
-    // Quadratic smoothing for sliding menu
-    int sliding_coefficient = -(MATRIX_WIDTH / 2);
-
-    for (int offset = 0; offset <= MATRIX_WIDTH; offset++)
-    {
-        matrix_clear(mtrx);
-
-        // Move current out
-        matrix_display_word_icon_pair(currentMode.name, &DEFAULT_COLOUR, currentMode.icon, offset);
-        // Move next in
-        matrix_display_word_icon_pair(nextMode.name, &DEFAULT_COLOUR, nextMode.icon,
-                                      offset - MATRIX_WIDTH);
-
-        matrix_show(mtrx);
-        sleep_ms((sliding_coefficient * sliding_coefficient) / 10);
-        sliding_coefficient++;
-    }
-
+    slide_menu(mtrx, currentMode, nextMode, -1);
     MENU_STATE.main_mode = index_previous;
     reset_states(mtrx);
 }
 
-static void menu_display_stock(StockMode stock_to_display)
+static void menu_enter_sub_menu(MainMode main_menu_mode)
 {
     //
-}
-
-static void menu_display_game(GameMode game_to_display)
-{
-    //
-}
-
-static void menu_display_weather(WeatherMode weather_mode)
-{
-    //
-}
-
-static void menu_enter_sub_menu(ModeType main_menu_mode)
-{
-    switch (main_menu_mode)
-    {
-        case MENU_STOCKS:
-            menu_display_stock(MENU_STATE.sub_stock_mode);
-        case MENU_GAMES:
-            menu_display_game(MENU_STATE.sub_game_mode);
-        case MENU_WEATHER:
-            menu_display_weather(MENU_STATE.sub_weather_mode);
-    }
 }
 
 void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
