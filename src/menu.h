@@ -23,8 +23,6 @@ typedef enum
 
     // Game submodes
     GAME_TETRIS,
-    GAME_SNAKE,
-    GAME_PONG,
 
     // Temperature submodes
     TEMP_CURRENT,
@@ -34,7 +32,7 @@ typedef enum
 #define TKR_START 0
 #define TKR_COUNT 3
 #define GAME_START (TKR_START + TKR_COUNT)
-#define GAME_COUNT 3
+#define GAME_COUNT 1
 #define TEMP_START (GAME_START + GAME_COUNT)
 #define TEMP_COUNT 2
 
