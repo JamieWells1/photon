@@ -276,6 +276,8 @@ static const Glyph ALPHABET[26] = {
 // ICONS
 // ==========================
 
+// LOGO
+
 static const Pixel ICON_PHOTON[] = {
     // Photon icon
     {0, 2, LOGO_COLOUR}, {0, 3, LOGO_COLOUR}, {0, 4, LOGO_COLOUR}, {1, 2, LOGO_COLOUR},
@@ -284,35 +286,79 @@ static const Pixel ICON_PHOTON[] = {
     {4, 0, LOGO_COLOUR}, {4, 1, LOGO_COLOUR}, {4, 2, LOGO_COLOUR},
 };
 
+// TICKERS
+
 static const Pixel ICON_TICKERS[] = {
-    {0, 4, GREEN}, {0, 3, GREEN}, {1, 2, RED}, {2, 3, RED},
+    {0, 4, GREEN}, {0, 3, GREEN}, {1, 2, RED},   {2, 3, RED},
     {3, 2, GREEN}, {4, 1, GREEN}, {4, 0, GREEN},
 };
 
-static const Pixel ICON_GAMES[] = {
-    {0, 1, LIGHT_BLUE}, {0, 2, LIGHT_BLUE}, {0, 3, LIGHT_BLUE}, {0, 4, LIGHT_BLUE},
-    {1, 0, LIGHT_BLUE}, {1, 1, GREEN},          {1, 2, LIGHT_BLUE},
-    {2, 1, LIGHT_BLUE}, {3, 0, LIGHT_BLUE}, {3, 1, RED},
-    {3, 2, LIGHT_BLUE}, {4, 1, LIGHT_BLUE}, {4, 2, LIGHT_BLUE}, {4, 3, LIGHT_BLUE},
-    {4, 4, LIGHT_BLUE},
+static const Pixel ICON_TKR_UP[] = {
+    // TODO
 };
 
-static const Pixel ICON_WEATHER[] = {
-    {0, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR}, {2, 0, YELLOW},
-    {2, 1, YELLOW},         {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
-    {3, 0, YELLOW},         {3, 1, YELLOW},         {3, 2, YELLOW},         {3, 3, DEFAULT_COLOUR},
-    {3, 4, DEFAULT_COLOUR}, {4, 0, YELLOW},         {4, 1, YELLOW},         {4, 2, YELLOW},
+static const Pixel ICON_TKR_DOWN[] = {
+    // TODO
+};
+
+// GAMES
+
+static const Pixel ICON_GAMES[] = {
+    {0, 1, LIGHT_BLUE}, {0, 2, LIGHT_BLUE}, {0, 3, LIGHT_BLUE}, {0, 4, LIGHT_BLUE},
+    {1, 0, LIGHT_BLUE}, {1, 1, GREEN},      {1, 2, LIGHT_BLUE}, {2, 1, LIGHT_BLUE},
+    {3, 0, LIGHT_BLUE}, {3, 1, RED},        {3, 2, LIGHT_BLUE}, {4, 1, LIGHT_BLUE},
+    {4, 2, LIGHT_BLUE}, {4, 3, LIGHT_BLUE}, {4, 4, LIGHT_BLUE},
+};
+
+static const Pixel ICON_TETRIS[] = {
+    // TODO
+};
+
+// WEATHER
+
+static const Pixel ICON_SUNNY[] = {
+    // TODO
+};
+
+static const Pixel ICON_SUNNY_CLOUDLY[] = {
+    {0, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR}, {2, 0, YELLOW},         {2, 1, YELLOW},         {2, 2, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR}, {3, 0, YELLOW},         {3, 1, YELLOW},
+    {3, 2, YELLOW},         {3, 3, DEFAULT_COLOUR}, {3, 4, DEFAULT_COLOUR}, {4, 0, YELLOW},
+    {4, 1, YELLOW},         {4, 2, YELLOW},
+};
+
+static const Pixel ICON_CLOUDY[] = {
+    // TODO
+};
+
+static const Pixel ICON_RAIN[] = {
+    // TODO
+};
+
+static const Pixel ICON_LIGHTNING[] = {
+    // TODO
+};
+
+static const Pixel ICON_SNOW[] = {
+    // TODO
 };
 
 // ==========================
 // ICON LOOKUP TABLE
 // ==========================
 
-static const Glyph ICONS_ARR[4] = {
-    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},    // PHOTON ICON
-    {ICON_TICKERS, ARRAY_SIZE(ICON_TICKERS), 5, 5},    // TICKERS ICON
-    {ICON_GAMES, ARRAY_SIZE(ICON_GAMES), 5, 5},      // GAMES ICON
-    {ICON_WEATHER, ARRAY_SIZE(ICON_WEATHER), 5, 5},  // WEATHER ICON
+static const Glyph ICONS_ARR[10] = {
+    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},                // PHOTON ICON
+    {ICON_TICKERS, ARRAY_SIZE(ICON_TICKERS), 5, 5},              // TICKERS ICON
+    {ICON_TKR_UP, ARRAY_SIZE(ICON_TKR_UP), 5, 5},                // TICKER UP ICON
+    {ICON_TKR_DOWN, ARRAY_SIZE(ICON_TKR_DOWN), 5, 5},            // TICKER DOWN ICON
+    {ICON_GAMES, ARRAY_SIZE(ICON_GAMES), 5, 5},                  // GAMES ICON
+    {ICON_SUNNY, ARRAY_SIZE(ICON_SUNNY), 5, 5},                  // SUNNY ICON
+    {ICON_SUNNY_CLOUDLY, ARRAY_SIZE(ICON_SUNNY_CLOUDLY), 5, 5},  // SUN WITH CLOUDS ICON
+    {ICON_CLOUDY, ARRAY_SIZE(ICON_CLOUDY), 5, 5},                // CLOUDY ICON
+    {ICON_LIGHTNING, ARRAY_SIZE(ICON_LIGHTNING), 5, 5},          // LIGHTNING ICON
+    {ICON_SNOW, ARRAY_SIZE(ICON_SNOW), 5, 5},                    // SNOW ICON
 };
 
 #endif  // DISPLAYS_H

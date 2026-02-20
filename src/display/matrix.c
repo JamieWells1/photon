@@ -14,7 +14,7 @@
 // STATIC
 // ==========================
 
-static uint32_t pixels[NUM_PIXELS];
+static uint32_t g_pixels[NUM_PIXELS];
 
 static int matrix_xy_to_index_horizontal(int input_x, int input_y)
 {
@@ -84,7 +84,7 @@ void matrix_set_pixel(Pixel* pxl)
             index = matrix_xy_to_index_vertical(pxl->x, pxl->y);
         }
 
-        pixels[index] = matrix_rgb_to_grb(&dimmed);
+        g_pixels[index] = matrix_rgb_to_grb(&dimmed);
     }
 }
 
@@ -101,7 +101,7 @@ void matrix_clear_pixel(int x, int y)
         {
             index = matrix_xy_to_index_vertical(x, y);
         }
-        pixels[index] = 0;
+        g_pixels[index] = 0;
     }
 }
 
@@ -110,7 +110,7 @@ void matrix_clear(Matrix* mtrx)
 {
     for (int i = 0; i < NUM_PIXELS; i++)
     {
-        pixels[i] = 0;
+        g_pixels[i] = 0;
     }
     matrix_show(mtrx);
     debug("matrix_clear()");
@@ -121,7 +121,7 @@ void matrix_show(Matrix* mtrx)
 {
     for (int i = 0; i < NUM_PIXELS; i++)
     {
-        pio_sm_put_blocking(mtrx->pio, mtrx->sm, pixels[i] << 8u);
+        pio_sm_put_blocking(mtrx->pio, mtrx->sm, g_pixels[i] << 8u);
     }
     debug("matrix_show()");
 }

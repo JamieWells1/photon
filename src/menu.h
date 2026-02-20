@@ -50,6 +50,7 @@ typedef struct
 {
     const SubMode mode;
     const char* text;
+    IconType* icon;
 } SubMenuMode;
 
 // Menu state struct
@@ -66,8 +67,8 @@ static const MenuMode MENU_MODES[3] = {
 };
 
 static const SubMenuMode SUB_MENU_MODES[6] = {
-    {TKR_BTC, "BTC"},        {TKR_XAU, "XAU"},      {TKR_XAG, "XAG"},
-    {GAME_TETRIS, "TETRIS"}, {TEMP_CURRENT, "NOW"}, {TEMP_HOURLY, "00"},
+    {TKR_BTC, "BTC", NULL},        {TKR_XAU, "XAU", NULL},      {TKR_XAG, "XAG", NULL},
+    {GAME_TETRIS, "TETRIS", NULL}, {TEMP_CURRENT, "NOW", NULL}, {TEMP_HOURLY, "00", NULL},
 };
 
 void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx);

@@ -1,5 +1,4 @@
 #include <global.h>
-#include "menu.h"
 
 MatrixOrientation MATRIX_ORIENTATION = HORIZONTAL;
 

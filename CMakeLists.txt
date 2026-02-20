@@ -80,6 +80,8 @@ set(GAME_SOURCES
 # Display modes
 set(MODE_SOURCES
         src/modes/ticker.c
+        src/modes/game.c
+        src/modes/weather.c
 )
 
 add_executable(photon
