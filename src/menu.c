@@ -16,6 +16,8 @@
 static bool g_display_initialized = false;
 static int g_tick = 0;
 static bool g_underscore_on = true;
+static bool g_in_submenu = false;
+static SubMode g_current_submenu = TKR_BTC;
 
 static void menu_set_underscore(bool underscore_on)
 {
@@ -46,6 +48,7 @@ static void reset_states(Matrix* mtrx)
     g_display_initialized = false;
     g_underscore_on = true;
     g_tick = 0;
+    g_in_submenu = false;
 
     matrix_clear(mtrx);
     menu_set_initial_display();
@@ -112,24 +115,72 @@ static void slide_main_menu_left(Matrix* mtrx)
     reset_states(mtrx);
 }
 
-static void menu_enter_sub_menu(MenuState menu_state)
+static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr, Matrix* mtrx)
 {
+    SubMode target_submenu;
+
     if (menu_state.main_mode == MENU_TICKERS)
     {
-        menu_state.sub_mode = TKR_START;
-        ticker_display(SUB_MENU_MODES[menu_state.sub_mode]);
+        target_submenu = TKR_START;
     }
-
     else if (menu_state.main_mode == MENU_GAMES)
     {
-        menu_state.sub_mode = GAME_START;
-        game_display(SUB_MENU_MODES[menu_state.sub_mode]);
+        target_submenu = GAME_START;
     }
-
     else if (menu_state.main_mode == MENU_WEATHER)
     {
-        menu_state.sub_mode = TEMP_START;
-        temp_display(SUB_MENU_MODES[menu_state.sub_mode]);
+        target_submenu = TEMP_START;
+    }
+    else
+    {
+        return;
+    }
+
+    // Only initialise if entering a new submenu or first time
+    if (!g_in_submenu || g_current_submenu != target_submenu)
+    {
+        g_in_submenu = true;
+        g_current_submenu = target_submenu;
+        g_display_initialized = false;
+
+        menu_state.sub_mode = target_submenu;
+
+        if (menu_state.main_mode == MENU_TICKERS)
+        {
+            ticker_display(SUB_MENU_MODES[menu_state.sub_mode]);
+        }
+        else if (menu_state.main_mode == MENU_GAMES)
+        {
+            game_display(SUB_MENU_MODES[menu_state.sub_mode]);
+        }
+        else if (menu_state.main_mode == MENU_WEATHER)
+        {
+            temp_display(SUB_MENU_MODES[menu_state.sub_mode]);
+        }
+
+        g_display_initialized = true;
+    }
+
+    Button* btn_left = &btns[0];
+    Button* btn_right = &btns[1];
+
+    if (input_btn_pressed(btn_left))
+    {
+        // Go back to main menu
+        reset_states(mtrx);
+    }
+
+    if (input_btn_pressed(btn_right))
+    {
+        // TODO: Go into mode (if enabled)
+        // Stocks: false
+        // Games: true
+        // Weather: false
+    }
+
+    if (input_rtr_cw(rtr))
+    {
+        // Next sub-mode
     }
 }
 
@@ -164,7 +215,7 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
 
     if (input_any_btn_pressed(btns, rtr))
     {
-        menu_enter_sub_menu(MENU_STATE);
+        menu_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
         matrix_show(mtrx);
     }
 }
