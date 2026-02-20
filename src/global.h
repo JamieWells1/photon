@@ -15,4 +15,4 @@ extern MatrixOrientation MATRIX_ORIENTATION;
 
 extern MenuState MENU_STATE;
 
-#endif // GLOBAL_H
+#endif  // GLOBAL_H

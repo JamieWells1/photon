@@ -43,14 +43,14 @@ typedef struct
 {
     const MainMode mode;
     const char* text;
-    const IconType icon;
+    const Glyph* icon;
 } MenuMode;
 
 typedef struct
 {
     const SubMode mode;
     const char* text;
-    IconType* icon;
+    const Glyph* icon;
 } SubMenuMode;
 
 // Menu state struct
@@ -61,14 +61,16 @@ typedef struct
 } MenuState;
 
 static const MenuMode MENU_MODES[3] = {
-    {MENU_TICKERS, "TICKERS", TICKERS},
-    {MENU_GAMES, "GAMES", GAMES},
-    {MENU_WEATHER, "TEMP", WEATHER},
+    {MENU_TICKERS, "TICKERS", &ICONS_ARR[TICKERS]},
+    {MENU_GAMES, "GAMES", &ICONS_ARR[GAMES]},
+    {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},
 };
 
 static const SubMenuMode SUB_MENU_MODES[6] = {
-    {TKR_BTC, "BTC", NULL},        {TKR_XAU, "XAU", NULL},      {TKR_XAG, "XAG", NULL},
-    {GAME_TETRIS, "TETRIS", NULL}, {TEMP_CURRENT, "NOW", NULL}, {TEMP_HOURLY, "00", NULL},
+    // Icons may be null if they are not needed.
+    {TKR_BTC, "BTC", NULL},      {TKR_XAU, "XAU", NULL},
+    {TKR_XAG, "XAG", NULL},      {GAME_TETRIS, "TETRIS", &ICONS_ARR[TETRIS]},
+    {TEMP_CURRENT, "NOW", NULL}, {TEMP_HOURLY, "00", NULL},
 };
 
 void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx);

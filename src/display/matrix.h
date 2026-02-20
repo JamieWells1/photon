@@ -19,11 +19,11 @@ void matrix_clear_pixel(int x, int y);
 void matrix_show(Matrix* mtrx);
 void matrix_clear(Matrix* mtrx);
 
-
 void matrix_display_letter(const char c, int x, int y, const RGB* col);
-void matrix_display_icon(IconType icon_type, int x, int y, const RGB* col);
+void matrix_display_icon(const Glyph* icon_type, int x, int y, const RGB* col);
 void matrix_display_word(const char* word, int x, int y, const RGB* col);
-void matrix_display_word_icon_pair(const char* word, const RGB* word_col, IconType icon, int offset_x);
+void matrix_display_word_icon_pair(const char* word, const RGB* word_col, const Glyph* icon,
+                                   int offset_x);
 
 void matrix_draw_horiz_line(int x, int y, int length, const RGB* col);
 void matrix_clear_horiz_line(int x, int y, int length);

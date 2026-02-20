@@ -1,8 +1,8 @@
 #include <graphics.h>
 
+#include <const.h>
 #include <displays.h>
 #include <matrix.h>
-#include <const.h>
 
 #include <stdint.h>
 
@@ -10,7 +10,7 @@
 
 void graphics_display_start_screen(Matrix* mtrx)
 {
-    matrix_display_word_icon_pair(PROJECT_NAME, &LOGO_COLOUR, PHOTON, 0);
+    matrix_display_word_icon_pair(PROJECT_NAME, &LOGO_COLOUR, ICON_PHOTON, 0);
     matrix_draw_horiz_line(1, 7, 30, &LOGO_COLOUR);
 
     matrix_show(mtrx);

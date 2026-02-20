@@ -39,8 +39,17 @@ typedef enum
 {
     PHOTON = 0,
     TICKERS = 1,
-    GAMES = 2,
-    WEATHER = 3,
+    TKR_UP = 2,
+    TKR_DOWN = 3,
+    GAMES = 4,
+    TETRIS = 5,
+    WEATHER = 6,
+    SUNNY = 7,
+    SUNNY_CLOUDY = 8,
+    CLOUDY = 9,
+    RAIN = 10,
+    LIGHTNING = 11,
+    SNOW = 12,
     ICON_COUNT
 } IconType;
 
@@ -320,7 +329,7 @@ static const Pixel ICON_SUNNY[] = {
     // TODO
 };
 
-static const Pixel ICON_SUNNY_CLOUDLY[] = {
+static const Pixel ICON_SUNNY_CLOUDY[] = {
     {0, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR},
     {1, 4, DEFAULT_COLOUR}, {2, 0, YELLOW},         {2, 1, YELLOW},         {2, 2, DEFAULT_COLOUR},
     {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR}, {3, 0, YELLOW},         {3, 1, YELLOW},
@@ -349,16 +358,16 @@ static const Pixel ICON_SNOW[] = {
 // ==========================
 
 static const Glyph ICONS_ARR[10] = {
-    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},                // PHOTON ICON
-    {ICON_TICKERS, ARRAY_SIZE(ICON_TICKERS), 5, 5},              // TICKERS ICON
-    {ICON_TKR_UP, ARRAY_SIZE(ICON_TKR_UP), 5, 5},                // TICKER UP ICON
-    {ICON_TKR_DOWN, ARRAY_SIZE(ICON_TKR_DOWN), 5, 5},            // TICKER DOWN ICON
-    {ICON_GAMES, ARRAY_SIZE(ICON_GAMES), 5, 5},                  // GAMES ICON
-    {ICON_SUNNY, ARRAY_SIZE(ICON_SUNNY), 5, 5},                  // SUNNY ICON
-    {ICON_SUNNY_CLOUDLY, ARRAY_SIZE(ICON_SUNNY_CLOUDLY), 5, 5},  // SUN WITH CLOUDS ICON
-    {ICON_CLOUDY, ARRAY_SIZE(ICON_CLOUDY), 5, 5},                // CLOUDY ICON
-    {ICON_LIGHTNING, ARRAY_SIZE(ICON_LIGHTNING), 5, 5},          // LIGHTNING ICON
-    {ICON_SNOW, ARRAY_SIZE(ICON_SNOW), 5, 5},                    // SNOW ICON
+    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},              // PHOTON ICON
+    {ICON_TICKERS, ARRAY_SIZE(ICON_TICKERS), 5, 5},            // TICKERS ICON
+    {ICON_TKR_UP, ARRAY_SIZE(ICON_TKR_UP), 5, 5},              // TICKER UP ICON
+    {ICON_TKR_DOWN, ARRAY_SIZE(ICON_TKR_DOWN), 5, 5},          // TICKER DOWN ICON
+    {ICON_GAMES, ARRAY_SIZE(ICON_GAMES), 5, 5},                // GAMES ICON
+    {ICON_SUNNY, ARRAY_SIZE(ICON_SUNNY), 5, 5},                // SUNNY ICON
+    {ICON_SUNNY_CLOUDY, ARRAY_SIZE(ICON_SUNNY_CLOUDY), 5, 5},  // SUN WITH CLOUDS ICON
+    {ICON_CLOUDY, ARRAY_SIZE(ICON_CLOUDY), 5, 5},              // CLOUDY ICON
+    {ICON_LIGHTNING, ARRAY_SIZE(ICON_LIGHTNING), 5, 5},        // LIGHTNING ICON
+    {ICON_SNOW, ARRAY_SIZE(ICON_SNOW), 5, 5},                  // SNOW ICON
 };
 
 #endif  // DISPLAYS_H

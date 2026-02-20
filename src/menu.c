@@ -165,5 +165,6 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
     if (input_any_btn_pressed(btns, rtr))
     {
         menu_enter_sub_menu(MENU_STATE);
+        matrix_show(mtrx);
     }
 }

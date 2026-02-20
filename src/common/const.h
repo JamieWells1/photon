@@ -2,7 +2,8 @@
 #define CONST_H
 
 // Log level
-typedef enum {
+typedef enum
+{
     TRACE = 2,
     INPUTS = 1,
     INFO = 0,

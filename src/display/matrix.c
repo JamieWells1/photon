@@ -7,8 +7,8 @@
 #include <ctype.h>
 #include <string.h>
 
-#include <stdio.h>
 #include <displays.h>
+#include <stdio.h>
 
 // ==========================
 // STATIC
@@ -149,19 +149,17 @@ void matrix_display_letter(const char c, int x, int y, const RGB* col)
     }
 }
 
-void matrix_display_icon(IconType icon_type, int x, int y, const RGB* col)
+void matrix_display_icon(const Glyph* icon, int x, int y, const RGB* col)
 {
-    const Glyph* letter = &ICONS_ARR[icon_type];
-
-    for (size_t i = 0; i < letter->pxl_count; i++)
+    for (size_t i = 0; i < icon->pxl_count; i++)
     {
-        int transformed_x = letter->pixels[i].x + x;
-        int transformed_y = letter->pixels[i].y + y;
+        int transformed_x = icon->pixels[i].x + x;
+        int transformed_y = icon->pixels[i].y + y;
 
         if (!IN_BOUNDS(transformed_x, transformed_y)) continue;
 
         // Use icon's own color if no override provided
-        const RGB* pixel_col = col ? col : &letter->pixels[i].col;
+        const RGB* pixel_col = col ? col : &icon->pixels[i].col;
 
         Pixel pxl = {transformed_x, transformed_y, *pixel_col};
         matrix_set_pixel(&pxl);
@@ -228,14 +226,16 @@ void matrix_draw_vert_line(int x, int y, int length, const RGB* col)
     }
 }
 
-void matrix_display_word_icon_pair(const char* word, const RGB* word_col, IconType icon, int offset_x)
+void matrix_display_word_icon_pair(const char* word, const RGB* word_col, const Glyph* icon,
+                                   int offset_x)
 {
     matrix_display_word(word, 1 + offset_x, 1, word_col);
 
-    if (strlen(word) <= 6)
+    // Icon may be NULL
+    if (strlen(word) <= 6 && icon)
     {
         // Start the icon at the end of the screen
-        int icon_x = MATRIX_WIDTH - ICONS_ARR[icon].width - 1 + offset_x;
+        int icon_x = MATRIX_WIDTH - icon->width - 1 + offset_x;
         matrix_display_icon(icon, icon_x, 1, NULL);
     }
 }

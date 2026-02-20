@@ -5,4 +5,4 @@
 
 void temp_display(SubMenuMode sub_mode);
 
-#endif // WEATHER_H
+#endif  // WEATHER_H
