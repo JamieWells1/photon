@@ -1,3 +1,3 @@
 # Photon
 
-A Raspberry Pi Pico W-powered RGB MATRIX matrix display featuring a menu with different modes.
+A Raspberry Pi Pico W-powered LED matrix menu display and game engine.
