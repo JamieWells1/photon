@@ -1,1 +1,0 @@
-#include <stocks.h>

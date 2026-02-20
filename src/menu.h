@@ -8,7 +8,7 @@
 // Main modes
 typedef enum
 {
-    MENU_STOCKS = 0,
+    MENU_TICKERS = 0,
     MENU_GAMES = 1,
     MENU_WEATHER = 2,
 } MainMode;
@@ -16,20 +16,27 @@ typedef enum
 // Sub-modes
 typedef enum
 {
+    // Ticker submodes
     TKR_BTC = 0,
-    TKR_XAU = 1,
-    TKR_XAG = 2,
-    GAME_TETRIS = 3,
-    TEMP_CURRENT = 4,
-    TEMP_HOURLY = 5,
+    TKR_XAU,
+    TKR_XAG,
+
+    // Game submodes
+    GAME_TETRIS,
+    GAME_SNAKE,
+    GAME_PONG,
+
+    // Temperature submodes
+    TEMP_CURRENT,
+    TEMP_HOURLY,
 } SubMode;
 
-// Menu state struct
-typedef struct
-{
-    MainMode main_mode;
-    SubMode sub_mode;
-} MenuState;
+#define TKR_START 0
+#define TKR_COUNT 3
+#define GAME_START (TKR_START + TKR_COUNT)
+#define GAME_COUNT 3
+#define TEMP_START (GAME_START + GAME_COUNT)
+#define TEMP_COUNT 2
 
 // Structs
 typedef struct
@@ -41,12 +48,19 @@ typedef struct
 
 typedef struct
 {
-    const SubMode sub_mode;
+    const SubMode mode;
     const char* text;
 } SubMenuMode;
 
+// Menu state struct
+typedef struct
+{
+    MainMode main_mode;
+    SubMode sub_mode;
+} MenuState;
+
 static const MenuMode MENU_MODES[3] = {
-    {MENU_STOCKS, "STOCKS", STOCKS},
+    {MENU_TICKERS, "TICKERS", TICKERS},
     {MENU_GAMES, "GAMES", GAMES},
     {MENU_WEATHER, "TEMP", WEATHER},
 };

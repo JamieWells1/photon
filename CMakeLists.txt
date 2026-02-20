@@ -79,7 +79,7 @@ set(GAME_SOURCES
 
 # Display modes
 set(MODE_SOURCES
-        src/modes/stocks.c
+        src/modes/ticker.c
 )
 
 add_executable(photon

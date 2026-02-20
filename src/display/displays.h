@@ -38,7 +38,7 @@ typedef struct
 typedef enum
 {
     PHOTON = 0,
-    STOCKS = 1,
+    TICKERS = 1,
     GAMES = 2,
     WEATHER = 3,
     ICON_COUNT
@@ -284,7 +284,7 @@ static const Pixel ICON_PHOTON[] = {
     {4, 0, LOGO_COLOUR}, {4, 1, LOGO_COLOUR}, {4, 2, LOGO_COLOUR},
 };
 
-static const Pixel ICON_STOCKS[] = {
+static const Pixel ICON_TICKERS[] = {
     {0, 4, GREEN}, {0, 3, GREEN}, {1, 2, RED}, {2, 3, RED},
     {3, 2, GREEN}, {4, 1, GREEN}, {4, 0, GREEN},
 };
@@ -310,7 +310,7 @@ static const Pixel ICON_WEATHER[] = {
 
 static const Glyph ICONS_ARR[4] = {
     {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},    // PHOTON ICON
-    {ICON_STOCKS, ARRAY_SIZE(ICON_STOCKS), 5, 5},    // STOCKS ICON
+    {ICON_TICKERS, ARRAY_SIZE(ICON_TICKERS), 5, 5},    // TICKERS ICON
     {ICON_GAMES, ARRAY_SIZE(ICON_GAMES), 5, 5},      // GAMES ICON
     {ICON_WEATHER, ARRAY_SIZE(ICON_WEATHER), 5, 5},  // WEATHER ICON
 };

@@ -5,6 +5,7 @@
 #include <graphics.h>
 #include <input.h>
 #include <matrix.h>
+#include <ticker.h>
 
 #include <displays.h>
 #include <pico/time.h>
@@ -109,9 +110,13 @@ static void slide_menu_left(Matrix* mtrx)
     reset_states(mtrx);
 }
 
-static void menu_enter_sub_menu(MainMode main_menu_mode)
+static void menu_enter_sub_menu(MenuState menu_state)
 {
-    // TODO
+    if (menu_state.main_mode == MENU_TICKERS)
+    {
+        menu_state.sub_mode = TKR_START;
+        ticker_display(SUB_MENU_MODES[menu_state.sub_mode]);
+    }
 }
 
 void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
@@ -145,6 +150,6 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
 
     if (input_any_btn_pressed(btns, rtr))
     {
-        menu_enter_sub_menu(MENU_STATE.main_mode);
+        menu_enter_sub_menu(MENU_STATE);
     }
 }
