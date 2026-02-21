@@ -129,7 +129,6 @@ void matrix_clear(Matrix* mtrx)
         g_pixels[i] = 0;
     }
     matrix_show(mtrx);
-    debug("matrix_clear()");
 }
 
 // Show the matrix current state
@@ -139,7 +138,6 @@ void matrix_show(Matrix* mtrx)
     {
         pio_sm_put_blocking(mtrx->pio, mtrx->sm, g_pixels[i] << 8u);
     }
-    debug("matrix_show()");
 }
 
 // Only writes letter to state, not matrix
@@ -217,7 +215,6 @@ void matrix_draw_horiz_line(int x, int y, int length, const RGB* col)
         matrix_set_pixel(&pxl);
         current_x++;
     }
-    debug("matrix_draw_horiz_line() of length %d at (%d, %d)", length, x, y);
 }
 
 void matrix_clear_horiz_line(int x, int y, int length)
@@ -228,7 +225,6 @@ void matrix_clear_horiz_line(int x, int y, int length)
         matrix_clear_pixel(current_x, y);
         current_x++;
     }
-    debug("matrix_clear_horiz_line() of length %d at (%d, %d)", length, x, y);
 }
 
 void matrix_draw_vert_line(int x, int y, int length, const RGB* col)

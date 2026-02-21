@@ -13,6 +13,7 @@ extern const DebugLevel DEBUG_LEVEL;
 
 // Display
 #define PROJECT_NAME "PHOTON"
+#define DISPLAY_UPDATE_INTERVAL_TICKS 30
 
 // Matrix layout
 #define MATRIX_WIDTH 32
