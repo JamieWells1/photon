@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <weather.h>
 
 #include <displays.h>
@@ -21,6 +22,8 @@ static int hourly_codes[WEATHER_HOURS];
 static bool data_fetched = false;
 static uint64_t last_fetch_time_ms = 0;
 static bool fetch_in_progress = false;
+static int connection_ticks = 0;
+static int connection_dots = 3;
 
 static int weather_parse_float_array(const char* json, const char* key, float* values,
                                      int max_values)
@@ -139,6 +142,30 @@ static void weather_fetch_data(void)
     http_get(host, path, weather_response_callback);
 }
 
+static char* weather_connection_display_status(char* current_display, size_t max_size)
+{
+    if (connection_ticks % 30 == 0 && connection_ticks != 0)
+    {
+        size_t len = strlen(current_display);
+        while (len > 0 && current_display[len - 1] == '.')
+        {
+            current_display[--len] = '\0';
+        }
+
+        int num_dots = (connection_dots % 3) + 1;
+        for (int i = 0; i < num_dots && len + i + 1 < max_size; i++)
+        {
+            current_display[len + i] = '.';
+            current_display[len + i + 1] = '\0';
+        }
+
+        connection_dots++;
+    }
+    connection_ticks++;
+
+    return current_display;
+}
+
 void weather_display(SubMenu sub_mode, Matrix* mtrx)
 {
     uint64_t current_time_ms = to_ms_since_boot(get_absolute_time());
@@ -147,7 +174,6 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
     bool should_fetch = (!data_fetched || time_since_last_fetch >= WEATHER_REFRESH_INTERVAL_MS) &&
                         !fetch_in_progress;
 
-    // Get current WiFi state
     WifiState wifi_state = wifi_get_state();
 
     if (should_fetch && wifi_state == WIFI_DISCONNECTED)
@@ -161,9 +187,13 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
     {
         wifi_join_async(WIFI_SSID, WIFI_PASSWORD);
 
+        char current_display[256] = "WIFI...";
+        weather_connection_display_status(current_display, sizeof(current_display));
+
         matrix_clear(mtrx);
-        matrix_display_word_icon_pair("WIFI", &DEFAULT_COLOUR, &ICONS_ARR[WEATHER], 0);
+        matrix_display_word_icon_pair(current_display, &DEFAULT_COLOUR, &ICONS_ARR[WEATHER], 0);
         matrix_show(mtrx);
+
         return;
     }
 
@@ -172,9 +202,13 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
         debug("WiFi connected, fetching weather...");
         weather_fetch_data();
 
+        char current_display[256] = "DATA...";
+        weather_connection_display_status(current_display, sizeof(current_display));
+
         matrix_clear(mtrx);
-        matrix_display_word_icon_pair("LOAD", &DEFAULT_COLOUR, &ICONS_ARR[WEATHER], 0);
+        matrix_display_word_icon_pair(current_display, &DEFAULT_COLOUR, &ICONS_ARR[WEATHER], 0);
         matrix_show(mtrx);
+
         return;
     }
 
