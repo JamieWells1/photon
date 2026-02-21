@@ -59,7 +59,7 @@ typedef struct
 } MenuState;
 
 static const MenuMode MENU_MODES[3] = {
-    {MENU_TICKERS, "TICKERS", &ICONS_ARR[TICKERS]},
+    {MENU_TICKERS, "STOCKS", &ICONS_ARR[TICKERS]},
     {MENU_GAMES, "GAMES", &ICONS_ARR[GAMES]},
     {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},
 };

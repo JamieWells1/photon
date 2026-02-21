@@ -20,7 +20,7 @@ extern const DebugLevel DEBUG_LEVEL;
 #define NUM_PIXELS (MATRIX_WIDTH * MATRIX_HEIGHT)
 
 // Matrix pixels
-#define BRIGHTNESS_COEFFICIENT 0.01
+#define BRIGHTNESS_COEFFICIENT 0.1
 
 // GPIO pins
 #define BUTTON_LEFT_PIN 10  // GP10

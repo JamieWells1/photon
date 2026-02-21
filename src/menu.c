@@ -166,7 +166,7 @@ static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr
 
     if (input_btn_pressed(btn_left))
     {
-        // Go back to main menu
+        // Back to main menu
         reset_states(mtrx);
     }
 
