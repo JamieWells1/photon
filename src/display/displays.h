@@ -287,7 +287,7 @@ static const Glyph ALPHABET[26] = {
 
 // LOGO
 
-static const Pixel ICON_PHOTON[] = {
+static const Pixel ICON_PHOTON[15] = {
     // Photon icon
     {0, 2, LOGO_COLOUR}, {0, 3, LOGO_COLOUR}, {0, 4, LOGO_COLOUR}, {1, 2, LOGO_COLOUR},
     {1, 4, LOGO_COLOUR}, {2, 0, LOGO_COLOUR}, {2, 1, LOGO_COLOUR}, {2, 2, LOGO_COLOUR},
@@ -297,39 +297,46 @@ static const Pixel ICON_PHOTON[] = {
 
 // TICKERS
 
-static const Pixel ICON_TICKERS[] = {
+static const Pixel ICON_TICKERS[7] = {
     {0, 4, GREEN}, {0, 3, GREEN}, {1, 2, RED},   {2, 3, RED},
     {3, 2, GREEN}, {4, 1, GREEN}, {4, 0, GREEN},
 };
 
-static const Pixel ICON_TKR_UP[] = {
-    // TODO
+static const Pixel ICON_TKR_UP[9] = {
+    {0, 3, GREEN}, {1, 2, GREEN}, {1, 3, GREEN}, {2, 1, GREEN}, {2, 2, GREEN},
+    {2, 3, GREEN}, {3, 2, GREEN}, {3, 3, GREEN}, {4, 3, GREEN},
 };
 
-static const Pixel ICON_TKR_DOWN[] = {
-    // TODO
+static const Pixel ICON_TKR_DOWN[9] = {
+    {0, 3, RED}, {1, 2, RED}, {1, 3, RED}, {2, 1, RED}, {2, 2, RED},
+    {2, 3, RED}, {3, 2, RED}, {3, 3, RED}, {4, 3, RED},
 };
 
 // GAMES
 
-static const Pixel ICON_GAMES[] = {
+static const Pixel ICON_GAMES[15] = {
     {0, 1, LIGHT_BLUE}, {0, 2, LIGHT_BLUE}, {0, 3, LIGHT_BLUE}, {0, 4, LIGHT_BLUE},
     {1, 0, LIGHT_BLUE}, {1, 1, GREEN},      {1, 2, LIGHT_BLUE}, {2, 1, LIGHT_BLUE},
     {3, 0, LIGHT_BLUE}, {3, 1, RED},        {3, 2, LIGHT_BLUE}, {4, 1, LIGHT_BLUE},
     {4, 2, LIGHT_BLUE}, {4, 3, LIGHT_BLUE}, {4, 4, LIGHT_BLUE},
 };
 
-static const Pixel ICON_TETRIS[] = {
-    // TODO
+static const Pixel ICON_TETRIS[17] = {
+    {3, 0, LIGHT_BLUE}, {4, 0, LIGHT_BLUE}, {3, 1, LIGHT_BLUE}, {4, 1, LIGHT_BLUE}, {0, 1, YELLOW},
+    {1, 1, YELLOW},     {0, 2, YELLOW},     {0, 3, GREEN},      {0, 4, GREEN},      {1, 2, YELLOW},
+    {3, 2, RED},        {4, 2, RED},        {2, 3, RED},        {3, 3, RED},        {1, 4, GREEN},
+    {2, 4, GREEN},      {3, 4, GREEN},
 };
 
 // WEATHER
 
-static const Pixel ICON_SUNNY[] = {
-    // TODO
+static const Pixel ICON_SUNNY[17] = {
+    {0, 0, YELLOW}, {0, 2, YELLOW}, {0, 4, YELLOW}, {2, 0, YELLOW}, {4, 0, YELLOW}, {4, 2, YELLOW},
+    {4, 4, YELLOW}, {2, 4, YELLOW}, {1, 1, YELLOW}, {1, 2, YELLOW}, {1, 3, YELLOW}, {2, 1, YELLOW},
+    {2, 2, YELLOW}, {2, 3, YELLOW}, {3, 1, YELLOW}, {3, 2, YELLOW}, {3, 3, YELLOW},
 };
 
-static const Pixel ICON_SUNNY_CLOUDY[] = {
+static const Pixel ICON_SUNNY_CLOUDY[18] = {
     {0, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR},
     {1, 4, DEFAULT_COLOUR}, {2, 0, YELLOW},         {2, 1, YELLOW},         {2, 2, DEFAULT_COLOUR},
     {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR}, {3, 0, YELLOW},         {3, 1, YELLOW},
@@ -337,20 +344,32 @@ static const Pixel ICON_SUNNY_CLOUDY[] = {
     {4, 1, YELLOW},         {4, 2, YELLOW},
 };
 
-static const Pixel ICON_CLOUDY[] = {
-    // TODO
+static const Pixel ICON_CLOUDY[12] = {
+    {0, 4, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+    {3, 0, DEFAULT_COLOUR}, {3, 1, DEFAULT_COLOUR}, {3, 4, DEFAULT_COLOUR}, {4, 1, DEFAULT_COLOUR},
 };
 
-static const Pixel ICON_RAIN[] = {
-    // TODO
+static const Pixel ICON_RAIN[15] = {
+    {0, 2, DEFAULT_COLOUR}, {0, 4, LIGHT_BLUE},     {1, 1, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR},
+    {1, 3, LIGHT_BLUE},     {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR},
+    {3, 5, LIGHT_BLUE},     {3, 0, DEFAULT_COLOUR}, {3, 1, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR},
+    {4, 3, LIGHT_BLUE},     {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR},
 };
 
-static const Pixel ICON_LIGHTNING[] = {
-    // TODO
+static const Pixel ICON_LIGHTNING[15] = {
+    {0, 2, DEFAULT_COLOUR}, {0, 4, YELLOW},         {1, 1, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR},
+    {1, 3, YELLOW},         {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR},
+    {2, 5, YELLOW},         {3, 0, DEFAULT_COLOUR}, {3, 1, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR},
+    {3, 3, YELLOW},         {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR},
 };
 
-static const Pixel ICON_SNOW[] = {
-    // TODO
+static const Pixel ICON_SNOW[17] = {
+    {0, 0, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR}, {4, 0, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR}, {3, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR},
+    {2, 3, DEFAULT_COLOUR}, {3, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+    {4, 4, DEFAULT_COLOUR},
 };
 
 // ==========================

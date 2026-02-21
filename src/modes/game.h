@@ -3,6 +3,6 @@
 
 #include <menu.h>
 
-void game_display(SubMenuMode sub_mode);
+void game_display(SubMenu sub_mode);
 
 #endif  // GAME_H

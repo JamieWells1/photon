@@ -3,6 +3,6 @@
 
 #include <menu.h>
 
-void temp_display(SubMenuMode sub_mode);
+void weather_display(SubMenu sub_mode);
 
 #endif  // WEATHER_H

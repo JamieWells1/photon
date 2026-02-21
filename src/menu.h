@@ -42,14 +42,14 @@ typedef struct
     const MainMode mode;
     const char* text;
     const Glyph* icon;
-} MenuMode;
+} Menu;
 
 typedef struct
 {
     const SubMode mode;
     const char* text;
     const Glyph* icon;
-} SubMenuMode;
+} SubMenu;
 
 // Menu state struct
 typedef struct
@@ -58,13 +58,13 @@ typedef struct
     SubMode sub_mode;
 } MenuState;
 
-static const MenuMode MENU_MODES[3] = {
+static const Menu MENUS[3] = {
     {MENU_TICKERS, "STOCKS", &ICONS_ARR[TICKERS]},
     {MENU_GAMES, "GAMES", &ICONS_ARR[GAMES]},
     {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},
 };
 
-static const SubMenuMode SUB_MENU_MODES[6] = {
+static const SubMenu SUB_MENUS[6] = {
     // Icons may be null if they are not needed.
     {TKR_BTC, "BTC", NULL},      {TKR_XAU, "XAU", NULL},
     {TKR_XAG, "XAG", NULL},      {GAME_TETRIS, "TETRIS", &ICONS_ARR[TETRIS]},

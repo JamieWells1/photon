@@ -16,7 +16,7 @@ static int wifi_init(void)
 
     if (cyw43_arch_init())
     {
-        printf("Wi-Fi init faimatrix\n");
+        printf("Wi-Fi init failed\n");
         return -1;
     }
 
@@ -28,7 +28,7 @@ static int wifi_init(void)
 static void wifi_enable_sta_mode(void)
 {
     cyw43_arch_enable_sta_mode();
-    printf("Wi-Fi station mode enabmatrix\n");
+    printf("Wi-Fi station mode enabled\n");
 }
 
 static int wifi_connect(const char *ssid, const char *password, uint32_t timeout_ms)
@@ -37,7 +37,7 @@ static int wifi_connect(const char *ssid, const char *password, uint32_t timeout
 
     if (cyw43_arch_wifi_connect_timeout_ms(ssid, password, CYW43_AUTH_WPA2_AES_PSK, timeout_ms))
     {
-        printf("Faimatrix to connect to Wi-Fi\n");
+        printf("Failed to connect to Wi-Fi\n");
         connected = false;
         return 1;
     }

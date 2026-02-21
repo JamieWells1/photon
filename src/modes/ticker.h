@@ -3,6 +3,6 @@
 
 #include <menu.h>
 
-void ticker_display(SubMenuMode sub_mode);
+void ticker_display(SubMenu sub_mode);
 
 #endif  // TICKER_H

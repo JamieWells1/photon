@@ -167,6 +167,18 @@ int main()
         if (input_any_btn_pressed(buttons, rotator) && !menu_active)
         {
             graphics_display_start_screen(mtrx);
+
+            bool all_released = false;
+            while (!all_released)
+            {
+                input_update(buttons, rotator);
+                all_released =
+                    (buttons[0].current_state == true && buttons[1].current_state == true &&
+                     rotator->current_sw_state == true);
+                sleep_ms(10);
+            }
+            input_update(buttons, rotator);
+
             menu_active = true;
         }
 
