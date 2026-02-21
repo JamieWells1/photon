@@ -53,12 +53,28 @@ static const Glyph* matrix_letter_in_pxls(char ch)
 {
     ch = toupper(ch);
 
-    if (ch < 'A' || ch > 'Z')
+    // Check for letters A-Z
+    if (ch >= 'A' && ch <= 'Z')
     {
-        return NULL;
+        return &ALPHABET[ch - 'A'];
     }
 
-    return &ALPHABET[ch - 'A'];
+    // Check for punctuation
+    switch (ch)
+    {
+        case '!':
+            return &PUNCTUATION[0];
+        case '?':
+            return &PUNCTUATION[1];
+        case '.':
+            return &PUNCTUATION[2];
+        case ',':
+            return &PUNCTUATION[3];
+        case '-':
+            return &PUNCTUATION[4];
+        default:
+            return NULL;
+    }
 }
 
 // ==========================

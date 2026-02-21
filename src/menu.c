@@ -150,15 +150,15 @@ static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr
 
         if (menu_state.main_mode == MENU_TICKERS)
         {
-            ticker_display(SUB_MENUS[menu_state.sub_mode]);
+            ticker_display(SUB_MENUS[menu_state.sub_mode], mtrx);
         }
         else if (menu_state.main_mode == MENU_GAMES)
         {
-            game_display(SUB_MENUS[menu_state.sub_mode]);
+            game_display(SUB_MENUS[menu_state.sub_mode], mtrx);
         }
         else if (menu_state.main_mode == MENU_WEATHER)
         {
-            weather_display(SUB_MENUS[menu_state.sub_mode]);
+            weather_display(SUB_MENUS[menu_state.sub_mode], mtrx);
         }
 
         g_display_initialized = true;

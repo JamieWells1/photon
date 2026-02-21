@@ -50,6 +50,8 @@ typedef enum
     RAIN = 10,
     LIGHTNING = 11,
     SNOW = 12,
+    WIFI = 13,
+    DATA = 14,
     ICON_COUNT
 } IconType;
 
@@ -64,6 +66,8 @@ static const RGB GREEN = {50, 200, 50};
 static const RGB RED = {200, 50, 50};
 static const RGB YELLOW = {250, 200, 50};
 static const RGB LIGHT_BLUE = {150, 250, 250};
+static const RGB BLUE = {50, 150, 200};
+static const RGB ORANGE = {250, 150, 50};
 
 // ==========================
 // LETTERS
@@ -252,6 +256,33 @@ static const Pixel LETTER_Z[] = {
 // ALPHABET LOOKUP TABLE
 // ==========================
 
+// PUNCTUATION
+static const Pixel PUNCT_EXCLAIM[] = {
+    // 1x5
+    {0, 0, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}};
+
+static const Pixel PUNCT_QUESTION[] = {
+    // 3x5
+    {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR}};
+
+static const Pixel PUNCT_PERIOD[] = {
+    // 1x5
+    {0, 4, DEFAULT_COLOUR}};
+
+static const Pixel PUNCT_COMMA[] = {
+    // 1x5
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}};
+
+static const Pixel PUNCT_DASH[] = {
+    // 2x5
+    {0, 2, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR}};
+
 static const Glyph ALPHABET[26] = {
     {LETTER_A, ARRAY_SIZE(LETTER_A), 3, 5},  // A
     {LETTER_B, ARRAY_SIZE(LETTER_B), 3, 5},  // B
@@ -279,6 +310,14 @@ static const Glyph ALPHABET[26] = {
     {LETTER_X, ARRAY_SIZE(LETTER_X), 3, 5},  // X
     {LETTER_Y, ARRAY_SIZE(LETTER_Y), 3, 5},  // Y
     {LETTER_Z, ARRAY_SIZE(LETTER_Z), 3, 5},  // Z
+};
+
+static const Glyph PUNCTUATION[5] = {
+    {PUNCT_EXCLAIM, ARRAY_SIZE(PUNCT_EXCLAIM), 1, 5},    // !
+    {PUNCT_QUESTION, ARRAY_SIZE(PUNCT_QUESTION), 3, 5},  // ?
+    {PUNCT_PERIOD, ARRAY_SIZE(PUNCT_PERIOD), 1, 5},      // .
+    {PUNCT_COMMA, ARRAY_SIZE(PUNCT_COMMA), 1, 5},        // ,
+    {PUNCT_DASH, ARRAY_SIZE(PUNCT_DASH), 2, 5},          // -
 };
 
 // ==========================
@@ -351,10 +390,10 @@ static const Pixel ICON_CLOUDY[12] = {
 };
 
 static const Pixel ICON_RAIN[15] = {
-    {0, 2, DEFAULT_COLOUR}, {0, 4, LIGHT_BLUE},     {1, 1, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR},
-    {1, 3, LIGHT_BLUE},     {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR},
-    {3, 5, LIGHT_BLUE},     {3, 0, DEFAULT_COLOUR}, {3, 1, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR},
-    {4, 3, LIGHT_BLUE},     {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR},
+    {0, 2, DEFAULT_COLOUR}, {0, 4, BLUE},           {1, 1, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR},
+    {1, 3, BLUE},           {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR},
+    {3, 5, BLUE},           {3, 0, DEFAULT_COLOUR}, {3, 1, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR},
+    {4, 3, BLUE},           {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR},
 };
 
 static const Pixel ICON_LIGHTNING[15] = {
@@ -370,6 +409,17 @@ static const Pixel ICON_SNOW[17] = {
     {2, 2, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR},
     {2, 3, DEFAULT_COLOUR}, {3, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
     {4, 4, DEFAULT_COLOUR},
+};
+
+static const Pixel ICON_WIFI[9] = {
+    {0, 0, ORANGE}, {1, 0, ORANGE}, {2, 0, ORANGE}, {3, 0, ORANGE}, {4, 0, ORANGE},
+    {1, 2, ORANGE}, {2, 2, ORANGE}, {3, 2, ORANGE}, {2, 4, ORANGE},
+};
+
+static const Pixel ICON_DATA[16] = {
+    {0, 0, BLUE}, {0, 3, BLUE}, {0, 4, BLUE}, {1, 0, BLUE}, {1, 2, BLUE}, {1, 4, BLUE},
+    {2, 0, BLUE}, {2, 1, BLUE}, {2, 2, BLUE}, {2, 4, BLUE}, {3, 0, BLUE}, {3, 1, BLUE},
+    {3, 4, BLUE}, {4, 0, BLUE}, {4, 3, BLUE}, {4, 4, BLUE},
 };
 
 // ==========================
@@ -390,6 +440,8 @@ static const Glyph ICONS_ARR[ICON_COUNT] = {
     {ICON_RAIN, ARRAY_SIZE(ICON_RAIN), 5, 5},                  // 10: RAIN
     {ICON_LIGHTNING, ARRAY_SIZE(ICON_LIGHTNING), 5, 5},        // 11: LIGHTNING
     {ICON_SNOW, ARRAY_SIZE(ICON_SNOW), 5, 5},                  // 12: SNOW
+    {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                  // 13: WIFI
+    {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                  // 14: DATA
 };
 
 #endif  // DISPLAYS_H

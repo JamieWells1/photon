@@ -8,15 +8,19 @@
 #include <secrets.h>
 #include <wifi.h>
 
+#include <pico/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define WEATHER_HOURS 24
+#define WEATHER_REFRESH_INTERVAL_MS (60 * 60 * 1000)
 
 static float hourly_temps[WEATHER_HOURS];
 static int hourly_codes[WEATHER_HOURS];
 static bool data_fetched = false;
+static uint64_t last_fetch_time_ms = 0;
+static bool fetch_in_progress = false;
 
 static int weather_parse_float_array(const char* json, const char* key, float* values,
                                      int max_values)
@@ -104,11 +108,13 @@ static void weather_response_callback(const char* body, size_t len, bool complet
 
     if (temp_count > 0 && code_count > 0)
     {
-        debug("Parsed %d hours of weather data\n", temp_count);
-        debug("Hour 0 (now): %.1f°C, code: %d\n", hourly_temps[0], hourly_codes[0]);
-        debug("Hour 1: %.1f°C, code: %d\n", hourly_temps[1], hourly_codes[1]);
-        debug("Hour 23: %.1f°C, code: %d\n", hourly_temps[23], hourly_codes[23]);
+        debug("Parsed %d hours of weather data", temp_count);
         data_fetched = true;
+        last_fetch_time_ms = to_ms_since_boot(get_absolute_time());
+        fetch_in_progress = false;
+
+        debug("Weather data received, disconnecting WiFi to save power");
+        wifi_disconnect();
     }
 }
 
@@ -119,7 +125,7 @@ static void weather_fetch_data(void)
         return;
     }
 
-    debug("Fetching weather data...\n");
+    debug("Fetching weather data...");
 
     char path[256];
     snprintf(path, sizeof(path),
@@ -133,36 +139,71 @@ static void weather_fetch_data(void)
     http_get(host, path, weather_response_callback);
 }
 
-void weather_display(SubMenu sub_mode)
+void weather_display(SubMenu sub_mode, Matrix* mtrx)
 {
-    static bool initialized = false;
-    if (!initialized)
+    uint64_t current_time_ms = to_ms_since_boot(get_absolute_time());
+    uint64_t time_since_last_fetch = current_time_ms - last_fetch_time_ms;
+
+    bool should_fetch = (!data_fetched || time_since_last_fetch >= WEATHER_REFRESH_INTERVAL_MS) &&
+                        !fetch_in_progress;
+
+    // Get current WiFi state
+    WifiState wifi_state = wifi_get_state();
+
+    if (should_fetch && wifi_state == WIFI_DISCONNECTED)
     {
+        debug("Starting WiFi connection...");
+        fetch_in_progress = true;
+        wifi_join_async(WIFI_SSID, WIFI_PASSWORD);
+    }
+
+    if (wifi_state == WIFI_CONNECTING)
+    {
+        wifi_join_async(WIFI_SSID, WIFI_PASSWORD);
+
+        matrix_clear(mtrx);
+        matrix_display_word_icon_pair("WIFI", &DEFAULT_COLOUR, &ICONS_ARR[WEATHER], 0);
+        matrix_show(mtrx);
+        return;
+    }
+
+    if (should_fetch && wifi_state == WIFI_CONNECTED && fetch_in_progress)
+    {
+        debug("WiFi connected, fetching weather...");
         weather_fetch_data();
-        initialized = true;
+
+        matrix_clear(mtrx);
+        matrix_display_word_icon_pair("LOAD", &DEFAULT_COLOUR, &ICONS_ARR[WEATHER], 0);
+        matrix_show(mtrx);
+        return;
+    }
+
+    if (wifi_state == WIFI_FAILED)
+    {
+        fetch_in_progress = false;
+        matrix_clear(mtrx);
+        matrix_display_word_icon_pair("ERROR", &RED, NULL, 0);
+        matrix_show(mtrx);
+        return;
     }
 
     if (!data_fetched)
     {
-        debug("Waiting for weather data...\n");
+        debug("Waiting for weather data...");
         return;
     }
 
-    // Determine which hour to display based on sub_mode
-    int hour_index = 0;  // Default to current hour
+    int hour_index = 0;
 
     if (sub_mode.mode == TEMP_CURRENT)
     {
-        hour_index = 0;  // Current hour
+        hour_index = 0;
     }
     else if (sub_mode.mode == TEMP_HOURLY)
     {
-        // For now, just show next hour
-        // You could cycle through hours with rotary encoder input
         hour_index = 1;
     }
 
-    // Bounds check
     if (hour_index >= WEATHER_HOURS) hour_index = WEATHER_HOURS - 1;
 
     IconType icon = weather_code_to_icon(hourly_codes[hour_index]);
@@ -170,8 +211,5 @@ void weather_display(SubMenu sub_mode)
     char temp_str[16];
     snprintf(temp_str, sizeof(temp_str), "%.0fC", hourly_temps[hour_index]);
 
-    debug("Display hour %d: %s, icon: %d\n", hour_index, temp_str, icon);
-
-    // TODO: Display on matrix
-    // matrix_display_word_icon_pair(temp_str, &DEFAULT_COLOUR, &ICONS_ARR[icon], 0);
+    matrix_display_word_icon_pair(temp_str, &DEFAULT_COLOUR, &ICONS_ARR[icon], 0);
 }

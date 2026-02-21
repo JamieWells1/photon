@@ -3,6 +3,6 @@
 
 #include <menu.h>
 
-void weather_display(SubMenu sub_mode);
+void weather_display(SubMenu sub_mode, Matrix* mtrx);
 
 #endif  // WEATHER_H
