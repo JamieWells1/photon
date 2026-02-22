@@ -54,6 +54,69 @@ int weather_hours_fetched() { return g_hours_fetched; }
 
 // Parsing logic
 
+static float location_get_latitude(Location loc)
+{
+    switch (loc)
+    {
+        case LOC_LONDON:
+            return 51.6611;
+        case LOC_MIAMI:
+            return 25.7617;
+        case LOC_LOS_ANGELES:
+            return 34.0522;
+        case LOC_CHICAGO:
+            return 41.8781;
+        case LOC_TOKYO:
+            return 35.6762;
+        case LOC_SYDNEY:
+            return -33.8688;
+        default:
+            return 0.0;
+    }
+}
+
+static float location_get_longitude(Location loc)
+{
+    switch (loc)
+    {
+        case LOC_LONDON:
+            return 0.3970;
+        case LOC_MIAMI:
+            return -80.1918;
+        case LOC_LOS_ANGELES:
+            return -118.2437;
+        case LOC_CHICAGO:
+            return -87.6298;
+        case LOC_TOKYO:
+            return 139.6503;
+        case LOC_SYDNEY:
+            return 151.2093;
+        default:
+            return 0.0;
+    }
+}
+
+static const char* location_get_timezone(Location loc)
+{
+    switch (loc)
+    {
+        case LOC_LONDON:
+            return "Europe/London";
+        case LOC_MIAMI:
+            return "America/New_York";
+        case LOC_LOS_ANGELES:
+            return "America/Los_Angeles";
+        case LOC_CHICAGO:
+            return "America/Chicago";
+        case LOC_TOKYO:
+            return "Asia/Tokyo";
+        case LOC_SYDNEY:
+            return "Australia/Sydney";
+        default:
+            return "UTC";
+    }
+}
+
 static int weather_parse_float_array(const char* json, const char* key, float* values,
                                      int max_values)
 {
@@ -275,6 +338,10 @@ static void weather_fetch_data(void)
 
     debug("Fetching weather data...");
 
+    float lat = location_get_latitude(LOCATION);
+    float lon = location_get_longitude(LOCATION);
+    const char* tz = location_get_timezone(LOCATION);
+
     char path[256];
     snprintf(path, sizeof(path),
              "/v1/forecast?latitude=%.4f&longitude=%.4f"
@@ -282,8 +349,8 @@ static void weather_fetch_data(void)
              "&hourly=temperature_2m,weather_code"
              "&daily=sunrise,sunset"
              "&forecast_days=%.0d"
-             "&timezone=Europe/London",
-             LOCATION_LAT, LOCATION_LON, WEATHER_HOURS / 24);
+             "&timezone=%s",
+             lat, lon, WEATHER_HOURS / 24, tz);
 
     const char* host = "api.open-meteo.com";
     http_get(host, path, weather_response_callback);
@@ -312,33 +379,50 @@ static RGB get_dynamic_temp_display_colour(int temp)
     if (temp > PERFECT_GREEN_TEMP)
     {
         // Between GREEN (15°C) and RED (35°C)
-        float range = PERFECT_RED_TEMP - PERFECT_GREEN_TEMP;  // 20
-        float position = temp - PERFECT_GREEN_TEMP;           // 0-20
-        float ratio = position / range;                       // 0.0-1.0
+        int midpoint = (PERFECT_GREEN_TEMP + PERFECT_RED_TEMP) / 2;
 
-        col.r = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * ratio);
-        col.g = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * (1.0f - ratio));
+        if (temp <= midpoint)
+        {
+            float range = midpoint - PERFECT_GREEN_TEMP;
+            float position = temp - PERFECT_GREEN_TEMP;
+            float ratio = position / range;
+
+            col.g = PERFECT_TEMP_DISPLAY_VALUE;
+            col.r = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * ratio);
+        }
+        else
+        {
+            float range = PERFECT_RED_TEMP - midpoint;
+            float position = temp - midpoint;
+            float ratio = position / range;
+
+            col.r = PERFECT_TEMP_DISPLAY_VALUE;
+            col.g = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * (1.0f - ratio));
+        }
     }
     else
     {
         // Between BLUE (-5°C) and GREEN (15°C)
-        float range = PERFECT_GREEN_TEMP - PERFECT_BLUE_TEMP;  // 20
-        float position = temp - PERFECT_BLUE_TEMP;             // 0-20
-        float ratio = position / range;                        // 0.0-1.0
+        int midpoint = (PERFECT_BLUE_TEMP + PERFECT_GREEN_TEMP) / 2;
 
-        col.b = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * (1.0f - ratio));
-        col.g = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * ratio);
-    }
+        if (temp <= midpoint)
+        {
+            float range = midpoint - PERFECT_BLUE_TEMP;
+            float position = temp - PERFECT_BLUE_TEMP;
+            float ratio = position / range;
 
-    uint8_t max_component = col.r > col.g ? col.r : col.g;
-    max_component = max_component > col.b ? max_component : col.b;
+            col.b = PERFECT_TEMP_DISPLAY_VALUE;
+            col.g = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * ratio);
+        }
+        else
+        {
+            float range = PERFECT_GREEN_TEMP - midpoint;
+            float position = temp - midpoint;
+            float ratio = position / range;
 
-    if (max_component > 0 && max_component < PERFECT_TEMP_DISPLAY_VALUE)
-    {
-        float scale = (float)PERFECT_TEMP_DISPLAY_VALUE / max_component;
-        col.r = (uint8_t)(col.r * scale);
-        col.g = (uint8_t)(col.g * scale);
-        col.b = (uint8_t)(col.b * scale);
+            col.g = PERFECT_TEMP_DISPLAY_VALUE;
+            col.b = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * (1.0f - ratio));
+        }
     }
 
     return col;

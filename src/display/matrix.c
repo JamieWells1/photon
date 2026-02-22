@@ -184,7 +184,6 @@ void matrix_show(Matrix* mtrx)
     {
         pio_sm_put_blocking(mtrx->pio, mtrx->sm, g_pixels[i] << 8u);
     }
-    debug("matrix_show()");
 }
 
 // Clear the matrix of its current state
@@ -195,7 +194,6 @@ void matrix_clear(Matrix* mtrx)
         g_pixels[i] = 0;
         g_pixel_states[i].is_set = false;
     }
-    debug("matrix_clear()");
 }
 
 // Only writes letter to state, not matrix

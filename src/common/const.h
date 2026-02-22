@@ -21,7 +21,7 @@ extern const DebugLevel DEBUG_LEVEL;
 #define NUM_PIXELS (MATRIX_WIDTH * MATRIX_HEIGHT)
 
 // Matrix pixels
-#define BRIGHTNESS_COEFFICIENT 0.1
+#define BRIGHTNESS_COEFFICIENT 0.01
 
 // GPIO pins
 #define BUTTON_LEFT_PIN 10  // GP10
@@ -35,9 +35,20 @@ extern const DebugLevel DEBUG_LEVEL;
 #define MATRIX_DATA_FREQ 800000
 
 // Wifi
-#define MAX_WIFI_CONNECTION_ATTEMPTS 50
+#define MAX_WIFI_CONNECTION_ATTEMPTS 100
 
 // Weather
 #define WEATHER_HOURS 48
+
+// Locations + timezones
+typedef enum
+{
+    LOC_LONDON,
+    LOC_MIAMI,
+    LOC_LOS_ANGELES,
+    LOC_CHICAGO,
+    LOC_TOKYO,
+    LOC_SYDNEY,
+} Location;
 
 #endif  // CONST_H

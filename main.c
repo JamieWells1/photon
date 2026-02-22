@@ -34,11 +34,12 @@ void debug_inputs(Button* btns, Rotator* rtr)
     {
         debug("Right button released");
     }
-    if (input_rtr_cw(rtr))
+    // Check direction without consuming it (let menu code handle consumption)
+    if (rtr->direction == 1)
     {
         debug("Rotator clockwise");
     }
-    if (input_rtr_anti_cw(rtr))
+    if (rtr->direction == -1)
     {
         debug("Rotator anti-clockwise");
     }
@@ -101,6 +102,10 @@ Rotator* main_init_rotator()
 
     rotator.current_sw_state = gpio_get(ROTATOR_SW_PIN);
     rotator.last_sw_state = rotator.current_sw_state;
+
+    rotator.state = (rotator.current_clk_state << 1) | rotator.current_dt_state;
+    rotator.direction = 0;
+    rotator.last_change_time = time_us_32();
 
     debug("✓ GPIO pins for rotary encoder initialised");
 

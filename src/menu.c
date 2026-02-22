@@ -246,14 +246,27 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
 
 static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    if (!g_in_submenu && input_rtr_cw(rtr))
+    if (!g_in_submenu)
     {
-        menu_main_slide_right(mtrx);
-    }
+        bool cw = input_rtr_cw(rtr);
+        bool acw = input_rtr_anti_cw(rtr);
 
-    if (!g_in_submenu && input_rtr_anti_cw(rtr))
-    {
-        menu_main_slide_left(mtrx);
+        if (cw || acw)
+        {
+            printf("menu_detect_inputs: g_in_submenu=%d, cw=%d, acw=%d\n", g_in_submenu, cw, acw);
+        }
+
+        if (cw)
+        {
+            printf("Calling menu_main_slide_right\n");
+            menu_main_slide_right(mtrx);
+        }
+
+        if (acw)
+        {
+            printf("Calling menu_main_slide_left\n");
+            menu_main_slide_left(mtrx);
+        }
     }
 
     if (input_any_btn_pressed(btns, rtr) && !g_in_submenu)

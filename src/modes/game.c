@@ -8,6 +8,7 @@ static char g_last_game_text[32] = "";
 
 void game_display(SubMenu sub_mode, Matrix* mtrx)
 {
+    // TODO
     // Only update display if submenu changed
     if (strcmp(sub_mode.text, g_last_game_text) != 0)
     {

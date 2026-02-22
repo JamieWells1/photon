@@ -21,6 +21,9 @@ typedef struct
     bool current_sw_state;
     bool last_clk_state;
     bool last_sw_state;
+    uint8_t state;              // Current quadrature state (0-3)
+    int8_t direction;           // Last detected direction: 1=CW, -1=CCW, 0=none
+    uint32_t last_change_time;  // For debouncing
 } Rotator;
 
 void input_update(Button* btns, Rotator* rtr);
