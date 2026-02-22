@@ -13,7 +13,7 @@ extern const DebugLevel DEBUG_LEVEL;
 
 // Display
 #define PROJECT_NAME "PHOTON"
-#define DISPLAY_UPDATE_INTERVAL_TICKS 30
+#define DISPLAY_UPDATE_INTERVAL_TICKS_MS 50
 
 // Matrix layout
 #define MATRIX_WIDTH 32
@@ -33,5 +33,8 @@ extern const DebugLevel DEBUG_LEVEL;
 
 #define MATRIX_DIN_PIN 21  // GP21
 #define MATRIX_DATA_FREQ 800000
+
+// Wifi
+#define MAX_WIFI_CONNECTION_ATTEMPTS 50
 
 #endif  // CONST_H

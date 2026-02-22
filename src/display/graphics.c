@@ -16,4 +16,5 @@ void graphics_display_start_screen(Matrix* mtrx)
     matrix_show(mtrx);
     sleep_ms(3000);
     matrix_clear(mtrx);
+    matrix_show(mtrx);
 }

@@ -47,6 +47,8 @@ static void menu_set_initial_display()
 
 static void reset_states(Matrix* mtrx)
 {
+    weather_cleanup();
+
     g_display_initialized = false;
     g_underscore_on = true;
     g_tick = 0;
@@ -119,7 +121,6 @@ static void slide_main_menu_left(Matrix* mtrx)
 
 static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    matrix_clear(mtrx);
     SubMode target_submenu;
 
     if (menu_state.main_mode == MENU_TICKERS)
@@ -170,6 +171,7 @@ static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr
     if (input_btn_pressed(btn_left))
     {
         // Back to main menu
+        debug("Left button pressed, returning to main menu.");
         reset_states(mtrx);
     }
 
@@ -185,8 +187,6 @@ static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr
     {
         // TODO: Next sub-mode
     }
-
-    matrix_show(mtrx);
 }
 
 void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
@@ -218,16 +218,13 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
         slide_main_menu_left(mtrx);
     }
 
-    if (input_any_btn_pressed(btns, rtr))
+    if (input_any_btn_pressed(btns, rtr) && !g_in_submenu)
     {
         debug("BUTTON PRESSED! ENTERING SUBMENU");
-        if (!g_in_submenu)
-        {
-            menu_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
-        }
+        menu_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
     }
 
-    if (g_in_submenu && g_tick % DISPLAY_UPDATE_INTERVAL_TICKS == 0)
+    if (g_in_submenu && g_tick % DISPLAY_UPDATE_INTERVAL_TICKS_MS == 0)
     {
         menu_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
     }

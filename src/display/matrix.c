@@ -5,6 +5,7 @@
 #include <macro.h>
 
 #include <ctype.h>
+#include <pico/time.h>
 #include <string.h>
 
 #include <displays.h>
@@ -49,7 +50,7 @@ static void matrix_set_brightness(RGB* col)
 
 static uint32_t matrix_rgb_to_grb(RGB* col) { return (col->g << 16) | (col->r << 8) | col->b; }
 
-static const Glyph* matrix_letter_in_pxls(char ch)
+static const Glyph* matrix_char_in_pxls(char ch)
 {
     ch = toupper(ch);
 
@@ -57,6 +58,12 @@ static const Glyph* matrix_letter_in_pxls(char ch)
     if (ch >= 'A' && ch <= 'Z')
     {
         return &ALPHABET[ch - 'A'];
+    }
+
+    // Check for digits 0-9
+    if (ch >= '0' && ch <= '9')
+    {
+        return &NUMBERS[ch - '0'];
     }
 
     // Check for punctuation
@@ -128,7 +135,7 @@ void matrix_clear(Matrix* mtrx)
     {
         g_pixels[i] = 0;
     }
-    matrix_show(mtrx);
+    debug("matrix_clear()");
 }
 
 // Show the matrix current state
@@ -138,28 +145,29 @@ void matrix_show(Matrix* mtrx)
     {
         pio_sm_put_blocking(mtrx->pio, mtrx->sm, g_pixels[i] << 8u);
     }
+    debug("matrix_show()");
 }
 
 // Only writes letter to state, not matrix
-void matrix_display_letter(const char c, int x, int y, const RGB* col)
+void matrix_display_char(const char c, int x, int y, const RGB* col)
 {
-    const Glyph* letter = matrix_letter_in_pxls(c);
-    if (!letter)
+    const Glyph* ch = matrix_char_in_pxls(c);
+    if (!ch)
     {
         debug("Cannot display invalid character: '%c'", c);
         return;
     }
 
-    for (size_t i = 0; i < letter->pxl_count; i++)
+    for (size_t i = 0; i < ch->pxl_count; i++)
     {
-        int transformed_x = letter->pixels[i].x + x;
-        int transformed_y = letter->pixels[i].y + y;
+        int transformed_x = ch->pixels[i].x + x;
+        int transformed_y = ch->pixels[i].y + y;
 
         if (!IN_BOUNDS(transformed_x, transformed_y)) continue;
 
         Pixel pxl = {transformed_x, transformed_y, *col};
         matrix_set_pixel(&pxl);
-        debug("Character '%c' set on matrix, position (%d, %d)", c, transformed_x, transformed_y);
+        sleep_us(10);  // Prevents display corruption during character rendering (heisenbug)
     }
 }
 
@@ -188,17 +196,17 @@ void matrix_display_word(const char* word, int x, int y, const RGB* col)
     for (size_t i = 0; i < strlen(word); i++)
     {
         char ch = word[i];
-        const Glyph* letter = matrix_letter_in_pxls(ch);
+        const Glyph* chars = matrix_char_in_pxls(ch);
 
-        if (!letter)
+        if (!chars)
         {
             current_x += 2;
             continue;
         }
 
-        matrix_display_letter(ch, current_x, y, col);
+        matrix_display_char(ch, current_x, y, col);
 
-        current_x += letter->width;
+        current_x += chars->width;
         if (i < strlen(word) - 1)
         {
             current_x++;
@@ -238,13 +246,32 @@ void matrix_draw_vert_line(int x, int y, int length, const RGB* col)
     }
 }
 
+static int matrix_calculate_word_width(const char* word)
+{
+    int total_width = 0;
+    for (size_t i = 0; word[i] != '\0'; i++)
+    {
+        const Glyph* letter = matrix_char_in_pxls(word[i]);
+        if (letter)
+        {
+            total_width += letter->width + 1;
+        }
+        else
+        {
+            total_width += 2;
+        }
+    }
+    return total_width;
+}
+
 void matrix_display_word_icon_pair(const char* word, const RGB* word_col, const Glyph* icon,
                                    int offset_x)
 {
     matrix_display_word(word, 1 + offset_x, 1, word_col);
 
-    // Icon may be NULL
-    if (strlen(word) <= 6 && icon)
+    // Only show icon if word width <= 25 pixels
+    int word_width = matrix_calculate_word_width(word);
+    if (word_width <= 25 && icon)
     {
         // Start the icon at the end of the screen
         int icon_x = MATRIX_WIDTH - icon->width - 1 + offset_x;

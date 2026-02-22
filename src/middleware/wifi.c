@@ -89,7 +89,8 @@ int wifi_join_async(const char *ssid, const char *password)
 
     if (current_state == WIFI_CONNECTING)
     {
-        int link_status = cyw43_wifi_link_status(&cyw43_state, CYW43_ITF_STA);
+        int link_status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
+        debug("WiFi link status: %d", link_status);
 
         if (link_status == CYW43_LINK_UP)
         {
@@ -98,15 +99,16 @@ int wifi_join_async(const char *ssid, const char *password)
             current_state = WIFI_CONNECTED;
             return 0;
         }
-        else if (link_status == CYW43_LINK_FAIL || link_status == CYW43_LINK_BADAUTH)
+        else if (link_status == CYW43_LINK_FAIL || link_status == CYW43_LINK_BADAUTH ||
+                 link_status == CYW43_LINK_NONET)
         {
-            debug("WiFi connection failed");
+            debug("WiFi connection failed (status: %d)", link_status);
             connected = false;
             current_state = WIFI_FAILED;
             return -1;
         }
 
-        // Still connecting
+        // Still connecting (LINK_DOWN, LINK_JOIN, or LINK_NOIP)
         return 1;
     }
 
@@ -135,7 +137,8 @@ void wifi_disconnect(void)
 {
     if (!connected)
     {
-        debug("WiFi already disconnected");
+        debug("WiFi already disconnected - resetting state");
+        current_state = WIFI_DISCONNECTED;
         return;
     }
 
@@ -143,5 +146,6 @@ void wifi_disconnect(void)
     cyw43_arch_deinit();
     connected = false;
     initialized = false;
+    current_state = WIFI_DISCONNECTED;
     debug("WiFi disconnected");
 }

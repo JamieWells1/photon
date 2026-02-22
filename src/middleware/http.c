@@ -63,7 +63,11 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         debug("HTTP connection closed by remote host");
         if (state->callback && state->body_start)
         {
-            state->callback(state->body_start, strlen(state->body_start), true);
+            char* buffer_end = state->response_buffer + state->bytes_received;
+            if (state->body_start >= state->response_buffer && state->body_start <= buffer_end)
+            {
+                state->callback(state->body_start, strlen(state->body_start), true);
+            }
         }
         http_cleanup(state);
         return ERR_OK;
@@ -91,12 +95,20 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
     if (!state->headers_complete)
     {
-        char* header_end = strstr(state->response_buffer, "\r\r");
+        char* header_end = strstr(state->response_buffer, "\r\n\r\n");
         if (header_end)
         {
             state->headers_complete = true;
+            state->body_start = header_end + 4;  // Skip past "\r\n\r\n"
 
-            if (state->callback && state->body_start)
+            // Ensure body_start is within buffer bounds
+            char* buffer_end = state->response_buffer + state->bytes_received;
+            if (state->body_start < state->response_buffer || state->body_start > buffer_end)
+            {
+                state->body_start = buffer_end;
+            }
+
+            if (state->callback && state->body_start && state->body_start < buffer_end)
             {
                 state->callback(state->body_start, strlen(state->body_start), false);
             }
@@ -139,7 +151,7 @@ static err_t http_connected_callback(void* arg, struct tcp_pcb* pcb, err_t err)
     debug("HTTP connected, sending request");
 
     char request[512];
-    snprintf(request, sizeof(request), "GET %s HTTP/1.1\rHost: %s\rConnection: close\r\r",
+    snprintf(request, sizeof(request), "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
              state->request_path, "api.open-meteo.com");
 
     err_t write_err = tcp_write(pcb, request, strlen(request), TCP_WRITE_FLAG_COPY);

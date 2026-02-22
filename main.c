@@ -151,6 +151,7 @@ int main()
     Matrix* mtrx = main_init_matrix();
 
     matrix_clear(mtrx);
+    matrix_show(mtrx);
     debug("✓✓✓ Main init complete. Starting main execution loop.");
     debug("PRESS ANY BUTTON TO START");
 

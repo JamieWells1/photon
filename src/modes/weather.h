@@ -4,5 +4,6 @@
 #include <menu.h>
 
 void weather_display(SubMenu sub_mode, Matrix* mtrx);
+void weather_cleanup(void);
 
 #endif  // WEATHER_H

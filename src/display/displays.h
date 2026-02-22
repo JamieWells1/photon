@@ -283,6 +283,79 @@ static const Pixel PUNCT_DASH[] = {
     {0, 2, DEFAULT_COLOUR},
     {1, 2, DEFAULT_COLOUR}};
 
+// ==========================
+// NUMBERS
+// ==========================
+
+static const Pixel DIGIT_0[] = {
+    // 3x5
+    {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+};
+
+static const Pixel DIGIT_1[] = {
+    // 2x5
+    {0, 1, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR},
+};
+
+static const Pixel DIGIT_2[] = {
+    // 3x5
+    {0, 0, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+};
+
+static const Pixel DIGIT_3[] = {
+    // 3x5
+    {0, 0, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+};
+
+static const Pixel DIGIT_4[] = {
+    // 3x5
+    {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+};
+
+static const Pixel DIGIT_5[] = {
+    // 3x5
+    {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+};
+
+static const Pixel DIGIT_6[] = {
+    // 3x5
+    {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+};
+
+static const Pixel DIGIT_7[] = {
+    // 3x5
+    {0, 0, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+};
+
+static const Pixel DIGIT_8[] = {
+    // 3x5
+    {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
+};
+
+static const Pixel DIGIT_9[] = {
+    // 3x5
+    {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+};
+
 static const Glyph ALPHABET[26] = {
     {LETTER_A, ARRAY_SIZE(LETTER_A), 3, 5},  // A
     {LETTER_B, ARRAY_SIZE(LETTER_B), 3, 5},  // B
@@ -318,6 +391,19 @@ static const Glyph PUNCTUATION[5] = {
     {PUNCT_PERIOD, ARRAY_SIZE(PUNCT_PERIOD), 1, 5},      // .
     {PUNCT_COMMA, ARRAY_SIZE(PUNCT_COMMA), 1, 5},        // ,
     {PUNCT_DASH, ARRAY_SIZE(PUNCT_DASH), 2, 5},          // -
+};
+
+static const Glyph NUMBERS[10] = {
+    {DIGIT_0, ARRAY_SIZE(DIGIT_0), 3, 5},  // 0
+    {DIGIT_1, ARRAY_SIZE(DIGIT_1), 2, 5},  // 1
+    {DIGIT_2, ARRAY_SIZE(DIGIT_2), 3, 5},  // 2
+    {DIGIT_3, ARRAY_SIZE(DIGIT_3), 3, 5},  // 3
+    {DIGIT_4, ARRAY_SIZE(DIGIT_4), 3, 5},  // 4
+    {DIGIT_5, ARRAY_SIZE(DIGIT_5), 3, 5},  // 5
+    {DIGIT_6, ARRAY_SIZE(DIGIT_6), 3, 5},  // 6
+    {DIGIT_7, ARRAY_SIZE(DIGIT_7), 3, 5},  // 7
+    {DIGIT_8, ARRAY_SIZE(DIGIT_8), 3, 5},  // 8
+    {DIGIT_9, ARRAY_SIZE(DIGIT_9), 3, 5},  // 9
 };
 
 // ==========================
@@ -417,8 +503,8 @@ static const Pixel ICON_WIFI[9] = {
 };
 
 static const Pixel ICON_DATA[16] = {
-    {0, 0, BLUE}, {0, 3, BLUE}, {0, 4, BLUE}, {1, 0, BLUE}, {1, 2, BLUE}, {1, 4, BLUE},
-    {2, 0, BLUE}, {2, 1, BLUE}, {2, 2, BLUE}, {2, 4, BLUE}, {3, 0, BLUE}, {3, 1, BLUE},
+    {0, 0, BLUE}, {0, 3, BLUE}, {0, 4, BLUE}, {1, 0, BLUE}, {1, 1, BLUE}, {1, 4, BLUE},
+    {2, 0, BLUE}, {2, 2, BLUE}, {2, 1, BLUE}, {2, 4, BLUE}, {3, 0, BLUE}, {3, 1, BLUE},
     {3, 4, BLUE}, {4, 0, BLUE}, {4, 3, BLUE}, {4, 4, BLUE},
 };
 
