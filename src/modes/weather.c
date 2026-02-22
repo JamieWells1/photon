@@ -1,4 +1,3 @@
-#include <stddef.h>
 #include <weather.h>
 
 #include <const.h>
@@ -10,10 +9,18 @@
 #include <secrets.h>
 #include <wifi.h>
 
-#include <pico/time.h>
+#include <math.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <pico/time.h>
+
+#define PERFECT_TEMP_DISPLAY_VALUE 180
+#define PERFECT_RED_TEMP 35
+#define PERFECT_GREEN_TEMP 15
+#define PERFECT_BLUE_TEMP -5
 
 static float g_hourly_temps[WEATHER_HOURS];
 static int g_hourly_codes[WEATHER_HOURS];
@@ -22,6 +29,7 @@ static char g_sunrise_time[20];
 static char g_sunset_time[20];
 
 static volatile int g_current_hour_index = 0;
+static volatile int g_hours_fetched = 0;
 static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
 static bool g_http_request_sent = false;
@@ -42,6 +50,7 @@ static int g_last_displayed_code = -1;
 // Getters
 
 int weather_current_hour_index() { return g_current_hour_index; }
+int weather_hours_fetched() { return g_hours_fetched; }
 
 // Parsing logic
 
@@ -237,6 +246,7 @@ static void weather_response_callback(const char* body, size_t len, bool complet
 
     if (time_count > 0 && temp_count > 0 && code_count > 0)
     {
+        g_hours_fetched = temp_count;
         debug("Parsed %d hours of weather data", temp_count);
         debug("Current hour (%s): temp=%.1f, code=%d", g_hourly_times[g_current_hour_index],
               g_hourly_temps[g_current_hour_index], g_hourly_codes[g_current_hour_index]);
@@ -282,6 +292,56 @@ static void weather_fetch_data(void)
 static void weather_animate_status_dots(char* status_text, size_t max_size)
 {
     wifi_append_connecting_dots(status_text, max_size, &g_connection_dots_counter);
+}
+
+static RGB get_dynamic_temp_display_colour(int temp)
+{
+    RGB col = {0, 0, 0};
+
+    if (temp >= PERFECT_RED_TEMP)
+    {
+        col.r = PERFECT_TEMP_DISPLAY_VALUE;
+        return col;
+    }
+    if (temp <= PERFECT_BLUE_TEMP)
+    {
+        col.b = PERFECT_TEMP_DISPLAY_VALUE;
+        return col;
+    }
+
+    if (temp > PERFECT_GREEN_TEMP)
+    {
+        // Between GREEN (15°C) and RED (35°C)
+        float range = PERFECT_RED_TEMP - PERFECT_GREEN_TEMP;  // 20
+        float position = temp - PERFECT_GREEN_TEMP;           // 0-20
+        float ratio = position / range;                       // 0.0-1.0
+
+        col.r = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * ratio);
+        col.g = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * (1.0f - ratio));
+    }
+    else
+    {
+        // Between BLUE (-5°C) and GREEN (15°C)
+        float range = PERFECT_GREEN_TEMP - PERFECT_BLUE_TEMP;  // 20
+        float position = temp - PERFECT_BLUE_TEMP;             // 0-20
+        float ratio = position / range;                        // 0.0-1.0
+
+        col.b = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * (1.0f - ratio));
+        col.g = (uint8_t)(PERFECT_TEMP_DISPLAY_VALUE * ratio);
+    }
+
+    uint8_t max_component = col.r > col.g ? col.r : col.g;
+    max_component = max_component > col.b ? max_component : col.b;
+
+    if (max_component > 0 && max_component < PERFECT_TEMP_DISPLAY_VALUE)
+    {
+        float scale = (float)PERFECT_TEMP_DISPLAY_VALUE / max_component;
+        col.r = (uint8_t)(col.r * scale);
+        col.g = (uint8_t)(col.g * scale);
+        col.b = (uint8_t)(col.b * scale);
+    }
+
+    return col;
 }
 
 void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_to_display)
@@ -420,8 +480,7 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
 
     if (sub_mode == TEMP_HOURLY && hour_offset_from_now_to_display != NULL)
     {
-        // e.g. if hour_offset_from_now_to_display = 3 and time time is 13:00, display weather at
-        // 16:00
+        // e.g. if hour_offset = 3 and time time is 13:00, display weather at 16:00
         hour_index = g_current_hour_index + *hour_offset_from_now_to_display;
     }
     else
@@ -457,7 +516,11 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
             icon_starting_x - matrix_calculate_word_width_with_space(temp_str) - 1;
 
         matrix_display_word_icon_pair(hour_str, &DEFAULT_COLOUR, weather_icon, 0);
-        matrix_display_word(temp_str, temp_display_starting_x, 1, &DEFAULT_COLOUR);
+
+        int rounded_temp = (int)round(current_temp);
+        RGB dynamic_temp = get_dynamic_temp_display_colour(rounded_temp);
+        matrix_display_word(temp_str, temp_display_starting_x, 1, &dynamic_temp);
+
         matrix_show(mtrx);
 
         g_last_displayed_temp = current_temp;

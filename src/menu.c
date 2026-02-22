@@ -207,7 +207,8 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
         menu_reset_states(mtrx);
     }
 
-    if (input_rtr_cw(rtr) && g_weather_hour_offset < WEATHER_HOURS)
+    int max_offset = weather_hours_fetched() - weather_current_hour_index() - 1;
+    if (input_rtr_cw(rtr) && g_weather_hour_offset < max_offset)
     {
         MENU_STATE.sub_mode = TEMP_HOURLY;
 
