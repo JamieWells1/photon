@@ -50,8 +50,9 @@ typedef enum
     RAIN = 10,
     LIGHTNING = 11,
     SNOW = 12,
-    WIFI = 13,
-    DATA = 14,
+    MOON = 13,
+    WIFI = 14,
+    DATA = 15,
     ICON_COUNT
 } IconType;
 
@@ -67,7 +68,7 @@ static const RGB RED = {200, 50, 50};
 static const RGB YELLOW = {250, 200, 50};
 static const RGB LIGHT_BLUE = {150, 250, 250};
 static const RGB BLUE = {50, 150, 200};
-static const RGB ORANGE = {250, 150, 50};
+static const RGB ORANGE = {240, 120, 30};
 
 // ==========================
 // LETTERS
@@ -502,6 +503,12 @@ static const Pixel ICON_SNOW[17] = {
     {4, 4, DEFAULT_COLOUR},
 };
 
+static const Pixel ICON_MOON[9] = {
+    {0, 3, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR}, {3, 4, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR}, {4, 3, DEFAULT_COLOUR}, {3, 3, DEFAULT_COLOUR},
+    {3, 0, DEFAULT_COLOUR}, {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR},
+};
+
 static const Pixel ICON_WIFI[9] = {
     {0, 0, ORANGE}, {1, 0, ORANGE}, {2, 0, ORANGE}, {3, 0, ORANGE}, {4, 0, ORANGE},
     {1, 2, ORANGE}, {2, 2, ORANGE}, {3, 2, ORANGE}, {2, 4, ORANGE},
@@ -531,8 +538,9 @@ static const Glyph ICONS_ARR[ICON_COUNT] = {
     {ICON_RAIN, ARRAY_SIZE(ICON_RAIN), 5, 5},                  // 10: RAIN
     {ICON_LIGHTNING, ARRAY_SIZE(ICON_LIGHTNING), 5, 5},        // 11: LIGHTNING
     {ICON_SNOW, ARRAY_SIZE(ICON_SNOW), 5, 5},                  // 12: SNOW
-    {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                  // 13: WIFI
-    {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                  // 14: DATA
+    {ICON_MOON, ARRAY_SIZE(ICON_MOON), 5, 5},                  // 13: MOON
+    {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                  // 14: WIFI
+    {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                  // 15: DATA
 };
 
 #endif  // DISPLAYS_H

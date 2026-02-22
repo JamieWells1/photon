@@ -3,7 +3,9 @@
 
 #include <menu.h>
 
-void weather_display(SubMenu sub_mode, Matrix* mtrx);
+int weather_current_hour_index();
+
+void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_to_display);
 void weather_cleanup(void);
 
 #endif  // WEATHER_H

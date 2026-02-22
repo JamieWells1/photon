@@ -37,4 +37,7 @@ extern const DebugLevel DEBUG_LEVEL;
 // Wifi
 #define MAX_WIFI_CONNECTION_ATTEMPTS 50
 
+// Weather
+#define WEATHER_HOURS 48
+
 #endif  // CONST_H

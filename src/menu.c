@@ -21,6 +21,8 @@ static bool g_underscore_on = true;
 static bool g_in_submenu = false;
 static SubMode g_current_submenu = TKR_BTC;
 
+static int g_weather_hour_offset = 0;
+
 static void menu_set_underscore(bool underscore_on)
 {
     int uscr_starting_x = 1;
@@ -53,6 +55,7 @@ static void menu_reset_states(Matrix* mtrx)
     g_underscore_on = true;
     g_tick = 0;
     g_in_submenu = false;
+    g_weather_hour_offset = 0;  // Reset to current hour
 
     matrix_clear(mtrx);
     menu_set_initial_display();
@@ -60,7 +63,7 @@ static void menu_reset_states(Matrix* mtrx)
     matrix_show(mtrx);
 }
 
-static void slide_menu(Matrix* mtrx, Menu currentMode, Menu nextMode, int direction)
+static void menu_slide_from_mode(Matrix* mtrx, Menu currentMode, Menu nextMode, int direction)
 {
     int sliding_coefficient = -(MATRIX_WIDTH / 2);
     for (int offset = 0; offset <= MATRIX_WIDTH; offset++)
@@ -81,8 +84,29 @@ static void slide_menu(Matrix* mtrx, Menu currentMode, Menu nextMode, int direct
     }
 }
 
+static void menu_slide_from_state(Matrix* mtrx, PixelState* current_state, PixelState* next_state,
+                                  int direction)
+{
+    int sliding_coefficient = -(MATRIX_WIDTH / 2);
+    for (int offset = 0; offset <= MATRIX_WIDTH; offset++)
+    {
+        matrix_clear(mtrx);
+
+        // Render current state sliding out
+        matrix_render_raw(current_state, direction * offset, 0);
+
+        // Render next state sliding in
+        matrix_render_raw(next_state, direction * offset - (direction * MATRIX_WIDTH), 0);
+
+        matrix_show(mtrx);
+        // Quadratic smoothing for sliding menu
+        sleep_ms((sliding_coefficient * sliding_coefficient) / 10);
+        sliding_coefficient++;
+    }
+}
+
 // From clockwise turn
-static void slide_main_menu_right(Matrix* mtrx)
+static void menu_main_slide_right(Matrix* mtrx)
 {
     menu_set_underscore(true);
 
@@ -91,13 +115,13 @@ static void slide_main_menu_right(Matrix* mtrx)
     int index_next = (MENU_STATE.main_mode + 1) % ARRAY_SIZE(MENUS);
     Menu nextMode = MENUS[index_next];
 
-    slide_menu(mtrx, currentMode, nextMode, -1);
+    menu_slide_from_mode(mtrx, currentMode, nextMode, -1);
     MENU_STATE.main_mode = index_next;
     menu_reset_states(mtrx);
 }
 
 // From anti-clockwise turn
-static void slide_main_menu_left(Matrix* mtrx)
+static void menu_main_slide_left(Matrix* mtrx)
 {
     menu_set_underscore(true);
 
@@ -114,7 +138,7 @@ static void slide_main_menu_left(Matrix* mtrx)
     }
     Menu nextMode = MENUS[index_previous];
 
-    slide_menu(mtrx, currentMode, nextMode, 1);
+    menu_slide_from_mode(mtrx, currentMode, nextMode, 1);
     MENU_STATE.main_mode = index_previous;
     menu_reset_states(mtrx);
 }
@@ -162,41 +186,18 @@ static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr
     }
     else if (menu_state.main_mode == MENU_WEATHER)
     {
-        weather_display(SUB_MENUS[menu_state.sub_mode], mtrx);
-    }
-
-    Button* btn_left = &btns[0];
-    Button* btn_right = &btns[1];
-
-    if (input_btn_pressed(btn_left))
-    {
-        // Back to main menu
-        debug("Left button pressed, returning to main menu.");
-        menu_reset_states(mtrx);
-    }
-
-    if (input_btn_pressed(btn_right))
-    {
-        // TODO: Go into mode (if enabled)
-        // Stocks: false
-        // Games: true
-        // Weather: false
-    }
-
-    if (input_rtr_cw(rtr))
-    {
-        // TODO: Next sub-mode
+        weather_display(SUB_MENUS[menu_state.sub_mode].mode, mtrx, &g_weather_hour_offset);
     }
 }
 
 static void menu_sub_menu_stocks_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    //
+    // TODO
 }
 
 static void menu_sub_menu_games_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    //
+    // TODO
 }
 
 static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
@@ -205,18 +206,53 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
     {
         menu_reset_states(mtrx);
     }
+
+    if (input_rtr_cw(rtr) && g_weather_hour_offset < WEATHER_HOURS)
+    {
+        MENU_STATE.sub_mode = TEMP_HOURLY;
+
+        // Save current display state
+        PixelState current_state[NUM_PIXELS];
+        matrix_save_state(current_state);
+
+        g_weather_hour_offset++;
+
+        weather_display(MENU_STATE.sub_mode, mtrx, &g_weather_hour_offset);
+        PixelState next_state[NUM_PIXELS];
+        matrix_save_state(next_state);
+
+        menu_slide_from_state(mtrx, current_state, next_state, -1);
+    }
+
+    if (input_rtr_anti_cw(rtr) && g_weather_hour_offset > 0)
+    {
+        MENU_STATE.sub_mode = TEMP_HOURLY;
+
+        // Save current display state
+        PixelState current_state[NUM_PIXELS];
+        matrix_save_state(current_state);
+
+        g_weather_hour_offset--;
+        if (g_weather_hour_offset < 0) g_weather_hour_offset = 0;
+
+        weather_display(MENU_STATE.sub_mode, mtrx, &g_weather_hour_offset);
+        PixelState next_state[NUM_PIXELS];
+        matrix_save_state(next_state);
+
+        menu_slide_from_state(mtrx, current_state, next_state, 1);
+    }
 }
 
 static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (!g_in_submenu && input_rtr_cw(rtr))
     {
-        slide_main_menu_right(mtrx);
+        menu_main_slide_right(mtrx);
     }
 
     if (!g_in_submenu && input_rtr_anti_cw(rtr))
     {
-        slide_main_menu_left(mtrx);
+        menu_main_slide_left(mtrx);
     }
 
     if (input_any_btn_pressed(btns, rtr) && !g_in_submenu)

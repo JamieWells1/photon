@@ -14,18 +14,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "input.h"
-
-#define WEATHER_HOURS 48
-#define WEATHER_REFRESH_INTERVAL_MS (60 * 60 * 1000)
 
 static float g_hourly_temps[WEATHER_HOURS];
 static int g_hourly_codes[WEATHER_HOURS];
 static char g_hourly_times[WEATHER_HOURS][20];
+static char g_sunrise_time[20];
+static char g_sunset_time[20];
 
 static volatile int g_current_hour_index = 0;
 static volatile bool g_data_fetched = false;
-static volatile uint64_t g_last_fetch_time_ms = 0;
+static volatile uint64_t g_next_fetch_time_ms = 0;
 static bool g_http_request_sent = false;
 static volatile uint64_t g_data_ready_time_ms = 0;
 
@@ -40,6 +38,12 @@ static float g_last_displayed_temp = -999.0f;
 static int g_last_displayed_code = -1;
 
 #define DATA_DISPLAY_DELAY_MS 500
+
+// Getters
+
+int weather_current_hour_index() { return g_current_hour_index; }
+
+// Parsing logic
 
 static int weather_parse_float_array(const char* json, const char* key, float* values,
                                      int max_values)
@@ -134,8 +138,22 @@ static int weather_get_hour_from_time(const char* time_str)
     return atoi(hour_str);
 }
 
-static const Glyph* weather_code_to_icon(int code)
+static bool weather_is_daytime(int hour)
 {
+    // Extract hour from sunrise time (format: "2024-01-15T08:30:00")
+    if (strlen(g_sunrise_time) < 13 || strlen(g_sunset_time) < 13) return true;
+
+    int sunrise_hour = (g_sunrise_time[11] - '0') * 10 + (g_sunrise_time[12] - '0');
+    int sunset_hour = (g_sunset_time[11] - '0') * 10 + (g_sunset_time[12] - '0');
+
+    return hour >= sunrise_hour && hour < sunset_hour;
+}
+
+static const Glyph* weather_code_to_icon(int code, int hour)
+{
+    bool is_day = weather_is_daytime(hour);
+    if (!is_day) return &ICONS_ARR[MOON];
+
     if (code == 0 || code == 1)
     {
         return &ICONS_ARR[SUNNY];
@@ -170,6 +188,7 @@ static void weather_response_callback(const char* body, size_t len, bool complet
 
     if (!complete) return;
 
+    int current_minute = 0;
     const char* current_time_pos = strstr(body, "\"current\":{\"time\":\"");
     if (current_time_pos)
     {
@@ -178,7 +197,13 @@ static void weather_response_callback(const char* body, size_t len, bool complet
         hour_str[0] = current_time_pos[10];
         hour_str[1] = current_time_pos[11];
         g_current_hour_index = atoi(hour_str);
-        debug("Current hour index: %d", g_current_hour_index);
+
+        char minute_str[3] = {0};
+        minute_str[0] = current_time_pos[13];
+        minute_str[1] = current_time_pos[14];
+        current_minute = atoi(minute_str);
+
+        debug("Current time: %d:%02d", g_current_hour_index, current_minute);
     }
 
     int time_count = weather_parse_time_array(body, "\"time\":[", g_hourly_times, WEATHER_HOURS);
@@ -186,6 +211,26 @@ static void weather_response_callback(const char* body, size_t len, bool complet
         weather_parse_float_array(body, "\"temperature_2m\":[", g_hourly_temps, WEATHER_HOURS);
     int code_count =
         weather_parse_int_array(body, "\"weather_code\":[", g_hourly_codes, WEATHER_HOURS);
+
+    const char* sunrise_pos = strstr(body, "\"sunrise\":[\"");
+    if (sunrise_pos)
+    {
+        // Skip past "sunrise":["
+        sunrise_pos += 12;
+        strncpy(g_sunrise_time, sunrise_pos, 19);
+        g_sunrise_time[19] = '\0';
+        debug("Sunrise: %s", g_sunrise_time);
+    }
+
+    const char* sunset_pos = strstr(body, "\"sunset\":[\"");
+    if (sunset_pos)
+    {
+        // Skip past "sunset":["
+        sunset_pos += 11;
+        strncpy(g_sunset_time, sunset_pos, 19);
+        g_sunset_time[19] = '\0';
+        debug("Sunset: %s", g_sunset_time);
+    }
 
     debug("Parsing results: time_count=%d, temp_count=%d, code_count=%d", time_count, temp_count,
           code_count);
@@ -195,11 +240,16 @@ static void weather_response_callback(const char* body, size_t len, bool complet
         debug("Parsed %d hours of weather data", temp_count);
         debug("Current hour (%s): temp=%.1f, code=%d", g_hourly_times[g_current_hour_index],
               g_hourly_temps[g_current_hour_index], g_hourly_codes[g_current_hour_index]);
+
+        uint64_t minutes_until_next_hour = 60 - current_minute;
+        uint64_t ms_until_next_hour = minutes_until_next_hour * 60 * 1000;
+
         g_data_fetched = true;
-        g_last_fetch_time_ms = to_ms_since_boot(get_absolute_time());
+        g_next_fetch_time_ms = to_ms_since_boot(get_absolute_time()) + ms_until_next_hour;
         g_data_ready_time_ms = to_ms_since_boot(get_absolute_time());
 
-        // Reset WiFi manager now that data fetch is complete
+        debug("Next fetch scheduled in %llu minutes (at next hour)", minutes_until_next_hour);
+
         wifi_manager_reset(&g_wifi_manager);
 
         debug("Weather data received (WiFi will be disconnected by main thread)");
@@ -220,6 +270,7 @@ static void weather_fetch_data(void)
              "/v1/forecast?latitude=%.4f&longitude=%.4f"
              "&current=temperature_2m,weather_code"
              "&hourly=temperature_2m,weather_code"
+             "&daily=sunrise,sunset"
              "&forecast_days=%.0d"
              "&timezone=Europe/London",
              LOCATION_LAT, LOCATION_LON, WEATHER_HOURS / 24);
@@ -233,12 +284,11 @@ static void weather_animate_status_dots(char* status_text, size_t max_size)
     wifi_append_connecting_dots(status_text, max_size, &g_connection_dots_counter);
 }
 
-void weather_display(SubMenu sub_mode, Matrix* mtrx)
+void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_to_display)
 {
     uint64_t current_time_ms = to_ms_since_boot(get_absolute_time());
-    uint64_t time_since_last_fetch = current_time_ms - g_last_fetch_time_ms;
 
-    bool should_fetch = !g_data_fetched || time_since_last_fetch >= WEATHER_REFRESH_INTERVAL_MS;
+    bool should_fetch = !g_data_fetched || current_time_ms >= g_next_fetch_time_ms;
 
     if (should_fetch && !wifi_manager_is_connecting(&g_wifi_manager) &&
         !wifi_manager_has_failed(&g_wifi_manager) && wifi_get_state() == WIFI_DISCONNECTED)
@@ -368,13 +418,15 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
 
     int hour_index = g_current_hour_index;
 
-    if (sub_mode.mode == TEMP_CURRENT)
+    if (sub_mode == TEMP_HOURLY && hour_offset_from_now_to_display != NULL)
+    {
+        // e.g. if hour_offset_from_now_to_display = 3 and time time is 13:00, display weather at
+        // 16:00
+        hour_index = g_current_hour_index + *hour_offset_from_now_to_display;
+    }
+    else
     {
         hour_index = g_current_hour_index;
-    }
-    else if (sub_mode.mode == TEMP_HOURLY)
-    {
-        hour_index = g_current_hour_index + 1;
     }
 
     if (hour_index >= WEATHER_HOURS) hour_index = WEATHER_HOURS - 1;
@@ -383,10 +435,11 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
     int current_code = g_hourly_codes[hour_index];
 
     char* time_str = g_hourly_times[hour_index];
+    int hour = weather_get_hour_from_time(time_str);
     char hour_str[10];
-    snprintf(hour_str, sizeof(hour_str), "%02d", weather_get_hour_from_time(time_str));
+    snprintf(hour_str, sizeof(hour_str), "%02d", hour);
 
-    const Glyph* weather_icon = weather_code_to_icon(current_code);
+    const Glyph* weather_icon = weather_code_to_icon(current_code, hour);
 
     if (current_temp != g_last_displayed_temp || current_code != g_last_displayed_code ||
         !g_last_data_fetched)

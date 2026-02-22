@@ -3,6 +3,7 @@
 
 #include <glyphs.h>
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <ws2812.pio.h>
 
@@ -13,8 +14,22 @@ typedef struct
     uint8_t sm;
 } Matrix;
 
+typedef struct
+{
+    Pixel pixel;
+    bool is_set;
+} PixelState;
+
 void matrix_set_pixel(Pixel* pxl);
 void matrix_clear_pixel(int x, int y);
+
+bool matrix_get_pixel_state(int index, Pixel* out_pixel);
+
+// State capture and rendering for animations
+void matrix_save_state(PixelState* destination);
+void matrix_render_raw(const PixelState* source, int offset_x, int offset_y);
+
+void matrix_shift(Matrix* mtrx, int offset_x, int offset_y);
 
 void matrix_show(Matrix* mtrx);
 void matrix_clear(Matrix* mtrx);

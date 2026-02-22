@@ -6,6 +6,7 @@
 
 #include <ctype.h>
 #include <pico/time.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include <glyphs.h>
@@ -17,7 +18,9 @@
 
 static uint32_t g_pixels[NUM_PIXELS];
 
-static int matrix_xy_to_index_horizontal(int input_x, int input_y)
+static PixelState g_pixel_states[NUM_PIXELS];
+
+static int matrix_xy_to_index(int input_x, int input_y)
 {
     // Matrix is column-serpentine, starting bottom-right (i=0)
     // Map (0,0) to top-left: x=0 should be leftmost column, y=0 should be top
@@ -33,12 +36,6 @@ static int matrix_xy_to_index_horizontal(int input_x, int input_y)
     {
         return col * MATRIX_HEIGHT + row;
     }
-}
-
-static int matrix_xy_to_index_vertical(int input_x, int input_y)
-{
-    // TODO: when turned 90 degrees clockwise
-    return 0;
 }
 
 static void matrix_set_brightness(RGB* col)
@@ -100,16 +97,12 @@ void matrix_set_pixel(Pixel* pxl)
         matrix_set_brightness(&dimmed);
 
         int index = 0;
-        if (MATRIX_ORIENTATION == HORIZONTAL)
-        {
-            index = matrix_xy_to_index_horizontal(pxl->x, pxl->y);
-        }
-        else
-        {
-            index = matrix_xy_to_index_vertical(pxl->x, pxl->y);
-        }
+        index = matrix_xy_to_index(pxl->x, pxl->y);
 
         g_pixels[index] = matrix_rgb_to_grb(&dimmed);
+
+        g_pixel_states[index].pixel = *pxl;
+        g_pixel_states[index].is_set = true;
     }
 }
 
@@ -117,27 +110,71 @@ void matrix_clear_pixel(int x, int y)
 {
     if (IN_BOUNDS(x, y))
     {
-        int index;
-        if (MATRIX_ORIENTATION == HORIZONTAL)
-        {
-            index = matrix_xy_to_index_horizontal(x, y);
-        }
-        else
-        {
-            index = matrix_xy_to_index_vertical(x, y);
-        }
+        int index = matrix_xy_to_index(x, y);
         g_pixels[index] = 0;
+
+        g_pixel_states[index].is_set = false;
     }
 }
 
-// Clear the matrix of its current state
-void matrix_clear(Matrix* mtrx)
+bool matrix_get_pixel_state(int index, Pixel* out_pixel)
+{
+    if (g_pixel_states[index].is_set)
+    {
+        *out_pixel = g_pixel_states[index].pixel;
+        return true;
+    }
+
+    return false;
+}
+
+void matrix_save_state(PixelState* destination)
 {
     for (int i = 0; i < NUM_PIXELS; i++)
     {
-        g_pixels[i] = 0;
+        destination[i] = g_pixel_states[i];
     }
-    debug("matrix_clear()");
+}
+
+void matrix_render_raw(const PixelState* source, int offset_x, int offset_y)
+{
+    for (int i = 0; i < NUM_PIXELS; i++)
+    {
+        if (source[i].is_set)
+        {
+            Pixel shifted_pxl = source[i].pixel;
+            shifted_pxl.x += offset_x;
+            shifted_pxl.y += offset_y;
+
+            if (IN_BOUNDS(shifted_pxl.x, shifted_pxl.y))
+            {
+                matrix_set_pixel(&shifted_pxl);
+                sleep_us(10);  // Prevents display corruption during rendering (heisenbug)
+            }
+        }
+    }
+}
+
+void matrix_shift(Matrix* mtrx, int offset_x, int offset_y)
+{
+    PixelState temp_states[NUM_PIXELS];
+    for (int i = 0; i < NUM_PIXELS; i++)
+    {
+        temp_states[i] = g_pixel_states[i];
+    }
+    matrix_clear(mtrx);
+
+    for (int i = 0; i < NUM_PIXELS; i++)
+    {
+        if (temp_states[i].is_set)
+        {
+            Pixel shifted_pxl = temp_states[i].pixel;
+            shifted_pxl.x += offset_x;
+            shifted_pxl.y += offset_y;
+
+            matrix_set_pixel(&shifted_pxl);
+        }
+    }
 }
 
 // Show the matrix current state
@@ -148,6 +185,17 @@ void matrix_show(Matrix* mtrx)
         pio_sm_put_blocking(mtrx->pio, mtrx->sm, g_pixels[i] << 8u);
     }
     debug("matrix_show()");
+}
+
+// Clear the matrix of its current state
+void matrix_clear(Matrix* mtrx)
+{
+    for (int i = 0; i < NUM_PIXELS; i++)
+    {
+        g_pixels[i] = 0;
+        g_pixel_states[i].is_set = false;
+    }
+    debug("matrix_clear()");
 }
 
 // Only writes letter to state, not matrix
