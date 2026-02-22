@@ -301,8 +301,8 @@ static const Pixel DIGIT_0[] = {
 
 static const Pixel DIGIT_1[] = {
     // 2x5
-    {0, 1, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR},
-    {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR},{0, 4, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR},{2, 4, DEFAULT_COLOUR},
 };
 
 static const Pixel DIGIT_2[] = {
@@ -401,7 +401,7 @@ static const Glyph PUNCTUATION[6] = {
 
 static const Glyph NUMBERS[10] = {
     {DIGIT_0, ARRAY_SIZE(DIGIT_0), 3, 5},  // 0
-    {DIGIT_1, ARRAY_SIZE(DIGIT_1), 2, 5},  // 1
+    {DIGIT_1, ARRAY_SIZE(DIGIT_1), 3, 5},  // 1
     {DIGIT_2, ARRAY_SIZE(DIGIT_2), 3, 5},  // 2
     {DIGIT_3, ARRAY_SIZE(DIGIT_3), 3, 5},  // 3
     {DIGIT_4, ARRAY_SIZE(DIGIT_4), 3, 5},  // 4

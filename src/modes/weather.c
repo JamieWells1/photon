@@ -59,17 +59,25 @@ static float location_get_latitude(Location loc)
     switch (loc)
     {
         case LOC_LONDON:
-            return 51.6611;
+            return LAT_LONDON;
         case LOC_MIAMI:
-            return 25.7617;
+            return LAT_MIAMI;
         case LOC_LOS_ANGELES:
-            return 34.0522;
+            return LAT_LOS_ANGELES;
         case LOC_CHICAGO:
-            return 41.8781;
+            return LAT_CHICAGO;
         case LOC_TOKYO:
-            return 35.6762;
+            return LAT_TOKYO;
         case LOC_SYDNEY:
-            return -33.8688;
+            return LAT_SYDNEY;
+        case LOC_STOCKHOLM:
+            return LAT_STOCKHOLM;
+        case LOC_RIO_DE_JANEIRO:
+            return LAT_RIO_DE_JANEIRO;
+        case LOC_CAPE_TOWN:
+            return LAT_CAPE_TOWN;
+        case LOC_ATHENS:
+            return LAT_ATHENS;
         default:
             return 0.0;
     }
@@ -80,17 +88,25 @@ static float location_get_longitude(Location loc)
     switch (loc)
     {
         case LOC_LONDON:
-            return 0.3970;
+            return LON_LONDON;
         case LOC_MIAMI:
-            return -80.1918;
+            return LON_MIAMI;
         case LOC_LOS_ANGELES:
-            return -118.2437;
+            return LON_LOS_ANGELES;
         case LOC_CHICAGO:
-            return -87.6298;
+            return LON_CHICAGO;
         case LOC_TOKYO:
-            return 139.6503;
+            return LON_TOKYO;
         case LOC_SYDNEY:
-            return 151.2093;
+            return LON_SYDNEY;
+        case LOC_STOCKHOLM:
+            return LON_STOCKHOLM;
+        case LOC_RIO_DE_JANEIRO:
+            return LON_RIO_DE_JANEIRO;
+        case LOC_CAPE_TOWN:
+            return LON_CAPE_TOWN;
+        case LOC_ATHENS:
+            return LON_ATHENS;
         default:
             return 0.0;
     }
@@ -112,6 +128,14 @@ static const char* location_get_timezone(Location loc)
             return "Asia/Tokyo";
         case LOC_SYDNEY:
             return "Australia/Sydney";
+        case LOC_STOCKHOLM:
+            return "Europe/Stockholm";
+        case LOC_RIO_DE_JANEIRO:
+            return "America/Sao_Paulo";
+        case LOC_CAPE_TOWN:
+            return "Africa/Johannesburg";
+        case LOC_ATHENS:
+            return "Europe/Athens";
         default:
             return "UTC";
     }
@@ -361,7 +385,7 @@ static void weather_animate_status_dots(char* status_text, size_t max_size)
     wifi_append_connecting_dots(status_text, max_size, &g_connection_dots_counter);
 }
 
-static RGB get_dynamic_temp_display_colour(int temp)
+static RGB get_dynamic_temp_display_colour(float temp)
 {
     RGB col = {0, 0, 0};
 
@@ -590,9 +614,6 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
         char temp_str[16];
         snprintf(temp_str, sizeof(temp_str), "%.0f°C", current_temp);
 
-        debug("Displaying weather: hour='%s', temp='%s', code=%d", hour_str, temp_str,
-              current_code);
-
         matrix_clear(mtrx);
 
         int icon_starting_x = MATRIX_WIDTH - weather_icon->width - 1;
@@ -601,9 +622,11 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
 
         matrix_display_word_icon_pair(hour_str, &DEFAULT_COLOUR, weather_icon, 0);
 
-        int rounded_temp = (int)round(current_temp);
-        RGB dynamic_temp = get_dynamic_temp_display_colour(rounded_temp);
+        RGB dynamic_temp = get_dynamic_temp_display_colour(current_temp);
         matrix_display_word(temp_str, temp_display_starting_x, 1, &dynamic_temp);
+
+        debug("Displaying weather: hour='%s', temp='%s', code=%d, colour: r=%d, g=%d, b=%d",
+              hour_str, temp_str, current_code, dynamic_temp.r, dynamic_temp.g, dynamic_temp.b);
 
         matrix_show(mtrx);
 
