@@ -45,7 +45,7 @@ static void menu_set_initial_display()
     g_display_initialized = true;
 }
 
-static void reset_states(Matrix* mtrx)
+static void menu_reset_states(Matrix* mtrx)
 {
     weather_cleanup();
 
@@ -93,7 +93,7 @@ static void slide_main_menu_right(Matrix* mtrx)
 
     slide_menu(mtrx, currentMode, nextMode, -1);
     MENU_STATE.main_mode = index_next;
-    reset_states(mtrx);
+    menu_reset_states(mtrx);
 }
 
 // From anti-clockwise turn
@@ -116,7 +116,7 @@ static void slide_main_menu_left(Matrix* mtrx)
 
     slide_menu(mtrx, currentMode, nextMode, 1);
     MENU_STATE.main_mode = index_previous;
-    reset_states(mtrx);
+    menu_reset_states(mtrx);
 }
 
 static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr, Matrix* mtrx)
@@ -172,7 +172,7 @@ static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr
     {
         // Back to main menu
         debug("Left button pressed, returning to main menu.");
-        reset_states(mtrx);
+        menu_reset_states(mtrx);
     }
 
     if (input_btn_pressed(btn_right))
@@ -186,6 +186,58 @@ static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr
     if (input_rtr_cw(rtr))
     {
         // TODO: Next sub-mode
+    }
+}
+
+static void menu_sub_menu_stocks_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+{
+    //
+}
+
+static void menu_sub_menu_games_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+{
+    //
+}
+
+static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+{
+    if (input_btn_pressed(&btns[0]))
+    {
+        menu_reset_states(mtrx);
+    }
+}
+
+static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+{
+    if (!g_in_submenu && input_rtr_cw(rtr))
+    {
+        slide_main_menu_right(mtrx);
+    }
+
+    if (!g_in_submenu && input_rtr_anti_cw(rtr))
+    {
+        slide_main_menu_left(mtrx);
+    }
+
+    if (input_any_btn_pressed(btns, rtr) && !g_in_submenu)
+    {
+        menu_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
+    }
+
+    if (g_in_submenu)
+    {
+        if (MENU_STATE.main_mode == MENU_TICKERS)
+        {
+            menu_sub_menu_stocks_detect_inputs(btns, rtr, mtrx);
+        }
+        if (MENU_STATE.main_mode == MENU_GAMES)
+        {
+            menu_sub_menu_games_detect_inputs(btns, rtr, mtrx);
+        }
+        if (MENU_STATE.main_mode == MENU_WEATHER)
+        {
+            menu_sub_menu_weather_detect_inputs(btns, rtr, mtrx);
+        }
     }
 }
 
@@ -208,24 +260,10 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
         matrix_show(mtrx);
     }
 
-    if (!g_in_submenu && input_rtr_cw(rtr))
-    {
-        slide_main_menu_right(mtrx);
-    }
-
-    if (!g_in_submenu && input_rtr_anti_cw(rtr))
-    {
-        slide_main_menu_left(mtrx);
-    }
-
-    if (input_any_btn_pressed(btns, rtr) && !g_in_submenu)
-    {
-        debug("BUTTON PRESSED! ENTERING SUBMENU");
-        menu_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
-    }
-
     if (g_in_submenu && g_tick % DISPLAY_UPDATE_INTERVAL_TICKS_MS == 0)
     {
         menu_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
     }
+
+    menu_detect_inputs(btns, rtr, mtrx);
 }

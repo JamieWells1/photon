@@ -22,6 +22,8 @@ void matrix_clear(Matrix* mtrx);
 void matrix_display_char(const char c, int x, int y, const RGB* col);
 void matrix_display_icon(const Glyph* icon_type, int x, int y, const RGB* col);
 void matrix_display_word(const char* word, int x, int y, const RGB* col);
+int matrix_calculate_word_width_with_space(const char* word);
+
 void matrix_display_word_icon_pair(const char* word, const RGB* word_col, const Glyph* icon,
                                    int offset_x);
 

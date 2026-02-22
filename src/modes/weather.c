@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "input.h"
 
 #define WEATHER_HOURS 48
 #define WEATHER_REFRESH_INTERVAL_MS (60 * 60 * 1000)
@@ -132,31 +133,31 @@ static int weather_get_hour_from_time(const char* time_str)
     return atoi(hour_str);
 }
 
-static IconType weather_code_to_icon(int code)
+static const Glyph* weather_code_to_icon(int code)
 {
     if (code == 0 || code == 1)
     {
-        return SUNNY;
+        return &ICONS_ARR[SUNNY];
     }
     else if (code == 2 || code == 3)
     {
-        return SUNNY_CLOUDY;
+        return &ICONS_ARR[SUNNY_CLOUDY];
     }
     else if (code >= 51 && code <= 67)
     {
-        return RAIN;
+        return &ICONS_ARR[RAIN];
     }
     else if (code >= 71 && code <= 77)
     {
-        return SNOW;
+        return &ICONS_ARR[SNOW];
     }
     else if (code >= 95)
     {
-        return LIGHTNING;
+        return &ICONS_ARR[LIGHTNING];
     }
     else
     {
-        return CLOUDY;
+        return &ICONS_ARR[CLOUDY];
     }
 }
 
@@ -173,8 +174,8 @@ static void weather_response_callback(const char* body, size_t len, bool complet
     {
         current_time_pos += 20;
         char hour_str[3] = {0};
-        hour_str[0] = current_time_pos[11];
-        hour_str[1] = current_time_pos[12];
+        hour_str[0] = current_time_pos[10];
+        hour_str[1] = current_time_pos[11];
         g_current_hour_index = atoi(hour_str);
         debug("Current hour index: %d", g_current_hour_index);
     }
@@ -252,8 +253,6 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
     bool should_fetch = !g_data_fetched || time_since_last_fetch >= WEATHER_REFRESH_INTERVAL_MS;
 
     WifiState wifi_state = wifi_get_state();
-    debug("WiFi state: %d, should_fetch: %d, fetch_in_progress: %d, data_fetched: %d", wifi_state,
-          should_fetch, g_fetch_in_progress, g_data_fetched);
 
     if (should_fetch && wifi_state == WIFI_DISCONNECTED && !g_connection_failed &&
         !g_fetch_in_progress)
@@ -420,16 +419,21 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
     char hour_str[10];
     snprintf(hour_str, sizeof(hour_str), "%02d", weather_get_hour_from_time(time_str));
 
-    IconType icon = weather_code_to_icon(current_code);
+    const Glyph* weather_icon = weather_code_to_icon(current_code);
 
     if (current_temp != g_last_displayed_temp || current_code != g_last_displayed_code ||
         !g_last_data_fetched)
     {
         char temp_str[16];
-        snprintf(temp_str, sizeof(temp_str), "%.0fC", current_temp);
-
+        snprintf(temp_str, sizeof(temp_str), "%.0f°C", current_temp);
         matrix_clear(mtrx);
-        matrix_display_word(hour_str, 1, 1, &DEFAULT_COLOUR);
+
+        int icon_starting_x = MATRIX_WIDTH - weather_icon->width - 1;
+        int temp_display_starting_x =
+            icon_starting_x - matrix_calculate_word_width_with_space(temp_str) - 1;
+
+        matrix_display_word_icon_pair(time_str, &DEFAULT_COLOUR, weather_icon, 0);
+        matrix_display_word(temp_str, temp_display_starting_x, 1, &DEFAULT_COLOUR);
         matrix_show(mtrx);
 
         g_last_displayed_temp = current_temp;
@@ -449,4 +453,10 @@ void weather_cleanup(void)
     }
     g_connection_failed = false;
     g_connection_attempts = 0;
+
+    // Reset cached display state to force refresh on re-entry
+    g_last_wifi_state = WIFI_DISCONNECTED;
+    g_last_data_fetched = false;
+    g_last_displayed_temp = -999.0f;
+    g_last_displayed_code = -1;
 }

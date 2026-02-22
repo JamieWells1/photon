@@ -79,6 +79,8 @@ static const Glyph* matrix_char_in_pxls(char ch)
             return &PUNCTUATION[3];
         case '-':
             return &PUNCTUATION[4];
+        case (char)0xB0:  // UTF-8 degree symbol ° (second byte)
+            return &PUNCTUATION[5];
         default:
             return NULL;
     }
@@ -192,10 +194,18 @@ void matrix_display_icon(const Glyph* icon, int x, int y, const RGB* col)
 void matrix_display_word(const char* word, int x, int y, const RGB* col)
 {
     int current_x = x;
+    size_t word_len = strlen(word);
 
-    for (size_t i = 0; i < strlen(word); i++)
+    for (size_t i = 0; i < word_len; i++)
     {
         char ch = word[i];
+
+        // Handle UTF-8 degree symbol (0xC2 0xB0) - skip first byte
+        if ((unsigned char)ch == 0xC2 && i + 1 < word_len && (unsigned char)word[i + 1] == 0xB0)
+        {
+            continue;
+        }
+
         const Glyph* chars = matrix_char_in_pxls(ch);
 
         if (!chars)
@@ -207,7 +217,7 @@ void matrix_display_word(const char* word, int x, int y, const RGB* col)
         matrix_display_char(ch, current_x, y, col);
 
         current_x += chars->width;
-        if (i < strlen(word) - 1)
+        if (i < word_len - 1)
         {
             current_x++;
         }
@@ -246,11 +256,18 @@ void matrix_draw_vert_line(int x, int y, int length, const RGB* col)
     }
 }
 
-static int matrix_calculate_word_width(const char* word)
+int matrix_calculate_word_width_with_space(const char* word)
 {
     int total_width = 0;
     for (size_t i = 0; word[i] != '\0'; i++)
     {
+        // Handle UTF-8 degree symbol (0xC2 0xB0) - skip first byte
+        if ((unsigned char)word[i] == 0xC2 && word[i + 1] != '\0' &&
+            (unsigned char)word[i + 1] == 0xB0)
+        {
+            continue;
+        }
+
         const Glyph* letter = matrix_char_in_pxls(word[i]);
         if (letter)
         {
@@ -270,7 +287,7 @@ void matrix_display_word_icon_pair(const char* word, const RGB* word_col, const 
     matrix_display_word(word, 1 + offset_x, 1, word_col);
 
     // Only show icon if word width <= 25 pixels
-    int word_width = matrix_calculate_word_width(word);
+    int word_width = matrix_calculate_word_width_with_space(word);
     if (word_width <= 25 && icon)
     {
         // Start the icon at the end of the screen

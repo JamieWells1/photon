@@ -283,6 +283,10 @@ static const Pixel PUNCT_DASH[] = {
     {0, 2, DEFAULT_COLOUR},
     {1, 2, DEFAULT_COLOUR}};
 
+static const Pixel PUNCT_DEGREE[] = {
+    // 1x5
+    {0, 0, DEFAULT_COLOUR}};
+
 // ==========================
 // NUMBERS
 // ==========================
@@ -385,12 +389,13 @@ static const Glyph ALPHABET[26] = {
     {LETTER_Z, ARRAY_SIZE(LETTER_Z), 3, 5},  // Z
 };
 
-static const Glyph PUNCTUATION[5] = {
+static const Glyph PUNCTUATION[6] = {
     {PUNCT_EXCLAIM, ARRAY_SIZE(PUNCT_EXCLAIM), 1, 5},    // !
     {PUNCT_QUESTION, ARRAY_SIZE(PUNCT_QUESTION), 3, 5},  // ?
     {PUNCT_PERIOD, ARRAY_SIZE(PUNCT_PERIOD), 1, 5},      // .
     {PUNCT_COMMA, ARRAY_SIZE(PUNCT_COMMA), 1, 5},        // ,
     {PUNCT_DASH, ARRAY_SIZE(PUNCT_DASH), 2, 5},          // -
+    {PUNCT_DEGREE, ARRAY_SIZE(PUNCT_DEGREE), 1, 5},      // °
 };
 
 static const Glyph NUMBERS[10] = {
@@ -478,14 +483,14 @@ static const Pixel ICON_CLOUDY[12] = {
 static const Pixel ICON_RAIN[15] = {
     {0, 2, DEFAULT_COLOUR}, {0, 4, BLUE},           {1, 1, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR},
     {1, 3, BLUE},           {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR},
-    {3, 5, BLUE},           {3, 0, DEFAULT_COLOUR}, {3, 1, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR},
+    {3, 4, BLUE},           {3, 0, DEFAULT_COLOUR}, {3, 1, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR},
     {4, 3, BLUE},           {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR},
 };
 
 static const Pixel ICON_LIGHTNING[15] = {
     {0, 2, DEFAULT_COLOUR}, {0, 4, YELLOW},         {1, 1, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR},
     {1, 3, YELLOW},         {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR},
-    {2, 5, YELLOW},         {3, 0, DEFAULT_COLOUR}, {3, 1, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR},
+    {2, 4, YELLOW},         {3, 0, DEFAULT_COLOUR}, {3, 1, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR},
     {3, 3, YELLOW},         {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR},
 };
 
