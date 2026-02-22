@@ -34,7 +34,7 @@ typedef struct
     int height;
 } Glyph;
 
-// When adding to this enum, also add the icon to the end of the ICONS array
+// When adding to this enum, also add the icon to the end of ICONS_ARR
 typedef enum
 {
     PHOTON = 0,

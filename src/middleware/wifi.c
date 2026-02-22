@@ -34,7 +34,7 @@ static void wifi_enable_sta_mode(void)
     debug("Wi-Fi station mode enabled");
 }
 
-static int wifi_connect(const char *ssid, const char *password, uint32_t timeout_ms)
+static int wifi_connect(const char* ssid, const char* password, uint32_t timeout_ms)
 {
     debug("Connecting to Wi-Fi...");
 
@@ -50,12 +50,7 @@ static int wifi_connect(const char *ssid, const char *password, uint32_t timeout
     return 0;
 }
 
-void wifi_loading_display()
-{
-    //
-}
-
-int wifi_join(const char *ssid, const char *password)
+int wifi_join(const char* ssid, const char* password)
 {
     if (connected)
     {
@@ -79,7 +74,7 @@ int wifi_join(const char *ssid, const char *password)
     return result;
 }
 
-int wifi_join_async(const char *ssid, const char *password)
+int wifi_join_async(const char* ssid, const char* password)
 {
     if (connected)
     {
@@ -108,7 +103,6 @@ int wifi_join_async(const char *ssid, const char *password)
             return -1;
         }
 
-        // Still connecting (LINK_DOWN, LINK_JOIN, or LINK_NOIP)
         return 1;
     }
 
@@ -127,7 +121,6 @@ int wifi_join_async(const char *ssid, const char *password)
 
     cyw43_arch_wifi_connect_async(ssid, password, CYW43_AUTH_WPA2_AES_PSK);
 
-    // Still connecting
     return 1;
 }
 
@@ -148,4 +141,109 @@ void wifi_disconnect(void)
     initialized = false;
     current_state = WIFI_DISCONNECTED;
     debug("WiFi disconnected");
+}
+
+// ==========================
+// WiFi Connection Manager
+// ==========================
+
+void wifi_manager_init(WifiConnectionManager* mgr, int max_attempts)
+{
+    mgr->attempt_count = 0;
+    mgr->max_attempts = max_attempts;
+    mgr->failed = false;
+    mgr->in_progress = false;
+}
+
+void wifi_manager_start(WifiConnectionManager* mgr, const char* ssid, const char* password)
+{
+    debug("WiFi Manager: Starting connection...");
+    mgr->in_progress = true;
+    mgr->failed = false;
+    mgr->attempt_count = 0;
+    wifi_join_async(ssid, password);
+}
+
+WifiState wifi_manager_update(WifiConnectionManager* mgr, const char* ssid, const char* password)
+{
+    if (!mgr->in_progress)
+    {
+        return wifi_get_state();
+    }
+
+    WifiState state = wifi_get_state();
+
+    if (state == WIFI_CONNECTED)
+    {
+        debug("WiFi Manager: Connected successfully");
+        mgr->in_progress = false;
+        mgr->failed = false;
+        return WIFI_CONNECTED;
+    }
+
+    if (state == WIFI_FAILED)
+    {
+        debug("WiFi Manager: Connection failed");
+        mgr->in_progress = false;
+        mgr->failed = true;
+        wifi_disconnect();
+        return WIFI_FAILED;
+    }
+
+    if (state == WIFI_CONNECTING)
+    {
+        mgr->attempt_count++;
+        debug("WiFi Manager: Connecting... (attempt %d/%d)", mgr->attempt_count, mgr->max_attempts);
+
+        if (mgr->attempt_count >= mgr->max_attempts)
+        {
+            debug("WiFi Manager: Connection timeout");
+            mgr->in_progress = false;
+            mgr->failed = true;
+            wifi_disconnect();
+            return WIFI_FAILED;
+        }
+
+        wifi_join_async(ssid, password);
+        return WIFI_CONNECTING;
+    }
+
+    return state;
+}
+
+bool wifi_manager_is_connecting(const WifiConnectionManager* mgr) { return mgr->in_progress; }
+
+bool wifi_manager_has_failed(const WifiConnectionManager* mgr) { return mgr->failed; }
+
+int wifi_manager_get_attempts(const WifiConnectionManager* mgr) { return mgr->attempt_count; }
+
+void wifi_manager_reset(WifiConnectionManager* mgr)
+{
+    debug("WiFi Manager: Resetting");
+    mgr->attempt_count = 0;
+    mgr->failed = false;
+    mgr->in_progress = false;
+}
+
+void wifi_append_connecting_dots(char* buffer, size_t buffer_size, int* dot_counter)
+{
+    size_t len = 0;
+    for (size_t i = 0; buffer[i] != '\0' && i < buffer_size; i++)
+    {
+        len = i + 1;
+    }
+
+    while (len > 0 && buffer[len - 1] == '.')
+    {
+        buffer[--len] = '\0';
+    }
+
+    int num_dots = (*dot_counter % 3) + 1;
+    for (int i = 0; i < num_dots && len + i + 1 < buffer_size; i++)
+    {
+        buffer[len + i] = '.';
+        buffer[len + i + 1] = '\0';
+    }
+
+    (*dot_counter)++;
 }

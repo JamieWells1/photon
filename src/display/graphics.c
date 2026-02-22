@@ -1,7 +1,7 @@
 #include <graphics.h>
 
 #include <const.h>
-#include <displays.h>
+#include <glyphs.h>
 #include <matrix.h>
 
 #include <stdint.h>

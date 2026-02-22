@@ -48,7 +48,7 @@ set(COMMON_SOURCES
 set(DISPLAY_SOURCES
         src/display/graphics.c
         src/display/matrix.c
-        src/display/displays.c
+        src/display/glyphs.c
 )
 
 # Input handling

@@ -1,5 +1,5 @@
-#include <displays.h>
 #include <game.h>
+#include <glyphs.h>
 #include <menu.h>
 
 #include <string.h>

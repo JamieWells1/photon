@@ -1,7 +1,7 @@
 #ifndef MENU_H
 #define MENU_H
 
-#include <displays.h>
+#include <glyphs.h>
 #include <input.h>
 #include <matrix.h>
 

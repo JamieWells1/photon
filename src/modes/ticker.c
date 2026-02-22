@@ -1,6 +1,6 @@
 #include <ticker.h>
 
-#include <displays.h>
+#include <glyphs.h>
 #include <matrix.h>
 #include <menu.h>
 

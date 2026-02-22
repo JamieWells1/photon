@@ -1,7 +1,7 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#include <displays.h>
+#include <glyphs.h>
 
 #include <stdint.h>
 #include <ws2812.pio.h>

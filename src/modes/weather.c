@@ -2,7 +2,7 @@
 #include <weather.h>
 
 #include <const.h>
-#include <displays.h>
+#include <glyphs.h>
 #include <graphics.h>
 #include <http.h>
 #include <matrix.h>
@@ -26,17 +26,18 @@ static char g_hourly_times[WEATHER_HOURS][20];
 static volatile int g_current_hour_index = 0;
 static volatile bool g_data_fetched = false;
 static volatile uint64_t g_last_fetch_time_ms = 0;
-static volatile bool g_fetch_in_progress = false;
 static bool g_http_request_sent = false;
-static int g_connection_dots = 3;
-static int g_connection_attempts = 0;
-static volatile bool g_connection_failed = false;
+static volatile uint64_t g_data_ready_time_ms = 0;
 
+// WiFi connection manager
+static WifiConnectionManager g_wifi_manager;
+static int g_connection_dots_counter = 0;
+
+// Display state cache
 static WifiState g_last_wifi_state = WIFI_DISCONNECTED;
 static bool g_last_data_fetched = false;
 static float g_last_displayed_temp = -999.0f;
 static int g_last_displayed_code = -1;
-static volatile uint64_t g_data_ready_time_ms = 0;
 
 #define DATA_DISPLAY_DELAY_MS 500
 
@@ -197,7 +198,9 @@ static void weather_response_callback(const char* body, size_t len, bool complet
         g_data_fetched = true;
         g_last_fetch_time_ms = to_ms_since_boot(get_absolute_time());
         g_data_ready_time_ms = to_ms_since_boot(get_absolute_time());
-        g_fetch_in_progress = false;
+
+        // Reset WiFi manager now that data fetch is complete
+        wifi_manager_reset(&g_wifi_manager);
 
         debug("Weather data received (WiFi will be disconnected by main thread)");
     }
@@ -225,24 +228,9 @@ static void weather_fetch_data(void)
     http_get(host, path, weather_response_callback);
 }
 
-static char* weather_connection_display_status(char* current_display, size_t max_size)
+static void weather_animate_status_dots(char* status_text, size_t max_size)
 {
-    size_t len = strlen(current_display);
-    while (len > 0 && current_display[len - 1] == '.')
-    {
-        current_display[--len] = '\0';
-    }
-
-    int num_dots = (g_connection_dots % 3) + 1;
-    for (int i = 0; i < num_dots && len + i + 1 < max_size; i++)
-    {
-        current_display[len + i] = '.';
-        current_display[len + i + 1] = '\0';
-    }
-
-    g_connection_dots++;
-
-    return current_display;
+    wifi_append_connecting_dots(status_text, max_size, &g_connection_dots_counter);
 }
 
 void weather_display(SubMenu sub_mode, Matrix* mtrx)
@@ -252,99 +240,78 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
 
     bool should_fetch = !g_data_fetched || time_since_last_fetch >= WEATHER_REFRESH_INTERVAL_MS;
 
-    WifiState wifi_state = wifi_get_state();
-
-    if (should_fetch && wifi_state == WIFI_DISCONNECTED && !g_connection_failed &&
-        !g_fetch_in_progress)
+    if (should_fetch && !wifi_manager_is_connecting(&g_wifi_manager) &&
+        !wifi_manager_has_failed(&g_wifi_manager) && wifi_get_state() == WIFI_DISCONNECTED)
     {
-        debug("Starting WiFi connection...");
-        g_fetch_in_progress = true;
+        debug("Starting WiFi connection for weather data...");
+        wifi_manager_init(&g_wifi_manager, MAX_WIFI_CONNECTION_ATTEMPTS);
+        wifi_manager_start(&g_wifi_manager, WIFI_SSID, WIFI_PASSWORD);
         g_http_request_sent = false;
-        g_connection_attempts = 0;
-        wifi_join_async(WIFI_SSID, WIFI_PASSWORD);
     }
+    WifiState wifi_state = wifi_manager_update(&g_wifi_manager, WIFI_SSID, WIFI_PASSWORD);
 
     if (wifi_state == WIFI_CONNECTING)
     {
-        g_connection_attempts++;
-        debug("Displaying WIFI CONNECTING status (attempt %d/%d)", g_connection_attempts,
-              MAX_WIFI_CONNECTION_ATTEMPTS);
+        char current_display[256] = "WIFI";
+        weather_animate_status_dots(current_display, sizeof(current_display));
 
-        if (g_connection_attempts >= MAX_WIFI_CONNECTION_ATTEMPTS)
-        {
-            debug("WiFi connection timeout - giving up");
-            g_fetch_in_progress = false;
-            g_connection_attempts = 0;
-            g_connection_failed = true;
-            wifi_disconnect();
-
-            matrix_clear(mtrx);
-            matrix_display_word_icon_pair("TIMEOUT", &RED, NULL, 0);
-            matrix_show(mtrx);
-            g_last_wifi_state = WIFI_FAILED;
-            return;
-        }
-
-        wifi_join_async(WIFI_SSID, WIFI_PASSWORD);
-
-        char current_display[256] = "WIFI...";
-        weather_connection_display_status(current_display, sizeof(current_display));
-
-        // Always update during WiFi connection (for animated dots)
         matrix_clear(mtrx);
         matrix_display_word_icon_pair(current_display, &DEFAULT_COLOUR, &ICONS_ARR[WIFI], 0);
         matrix_show(mtrx);
         g_last_wifi_state = wifi_state;
-
         return;
     }
 
-    if (should_fetch && wifi_state == WIFI_CONNECTED && g_fetch_in_progress)
+    // Handle WiFi connection successful - fetch data
+    if (should_fetch && wifi_state == WIFI_CONNECTED && !g_http_request_sent)
     {
-        if (!g_http_request_sent)
-        {
-            debug("WiFi connected, fetching weather...");
-            g_connection_attempts = 0;
-            weather_fetch_data();
-            g_http_request_sent = true;
-        }
+        debug("WiFi connected, fetching weather data...");
+        weather_fetch_data();
+        g_http_request_sent = true;
 
-        char current_display[256] = "DATA...";
-        weather_connection_display_status(current_display, sizeof(current_display));
+        char current_display[256] = "DATA";
+        weather_animate_status_dots(current_display, sizeof(current_display));
 
-        // Always update during data fetch (for animated dots)
         matrix_clear(mtrx);
         matrix_display_word_icon_pair(current_display, &DEFAULT_COLOUR, &ICONS_ARR[DATA], 0);
+        matrix_show(mtrx);
         g_last_wifi_state = wifi_state;
-
         return;
     }
 
-    if (wifi_state == WIFI_FAILED)
+    // Still waiting for data after HTTP request sent
+    if (wifi_state == WIFI_CONNECTED && g_http_request_sent && !g_data_fetched)
     {
-        g_fetch_in_progress = false;
-        g_connection_failed = true;
+        char current_display[256] = "DATA";
+        weather_animate_status_dots(current_display, sizeof(current_display));
 
-        // Only update if state changed
+        matrix_clear(mtrx);
+        matrix_display_word_icon_pair(current_display, &DEFAULT_COLOUR, &ICONS_ARR[DATA], 0);
+        matrix_show(mtrx);
+        g_last_wifi_state = wifi_state;
+        return;
+    }
+
+    if (wifi_state == WIFI_FAILED || wifi_manager_has_failed(&g_wifi_manager))
+    {
         if (g_last_wifi_state != WIFI_FAILED)
         {
             matrix_clear(mtrx);
-            matrix_display_word_icon_pair("ERROR", &RED, NULL, 0);
+            matrix_display_word_icon_pair("TIMEOUT", &RED, NULL, 0);
             matrix_show(mtrx);
             g_last_wifi_state = WIFI_FAILED;
-            // Reset so temp will redraw on retry
             g_last_displayed_temp = -999.0f;
         }
         return;
     }
 
+    // Fallback status if no data yet
     if (!g_data_fetched)
     {
-        if (g_connection_failed)
+        if (wifi_manager_has_failed(&g_wifi_manager))
         {
             debug("Showing connection failed status");
 
-            // Only update if state changed
             if (g_last_wifi_state != WIFI_FAILED || !g_last_data_fetched)
             {
                 matrix_clear(mtrx);
@@ -359,18 +326,18 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
         debug("Displaying fallback status (no data fetched yet)");
         char current_display[256];
 
-        if (g_fetch_in_progress && wifi_state == WIFI_CONNECTED)
+        if (wifi_manager_is_connecting(&g_wifi_manager) && wifi_state == WIFI_CONNECTED)
         {
             debug("Showing DATA status");
-            strcpy(current_display, "DATA...");
+            strcpy(current_display, "DATA");
         }
         else
         {
             debug("Showing WIFI status");
-            strcpy(current_display, "WIFI...");
+            strcpy(current_display, "WIFI");
         }
 
-        weather_connection_display_status(current_display, sizeof(current_display));
+        weather_animate_status_dots(current_display, sizeof(current_display));
 
         matrix_clear(mtrx);
         matrix_display_word_icon_pair(current_display, &DEFAULT_COLOUR, &ICONS_ARR[DATA], 0);
@@ -383,8 +350,8 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
     if (g_data_ready_time_ms > 0 &&
         (current_time_ms - g_data_ready_time_ms) < DATA_DISPLAY_DELAY_MS)
     {
-        char current_display[256] = "DATA...";
-        weather_connection_display_status(current_display, sizeof(current_display));
+        char current_display[256] = "DATA";
+        weather_animate_status_dots(current_display, sizeof(current_display));
 
         matrix_clear(mtrx);
         matrix_display_word_icon_pair(current_display, &DEFAULT_COLOUR, &ICONS_ARR[DATA], 0);
@@ -426,13 +393,17 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
     {
         char temp_str[16];
         snprintf(temp_str, sizeof(temp_str), "%.0f°C", current_temp);
+
+        debug("Displaying weather: hour='%s', temp='%s', code=%d", hour_str, temp_str,
+              current_code);
+
         matrix_clear(mtrx);
 
         int icon_starting_x = MATRIX_WIDTH - weather_icon->width - 1;
         int temp_display_starting_x =
             icon_starting_x - matrix_calculate_word_width_with_space(temp_str) - 1;
 
-        matrix_display_word_icon_pair(time_str, &DEFAULT_COLOUR, weather_icon, 0);
+        matrix_display_word_icon_pair(hour_str, &DEFAULT_COLOUR, weather_icon, 0);
         matrix_display_word(temp_str, temp_display_starting_x, 1, &DEFAULT_COLOUR);
         matrix_show(mtrx);
 
@@ -446,17 +417,16 @@ void weather_display(SubMenu sub_mode, Matrix* mtrx)
 
 void weather_cleanup(void)
 {
-    if (g_fetch_in_progress)
+    if (wifi_manager_is_connecting(&g_wifi_manager))
     {
-        g_fetch_in_progress = false;
         wifi_disconnect();
     }
-    g_connection_failed = false;
-    g_connection_attempts = 0;
 
-    // Reset cached display state to force refresh on re-entry
+    wifi_manager_reset(&g_wifi_manager);
+
     g_last_wifi_state = WIFI_DISCONNECTED;
     g_last_data_fetched = false;
     g_last_displayed_temp = -999.0f;
     g_last_displayed_code = -1;
+    g_connection_dots_counter = 0;
 }
