@@ -6,7 +6,7 @@
 #include <http.h>
 #include <matrix.h>
 #include <menu.h>
-#include <secrets.h>
+#include <secrets_config.h>
 #include <wifi.h>
 
 #include <math.h>
