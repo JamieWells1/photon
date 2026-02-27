@@ -1,6 +1,7 @@
 site_name: Photon Documentation
 site_description: A Raspberry Pi Pico W-powered LED matrix display and game engine
 site_author: Jamie Wells
+site_url: https://jamiewells1.github.io/photon/
 repo_url: https://github.com/JamieWells1/photon
 repo_name: photon
 
