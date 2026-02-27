@@ -65,7 +65,6 @@ Update a single button's state.
 void input_btn_update(Button* btn);
 ```
 
-
 ---
 
 ## Button Events

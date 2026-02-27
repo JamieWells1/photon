@@ -34,7 +34,7 @@ picotool load build/photon.uf2 -fx
 ```
 
 !!! warning "Security"
-    **Never commit `secrets.h` to version control!**
+**Never commit `secrets.h` to version control!**
 
     The file is already in `.gitignore`, but double-check before pushing.
 
@@ -52,18 +52,18 @@ Edit [`src/common/const.h`](https://github.com/JamieWells1/photon/blob/main/src/
 
 **Built-in locations:**
 
-| Location | Constant | Coordinates |
-|----------|----------|-------------|
-| London | `LOC_LONDON` | 51.66°N, 0.40°E |
-| Miami | `LOC_MIAMI` | 25.76°N, 80.19°W |
-| Los Angeles | `LOC_LOS_ANGELES` | 34.05°N, 118.24°W |
-| Chicago | `LOC_CHICAGO` | 41.88°N, 87.63°W |
-| Tokyo | `LOC_TOKYO` | 35.68°N, 139.65°E |
-| Sydney | `LOC_SYDNEY` | 33.87°S, 151.21°E |
-| Stockholm | `LOC_STOCKHOLM` | 59.33°N, 18.07°E |
-| Rio de Janeiro | `LOC_RIO_DE_JANEIRO` | 22.91°S, 43.17°W |
-| Cape Town | `LOC_CAPE_TOWN` | 33.92°S, 18.42°E |
-| Athens | `LOC_ATHENS` | 37.98°N, 23.73°E |
+| Location       | Constant             | Coordinates       |
+| -------------- | -------------------- | ----------------- |
+| London         | `LOC_LONDON`         | 51.66°N, 0.40°E   |
+| Miami          | `LOC_MIAMI`          | 25.76°N, 80.19°W  |
+| Los Angeles    | `LOC_LOS_ANGELES`    | 34.05°N, 118.24°W |
+| Chicago        | `LOC_CHICAGO`        | 41.88°N, 87.63°W  |
+| Tokyo          | `LOC_TOKYO`          | 35.68°N, 139.65°E |
+| Sydney         | `LOC_SYDNEY`         | 33.87°S, 151.21°E |
+| Stockholm      | `LOC_STOCKHOLM`      | 59.33°N, 18.07°E  |
+| Rio de Janeiro | `LOC_RIO_DE_JANEIRO` | 22.91°S, 43.17°W  |
+| Cape Town      | `LOC_CAPE_TOWN`      | 33.92°S, 18.42°E  |
+| Athens         | `LOC_ATHENS`         | 37.98°N, 23.73°E  |
 
 ### Add Custom Location
 
@@ -130,11 +130,11 @@ const DebugLevel DEBUG_LEVEL = INFO;
 
 **Levels:**
 
-| Level | Value | Description |
-|-------|-------|-------------|
-| `INFO` | 0 | Important events only |
-| `INPUTS` | 1 | + Button/rotary input events |
-| `TRACE` | 2 | + Detailed execution trace |
+| Level    | Value | Description                  |
+| -------- | ----- | ---------------------------- |
+| `INFO`   | 0     | Important events only        |
+| `INPUTS` | 1     | + Button/rotary input events |
+| `TRACE`  | 2     | + Detailed execution trace   |
 
 ## GPIO Pin Mapping
 
@@ -155,7 +155,7 @@ If your hardware uses different pins, modify [`src/common/const.h`](https://gith
 ```
 
 !!! danger "Pin Conflicts"
-    Avoid pins used by WiFi (GP23-25, GP29) and reserved system pins.
+Avoid pins used by WiFi (GP23-25, GP29) and reserved system pins.
 
 ## Matrix Dimensions
 
@@ -167,7 +167,7 @@ For different LED matrix sizes, update:
 ```
 
 !!! note "Layout Changes Required"
-    Changing dimensions may require adjustments to display logic in `src/modes/`.
+Changing dimensions may require adjustments to display logic in `src/modes/`.
 
 ## Weather Settings
 
@@ -206,7 +206,4 @@ After modifying any configuration:
 
 ---
 
-!!! tip "Configuration Best Practices"
-    - Keep `secrets.h` out of version control
-    - Document custom configurations in code comments
-    - Test after each configuration change
+!!! tip "Configuration Best Practices" - Keep `secrets.h` out of version control - Document custom configurations in code comments - Test after each configuration change

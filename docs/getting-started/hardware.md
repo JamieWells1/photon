@@ -4,15 +4,15 @@ This guide will walk you through assembling the Photon LED matrix display.
 
 ## Bill of Materials
 
-| Component | Quantity | Notes |
-|-----------|----------|-------|
-| Raspberry Pi Pico 2 W | 1 | Must be the wireless version |
-| WS2812B LED Matrix (32x8) | 1 | Or equivalent WS2812 strip arranged in matrix |
-| Rotary Encoder (KY-040 or similar) | 1 | With integrated push button |
-| Tactile Push Buttons | 2 | For left/right navigation |
-| 5V Power Supply | 1 | Min 2A recommended (depends on brightness) |
-| Jumper Wires | ~15 | Male-to-female recommended |
-| Breadboard (optional) | 1 | For prototyping |
+| Component                          | Quantity | Notes                                         |
+| ---------------------------------- | -------- | --------------------------------------------- |
+| Raspberry Pi Pico 2 W              | 1        | Must be the wireless version                  |
+| WS2812B LED Matrix (32x8)          | 1        | Or equivalent WS2812 strip arranged in matrix |
+| Rotary Encoder (KY-040 or similar) | 1        | With integrated push button                   |
+| Tactile Push Buttons               | 2        | For left/right navigation                     |
+| 5V Power Supply                    | 1        | Min 2A recommended (depends on brightness)    |
+| Jumper Wires                       | ~15      | Male-to-female recommended                    |
+| Breadboard (optional)              | 1        | For prototyping                               |
 
 ## Pinout Diagram
 
@@ -43,14 +43,14 @@ This guide will walk you through assembling the Photon LED matrix display.
 
 The LED matrix has three connections:
 
-| Matrix Pin | Connect To | Notes |
-|------------|------------|-------|
-| **VCC** (5V) | VBUS on Pico | Power rail |
-| **GND** | GND on Pico | Common ground |
-| **DIN** (Data) | GP21 | Signal line |
+| Matrix Pin     | Connect To   | Notes         |
+| -------------- | ------------ | ------------- |
+| **VCC** (5V)   | VBUS on Pico | Power rail    |
+| **GND**        | GND on Pico  | Common ground |
+| **DIN** (Data) | GP21         | Signal line   |
 
 !!! warning "Power Considerations"
-    At full brightness, a 32x8 (256 LED) matrix can draw up to 15A (5V). For safety and longevity:
+At full brightness, a 32x8 (256 LED) matrix can draw up to 15A (5V). For safety and longevity:
 
     - Use external power supply (not USB) for production
     - Set `BRIGHTNESS_COEFFICIENT` low (default: 0.02 = 2%)
@@ -58,23 +58,23 @@ The LED matrix has three connections:
 
 ### Rotary Encoder
 
-| Encoder Pin | Connect To | Function |
-|-------------|------------|----------|
-| **CLK** | GP2 | Clock signal |
-| **DT** | GP3 | Data signal |
-| **SW** | GP4 | Push button |
-| **+** | 3V3 | Power |
-| **GND** | GND | Ground |
+| Encoder Pin | Connect To | Function     |
+| ----------- | ---------- | ------------ |
+| **CLK**     | GP2        | Clock signal |
+| **DT**      | GP3        | Data signal  |
+| **SW**      | GP4        | Push button  |
+| **+**       | 3V3        | Power        |
+| **GND**     | GND        | Ground       |
 
 ### Push Buttons
 
-| Button | Connect To | Pull-up/down |
-|--------|------------|--------------|
-| Left Button | GP10 → GND | Internal pull-up |
-| Right Button | GP5 → GND | Internal pull-up |
+| Button       | Connect To | Pull-up/down     |
+| ------------ | ---------- | ---------------- |
+| Left Button  | GP10 → GND | Internal pull-up |
+| Right Button | GP5 → GND  | Internal pull-up |
 
 !!! tip "Button Wiring"
-    Connect one side of each button to the GPIO pin and the other side to GND. The firmware enables internal pull-up resistors, so no external resistors are needed.
+Connect one side of each button to the GPIO pin and the other side to GND. The firmware enables internal pull-up resistors, so no external resistors are needed.
 
 ## Assembly Steps
 
@@ -122,7 +122,7 @@ If nothing displays:
 ---
 
 !!! example "Example Build"
-    Add photos of your completed build here!
+Add photos of your completed build here!
 
     ```
     [Photo 1: Breadboard prototype]

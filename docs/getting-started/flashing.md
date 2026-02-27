@@ -29,7 +29,7 @@ This method is the easiest for first-time setup.
 6. The Pico will **automatically reboot** and start running Photon
 
 !!! success "Success!"
-    The LED matrix should display the Photon logo, then attempt to connect to WiFi.
+The LED matrix should display the Photon logo, then attempt to connect to WiFi.
 
 ## Method 2: picotool (Recommended for Development)
 
@@ -38,17 +38,17 @@ This method is the easiest for first-time setup.
 ### Install picotool
 
 === "macOS"
-    ```bash
+`bash
     brew install picotool
-    ```
+    `
 
 === "Linux (Ubuntu/Debian)"
-    ```bash
+`bash
     sudo apt install picotool
-    ```
+    `
 
 === "Windows"
-    Download from [Raspberry Pi GitHub](https://github.com/raspberrypi/picotool/releases)
+Download from [Raspberry Pi GitHub](https://github.com/raspberrypi/picotool/releases)
 
 ### Flash with picotool
 
@@ -58,7 +58,7 @@ picotool load photon.uf2 -fx
 ```
 
 !!! tip "Development Workflow"
-    For rapid development, use the all-in-one command from `INSTRUCTIONS.md`:
+For rapid development, use the all-in-one command from `INSTRUCTIONS.md`:
 
     ```bash
     cmake --build build -- -j4 && picotool load build/photon.uf2 -fx && screen /dev/tty.usbmodem101 115200
@@ -73,14 +73,14 @@ If you want to modify the firmware, build it yourself.
 ### Prerequisites
 
 === "macOS"
-    ```bash
+`bash
     brew install cmake gcc-arm-embedded
-    ```
+    `
 
 === "Linux"
-    ```bash
+`bash
     sudo apt install cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential
-    ```
+    `
 
 ### Install Pico SDK
 
@@ -114,14 +114,14 @@ After flashing, check the serial output to verify:
 ### Monitor Serial Output
 
 === "macOS/Linux"
-    ```bash
+`bash
     screen /dev/tty.usbmodem101 115200
-    ```
+    `
 
     Press `Ctrl+A` then `K` then `Y` to exit screen.
 
 === "Windows"
-    Use [PuTTY](https://www.putty.org/) or Arduino Serial Monitor:
+Use [PuTTY](https://www.putty.org/) or Arduino Serial Monitor:
 
     - Port: `COMx` (check Device Manager)
     - Baud: `115200`
@@ -174,4 +174,4 @@ sudo picotool info
 ---
 
 !!! question "Need Help?"
-    [Open an issue on GitHub](https://github.com/yourusername/photon/issues)
+[Open an issue on GitHub](https://github.com/yourusername/photon/issues)
