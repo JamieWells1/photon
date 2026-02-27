@@ -4,3 +4,5 @@ build
 secrets.h
 INSTRUCTIONS.md
 .claude
+# MkDocs build output
+site/
