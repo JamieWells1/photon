@@ -2,7 +2,7 @@
 
 **A Raspberry Pi Pico W-powered LED matrix display and game engine**
 
-![Photon Logo](https://via.placeholder.com/600x200/1e3a8a/ffffff?text=PHOTON)
+![Photon Logo](./assets/logo.png)
 
 ## Overview
 
@@ -73,7 +73,7 @@ Photon welcomes contributions! Check out the [Contributing Guide](contributing/i
 
 ## License
 
-[Add your license here]
+MIT License
 
 ---
 
