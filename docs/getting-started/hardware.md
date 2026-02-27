@@ -4,14 +4,14 @@ This guide will walk you through assembling the Photon LED matrix display.
 
 ## Bill of Materials
 
-| Component                          | Quantity | Notes                                         |
-| ---------------------------------- | -------- | --------------------------------------------- |
+| Component                          | Quantity | Notes                                           |
+| ---------------------------------- | -------- | ---------------------------------------------   |
 | Raspberry Pi Pico 2 W              | 1        | Must be the wireless version                  |
 | WS2812B LED Matrix (32x8)          | 1        | Or equivalent WS2812 strip arranged in matrix |
 | Rotary Encoder (KY-040 or similar) | 1        | With integrated push button                   |
 | Tactile Push Buttons               | 2        | For left/right navigation                     |
 | 5V Power Supply                    | 1        | Min 2A recommended (depends on brightness)    |
-| Jumper Wires                       | ~15      | Male-to-female recommended                    |
+| Jumper Wires                       | ~6      | Female-to-female recommended                    |
 | Breadboard (optional)              | 1        | For prototyping                               |
 
 ## Pinout Diagram
@@ -25,14 +25,14 @@ This guide will walk you through assembling the Photon LED matrix display.
 │   ●  GP1            VSYS ●  │
 │   ●  GND             GND ●  │
 │   ●  GP2 (ROT_CLK)  3V3  ●  │
-│   ●  GP3 (ROT_DT)         ●  │
-│   ●  GP4 (ROT_SW)         ●  │
-│   ●  GP5 (BTN_RIGHT)      ●  │
-│   ●  GND                  ●  │
-│        ...                   │
-│   ●  GP10 (BTN_LEFT)      ●  │
-│        ...                   │
-│   ●  GP21 (MATRIX_DIN)    ●  │ → LED Matrix Data In
+│   ●  GP3 (ROT_DT)        ●  │
+│   ●  GP4 (ROT_SW)        ●  │
+│   ●  GP5 (BTN_RIGHT)     ●  │
+│   ●  GND                 ●  │
+│        ...                  │
+│   ●  GP10 (BTN_LEFT)     ●  │
+│        ...                  │
+│   ●  GP21 (MATRIX_DIN)   ●  │ → LED Matrix Data In
 │                             │
 └─────────────────────────────┘
 ```

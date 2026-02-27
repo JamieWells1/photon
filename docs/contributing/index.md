@@ -6,9 +6,9 @@ Thank you for your interest in contributing to Photon! This guide will help you 
 
 Before diving into code, make sure you have:
 
-1. ✅ Completed the [Hardware Setup](../getting-started/hardware.md)
-2. ✅ Built the project from source (see [Flashing Guide](../getting-started/flashing.md))
-3. ✅ Read through the codebase structure below
+1. [x] Completed the [Hardware Setup](../getting-started/hardware.md)
+2. [x] Built the project from source (see [Flashing Guide](../getting-started/flashing.md))
+3. [x] Read through the codebase structure below
 
 ## Project Structure
 
@@ -54,7 +54,7 @@ The most common contribution! Add new modes like:
 - API enhancements
 - Documentation improvements
 
-### 🌐 Network Features
+### Network Features
 
 - New API integrations
 - MQTT support
