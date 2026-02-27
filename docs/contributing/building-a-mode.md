@@ -4,7 +4,7 @@ This guide shows you how to add a new display mode to Photon.
 
 ## Step 1: Define Your Mode
 
-Edit [src/menu.h](../../src/menu.h):
+Edit [`src/menu.h`](https://github.com/JamieWells1/photon/blob/main/src/menu.h):
 
 ```c
 typedef enum {
@@ -80,7 +80,7 @@ void yourmode_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr
 
 ## Step 3: Integrate into Menu
 
-Edit [src/menu.c](../../src/menu.c):
+Edit [`src/menu.c`](https://github.com/JamieWells1/photon/blob/main/src/menu.c):
 
 Add include:
 
@@ -104,7 +104,7 @@ switch (state.main_mode) {
 
 ## Step 4: Update Build
 
-Edit [CMakeLists.txt](../../CMakeLists.txt):
+Edit [`CMakeLists.txt`](https://github.com/JamieWells1/photon/blob/main/CMakeLists.txt):
 
 ```cmake
 set(MODE_SOURCES

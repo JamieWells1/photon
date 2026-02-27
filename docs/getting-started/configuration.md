@@ -44,7 +44,7 @@ Set your geographic location for weather data.
 
 ### Available Locations
 
-Edit [src/common/const.h](../../src/common/const.h#L44):
+Edit [`src/common/const.h`](https://github.com/JamieWells1/photon/blob/main/src/common/const.h#L44):
 
 ```c title="src/common/const.h"
 #define LOCATION LOC_TOKYO  // ← Change this
@@ -100,7 +100,7 @@ typedef enum
 
 ### Brightness
 
-Adjust LED brightness in [src/common/const.h](../../src/common/const.h#L24):
+Adjust LED brightness in [`src/common/const.h`](https://github.com/JamieWells1/photon/blob/main/src/common/const.h#L24):
 
 ```c title="src/common/const.h"
 #define BRIGHTNESS_COEFFICIENT 0.02  // 2% brightness
@@ -122,7 +122,7 @@ Lower values = smoother animations, higher CPU usage.
 
 ## Debug Logging
 
-Control serial output verbosity in [src/common/const.c](../../src/common/const.c):
+Control serial output verbosity in [`src/common/const.c`](https://github.com/JamieWells1/photon/blob/main/src/common/const.c):
 
 ```c title="src/common/const.c"
 const DebugLevel DEBUG_LEVEL = INFO;
@@ -138,7 +138,7 @@ const DebugLevel DEBUG_LEVEL = INFO;
 
 ## GPIO Pin Mapping
 
-If your hardware uses different pins, modify [src/common/const.h](../../src/common/const.h#L27):
+If your hardware uses different pins, modify [`src/common/const.h`](https://github.com/JamieWells1/photon/blob/main/src/common/const.h#L27):
 
 ```c title="src/common/const.h"
 // Buttons

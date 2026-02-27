@@ -60,6 +60,9 @@ markdown_extensions:
 plugins:
   - search
 
+exclude_docs: |
+  README.md
+
 nav:
   - Home: index.md
   - Getting Started:
