@@ -1,8 +1,8 @@
+<img src="./assets/logo.png" alt="Photon Logo" width="120" height="120">
+
 # Photon
 
 **A Raspberry Pi Pico W-powered LED matrix display and game engine**
-
-![Photon Logo](./assets/logo.png)
 
 ## Overview
 
