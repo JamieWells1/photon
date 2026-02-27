@@ -220,7 +220,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           git fetch origin main
-          git checkout origin/main -- .github/workflows/auto-release.yml || true
+          git checkout origin/main -- .github/workflows/release.yml || true
           echo "✓ Workflow restored to placeholder defaults."
 
       - name: Commit and push reset
@@ -230,8 +230,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if [ -n "$(git status --porcelain)" ]; then
-            git add .github/workflows/auto-release.yml
-            git commit -m "Reset auto-release.yml to placeholder defaults"
+            git add .github/workflows/release.yml
+            git commit -m "Reset release.yml to placeholder defaults"
             git push origin HEAD:main
           else
             echo "No workflow changes to reset."
