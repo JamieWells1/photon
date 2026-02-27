@@ -30,7 +30,7 @@ src/
 
 ## What to Contribute
 
-### 🎮 New Display Modes
+### New Display Modes
 
 The most common contribution! Add new modes like:
 
@@ -41,13 +41,13 @@ The most common contribution! Add new modes like:
 
 **Start here**: [Building a Mode Tutorial](building-a-mode.md) →
 
-### 🎨 Graphics & Fonts
+### Graphics & Fonts
 
 - New icon designs
 - Extended character sets (lowercase, symbols)
 - Animation helpers
 
-### 🔧 Core Improvements
+### Core Improvements
 
 - Performance optimizations
 - Bug fixes
