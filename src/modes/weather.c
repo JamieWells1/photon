@@ -8,6 +8,7 @@
 #include <menu.h>
 #include <secrets_config.h>
 #include <wifi.h>
+#include <location.h>
 
 #include <math.h>
 #include <stddef.h>
