@@ -2,7 +2,7 @@
 
 # Photon
 
-**A Raspberry Pi Pico W-powered LED matrix display and game engine**
+**A firmware application for the Raspberry Pi Pico 2 W that transforms a 32x8 WS2812B LED matrix into an interactive display system.**
 
 ## Overview
 

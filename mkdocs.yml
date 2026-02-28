@@ -1,5 +1,5 @@
 site_name: Photon Documentation
-site_description: A Raspberry Pi Pico W-powered LED matrix display and game engine
+site_description: Photon is a firmware application for the Raspberry Pi Pico 2 W that transforms a 32x8 WS2812B LED matrix into an interactive display system.
 site_author: Jamie Wells
 site_url: https://jamiewells1.github.io/photon/
 repo_url: https://github.com/JamieWells1/photon
