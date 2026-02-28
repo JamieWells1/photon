@@ -10,28 +10,28 @@ WiFi credentials are compiled into the firmware for security and simplicity.
 
 1. **Create** a `secrets.h` file in the project root:
 
-```bash
-touch secrets.h
-```
+    ```bash
+    touch secrets.h
+    ```
 
 2. **Add** your WiFi credentials:
 
-```c title="secrets.h"
-#ifndef SECRETS_H
-#define SECRETS_H
+    ```c title="secrets.h"
+    #ifndef SECRETS_H
+    #define SECRETS_H
 
-#define WIFI_SSID "YourNetworkName"
-#define WIFI_PASSWORD "YourPassword"
+    #define WIFI_SSID "YourNetworkName"
+    #define WIFI_PASSWORD "YourPassword"
 
-#endif  // SECRETS_H
-```
+    #endif  // SECRETS_H
+    ```
 
 3. **Rebuild** and flash the firmware:
 
-```bash
-cmake --build build -- -j4
-picotool load build/photon.uf2 -fx
-```
+    ```bash
+    cmake --build build -- -j4
+    picotool load build/photon.uf2 -fx
+    ```
 
 !!! warning "Security"
 **Never commit `secrets.h` to version control!**
@@ -69,32 +69,32 @@ Edit [`src/common/const.h`](https://github.com/JamieWells1/photon/blob/main/src/
 
 1. **Add latitude constant**:
 
-```c title="src/common/const.h"
-#define LAT_PARIS 48.8566
-```
+    ```c title="src/common/const.h"
+    #define LAT_PARIS 48.8566
+    ```
 
 2. **Add longitude constant**:
 
-```c
-#define LON_PARIS 2.3522
-```
+    ```c
+    #define LON_PARIS 2.3522
+    ```
 
 3. **Add to Location enum**:
 
-```c
-typedef enum
-{
-    LOC_LONDON,
-    // ... existing locations
-    LOC_PARIS,  // ← Add here
-} Location;
-```
+    ```c
+    typedef enum
+    {
+        LOC_LONDON,
+        // ... existing locations
+        LOC_PARIS,  // ← Add here
+    } Location;
+    ```
 
 4. **Set as active location**:
 
-```c
-#define LOCATION LOC_PARIS
-```
+    ```c
+    #define LOCATION LOC_PARIS
+    ```
 
 ## Display Settings
 
@@ -190,14 +190,18 @@ Adjust max connection attempts:
 After modifying any configuration:
 
 1. **Save** the files
+
 2. **Rebuild**:
-   ```bash
-   cmake --build build -- -j4
-   ```
+
+    ```bash
+    cmake --build build -- -j4
+    ```
+
 3. **Flash**:
-   ```bash
-   picotool load build/photon.uf2 -fx
-   ```
+
+    ```bash
+    picotool load build/photon.uf2 -fx
+    ```
 
 ## Next Steps
 

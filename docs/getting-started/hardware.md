@@ -81,20 +81,23 @@ Connect one side of each button to the GPIO pin and the other side to GND. The f
 1. **Safety First**: Disconnect all power before wiring
 
 2. **Connect the LED Matrix**:
-   - Wire VCC to VBUS (5V)
-   - Wire GND to GND
-   - Wire DIN to GP21
+
+    - Wire VCC to VBUS (5V)
+    - Wire GND to GND
+    - Wire DIN to GP21
 
 3. **Connect the Rotary Encoder**:
-   - Wire CLK → GP2
-   - Wire DT → GP3
-   - Wire SW → GP4
-   - Wire + → 3V3
-   - Wire GND → GND
+
+    - Wire CLK → GP2
+    - Wire DT → GP3
+    - Wire SW → GP4
+    - Wire + → 3V3
+    - Wire GND → GND
 
 4. **Connect the Buttons**:
-   - Left button: GP10 ↔ GND
-   - Right button: GP5 ↔ GND
+
+    - Left button: GP10 ↔ GND
+    - Right button: GP5 ↔ GND
 
 5. **Double-check connections** against the pinout diagram
 
@@ -105,7 +108,9 @@ Connect one side of each button to the GPIO pin and the other side to GND. The f
 After powering on, you should see:
 
 1. **Startup animation**: The Photon logo displays briefly
+
 2. **WiFi connection**: Animated connecting screen
+
 3. **Main menu**: Menu icons appear
 
 If nothing displays:
