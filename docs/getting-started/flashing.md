@@ -10,28 +10,7 @@ Get the latest firmware release from GitHub:
 
 Download the `photon.uf2` file.
 
-## Method 1: Drag-and-Drop (First Time)
-
-This method is the easiest for first-time setup.
-
-### Steps
-
-1. **Disconnect** the Pico from power
-
-2. **Hold BOOTSEL** button on the Pico
-
-3. **Connect** the Pico to your computer via USB **while holding BOOTSEL**
-
-4. **Release BOOTSEL** when the Pico appears as a USB drive (named `RPI-RP2`)
-
-5. **Drag** the `photon.uf2` file onto the `RPI-RP2` drive
-
-6. The Pico will **automatically reboot** and start running Photon
-
-!!! success "Success!"
-The LED matrix should display the Photon logo, then attempt to connect to WiFi.
-
-## Method 2: picotool (Recommended for Development)
+## Flash via picotool
 
 `picotool` allows you to flash without pressing BOOTSEL.
 
@@ -57,14 +36,15 @@ Download from [Raspberry Pi GitHub](https://github.com/raspberrypi/picotool/rele
 picotool load photon.uf2 -fx
 ```
 
-!!! tip "Development Workflow"
 For rapid development, use the all-in-one command from `INSTRUCTIONS.md`:
 
     ```bash
-    cmake --build build -- -j4 && picotool load build/photon.uf2 -fx && screen /dev/tty.usbmodem101 115200
+    cmake --build build -- -j4 && picotool load build/photon.uf2 -fx && screen /dev/tty.usbmodem1101 115200
     ```
 
     This builds, flashes, and opens serial monitor in one command!
+
+    !!! circle-info "The path to your USB modem may not be exactly `/dev/tty.usbmodem1101`, and you may have to see what it actually is."
 
 ## Method 3: Build from Source
 
@@ -106,34 +86,6 @@ cmake --build build -- -j4
 ```
 
 The compiled firmware will be at `build/photon.uf2`.
-
-## Verify Installation
-
-After flashing, check the serial output to verify:
-
-### Monitor Serial Output
-
-=== "macOS/Linux"
-`bash
-    screen /dev/tty.usbmodem101 115200
-    `
-
-    Press `Ctrl+A` then `K` then `Y` to exit screen.
-
-=== "Windows"
-Use [PuTTY](https://www.putty.org/) or Arduino Serial Monitor:
-
-    - Port: `COMx` (check Device Manager)
-    - Baud: `115200`
-
-### Expected Output
-
-```
-[PHOTON] Starting...
-[WIFI] Connecting to WiFi...
-[WIFI] Connected! IP: 192.168.1.100
-[MENU] Main menu started
-```
 
 ## Troubleshooting
 

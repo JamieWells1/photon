@@ -1,5 +1,7 @@
 #include <http.h>
 
+#include <glyphs.h>
+#include <graphics.h>
 #include <macro.h>
 
 #include <stdio.h>
@@ -9,27 +11,26 @@
 #include <lwip/dns.h>
 #include <lwip/tcp.h>
 #include <pico/cyw43_arch.h>
+#include <pico/time.h>
+#include "const.h"
 
 #define HTTP_RESPONSE_BUFFER_SIZE 4096
+#define HTTP_TIMEOUT_MS 30000
 
 typedef struct
 {
     struct tcp_pcb* pcb;
     char* request_path;
-    http_response_callback callback;
+    http_response_callback_t callback;
     char response_buffer[HTTP_RESPONSE_BUFFER_SIZE];
     size_t bytes_received;
     bool headers_complete;
     char* body_start;
+    bool complete;
+    bool error;
 } http_state_t;
 
 static http_state_t* g_http_state = NULL;
-
-static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, err_t err);
-static err_t http_connected_callback(void* arg, struct tcp_pcb* pcb, err_t err);
-static void http_error_callback(void* arg, err_t err);
-static void http_dns_callback(const char* hostname, const ip_addr_t* ipaddr, void* arg);
-static void http_cleanup(http_state_t* state);
 
 static void http_cleanup(http_state_t* state)
 {
@@ -69,14 +70,15 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                 state->callback(state->body_start, strlen(state->body_start), true);
             }
         }
-        http_cleanup(state);
+        state->complete = true;
         return ERR_OK;
     }
 
     if (err != ERR_OK)
     {
         pbuf_free(p);
-        http_cleanup(state);
+        state->error = true;
+        state->complete = true;
         return err;
     }
 
@@ -99,9 +101,8 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         if (header_end)
         {
             state->headers_complete = true;
-            state->body_start = header_end + 4;  // Skip past "\r\n\r\n"
+            state->body_start = header_end + 4;
 
-            // Ensure body_start is within buffer bounds
             char* buffer_end = state->response_buffer + state->bytes_received;
             if (state->body_start < state->response_buffer || state->body_start > buffer_end)
             {
@@ -130,7 +131,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         {
             state->callback(state->body_start, strlen(state->body_start), true);
         }
-        http_cleanup(state);
+        state->complete = true;
         return ERR_OK;
     }
 
@@ -144,7 +145,8 @@ static err_t http_connected_callback(void* arg, struct tcp_pcb* pcb, err_t err)
     if (err != ERR_OK)
     {
         debug("HTTP connection failed: %d", err);
-        http_cleanup(state);
+        state->error = true;
+        state->complete = true;
         return err;
     }
 
@@ -152,13 +154,14 @@ static err_t http_connected_callback(void* arg, struct tcp_pcb* pcb, err_t err)
 
     char request[512];
     snprintf(request, sizeof(request), "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
-             state->request_path, "api.open-meteo.com");
+             state->request_path, HOST_URL_WEATHER);
 
     err_t write_err = tcp_write(pcb, request, strlen(request), TCP_WRITE_FLAG_COPY);
     if (write_err != ERR_OK)
     {
         debug("HTTP write failed: %d", write_err);
-        http_cleanup(state);
+        state->error = true;
+        state->complete = true;
         return write_err;
     }
 
@@ -166,7 +169,8 @@ static err_t http_connected_callback(void* arg, struct tcp_pcb* pcb, err_t err)
     if (output_err != ERR_OK)
     {
         debug("HTTP output failed: %d", output_err);
-        http_cleanup(state);
+        state->error = true;
+        state->complete = true;
         return output_err;
     }
 
@@ -180,7 +184,8 @@ static void http_error_callback(void* arg, err_t err)
 
     if (state)
     {
-        http_cleanup(state);
+        state->error = true;
+        state->complete = true;
     }
 }
 
@@ -191,7 +196,8 @@ static void http_dns_callback(const char* hostname, const ip_addr_t* ipaddr, voi
     if (!ipaddr)
     {
         debug("DNS lookup failed for %s", hostname);
-        http_cleanup(state);
+        state->error = true;
+        state->complete = true;
         return;
     }
 
@@ -201,7 +207,8 @@ static void http_dns_callback(const char* hostname, const ip_addr_t* ipaddr, voi
     if (!state->pcb)
     {
         debug("Failed to create TCP PCB");
-        http_cleanup(state);
+        state->error = true;
+        state->complete = true;
         return;
     }
 
@@ -213,14 +220,34 @@ static void http_dns_callback(const char* hostname, const ip_addr_t* ipaddr, voi
     if (err != ERR_OK)
     {
         debug("TCP connect failed: %d", err);
-        http_cleanup(state);
+        state->error = true;
+        state->complete = true;
         return;
     }
 
     debug("TCP connection initiated");
 }
 
-int http_get(const char* host_url, const char* url_sub_path, http_response_callback callback)
+static void http_display_status(Matrix* mtrx, int dot_counter)
+{
+    char status[256] = "DATA";
+
+    // Append animated dots
+    size_t len = strlen(status);
+    int num_dots = (dot_counter % 3) + 1;
+    for (int i = 0; i < num_dots && len + i + 1 < sizeof(status); i++)
+    {
+        status[len + i] = '.';
+        status[len + i + 1] = '\0';
+    }
+
+    matrix_clear(mtrx);
+    matrix_display_word_icon_pair(status, &DEFAULT_COLOUR, &ICONS_ARR[DATA], 0);
+    matrix_show(mtrx);
+}
+
+int http_get(const char* host_url, const char* url_sub_path, http_response_callback_t callback,
+             Matrix* mtrx)
 {
     if (!host_url || !url_sub_path || !callback)
     {
@@ -231,14 +258,14 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
     if (g_http_state)
     {
         debug("HTTP request already in progress");
-        return -2;
+        return -1;
     }
 
     g_http_state = (http_state_t*)calloc(1, sizeof(http_state_t));
     if (!g_http_state)
     {
         debug("Failed to allocate HTTP state");
-        return -3;
+        return -1;
     }
 
     g_http_state->request_path = strdup(url_sub_path);
@@ -246,6 +273,8 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
     g_http_state->headers_complete = false;
     g_http_state->bytes_received = 0;
     g_http_state->body_start = NULL;
+    g_http_state->complete = false;
+    g_http_state->error = false;
 
     debug("Starting DNS lookup for %s", host_url);
 
@@ -263,8 +292,65 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
     {
         debug("DNS lookup failed immediately: %d", err);
         http_cleanup(g_http_state);
-        return -4;
+        return -1;
     }
+
+    // Block until complete or timeout
+    uint64_t start_time = to_ms_since_boot(get_absolute_time());
+    int dot_counter = 0;
+    int display_frame_counter = 0;
+
+    while (!g_http_state->complete)
+    {
+        // Update display every 3-4 polls (300-400ms between frames)
+        if (display_frame_counter % 4 == 0)
+        {
+            http_display_status(mtrx, dot_counter);
+            dot_counter++;
+        }
+        display_frame_counter++;
+
+        // Check timeout
+        uint64_t elapsed = to_ms_since_boot(get_absolute_time()) - start_time;
+        if (elapsed > HTTP_TIMEOUT_MS)
+        {
+            debug("HTTP request timeout");
+            http_cleanup(g_http_state);
+
+            // Display timeout
+            matrix_clear(mtrx);
+            matrix_display_word_icon_pair("TIMEOUT", &RED, NULL, 0);
+            matrix_show(mtrx);
+            sleep_ms(1000);
+
+            return -1;
+        }
+
+        // Allow lwIP to process
+        cyw43_arch_poll();
+        sleep_ms(100);
+    }
+
+    bool had_error = g_http_state->error;
+    http_cleanup(g_http_state);
+
+    if (had_error)
+    {
+        debug("HTTP request failed");
+
+        // Display timeout
+        matrix_clear(mtrx);
+        matrix_display_word_icon_pair("TIMEOUT", &RED, NULL, 0);
+        matrix_show(mtrx);
+        sleep_ms(1000);
+
+        return -1;
+    }
+
+    debug("HTTP request completed successfully");
+
+    // Brief delay to show DATA status before transitioning to weather display
+    sleep_ms(300);
 
     return 0;
 }

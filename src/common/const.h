@@ -37,6 +37,10 @@ extern const DebugLevel DEBUG_LEVEL;
 // Wifi
 #define MAX_WIFI_CONNECTION_ATTEMPTS 100
 
+// HTTP
+#define HOST_URL_WEATHER "api.open-meteo.com"
+#define HOST_URL_STOCKS "some_stock_api"
+
 // Weather
 #define WEATHER_HOURS 48
 
