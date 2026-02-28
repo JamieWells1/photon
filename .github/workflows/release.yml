@@ -56,8 +56,8 @@ jobs:
           git diff "$RANGE" --stat=200 > diff_stat.txt
           git diff "$RANGE" --name-status > diff_files.txt
 
-          # Sample actual diff content from key files (limit to 5000 lines max)
-          git diff "$RANGE" -- '*.h' '*.c' '*.md' '*.yml' '*.json' '*.pio' | head -n 5000 > diff_sample.txt
+          # Sample actual diff content from C source files only (limit to 5000 lines max)
+          git diff "$RANGE" -- '*.c' | head -n 5000 > diff_sample.txt
 
           # Combine into concise diff
           {
@@ -83,11 +83,15 @@ jobs:
           diff = open("diff.txt").read()
           tag = os.getenv("GITHUB_REF_NAME", "unknown")
 
-          prompt = f"Generate concise JSON release notes for {tag}.\n\n"
+          prompt = f"Generate concise JSON release notes for {tag} based ONLY on the provided commits and C code changes.\n\n"
           prompt += 'Output format: {"SHORT_TITLE": "...", "SUMMARY": "...", "FEATURE_GROUP": "...", "DETAILS": "...", "ENHANCEMENTS": "...", "BUG_DESCRIPTIONS": "...", "DOC_UPDATES": "..."}\n\n'
           prompt += "Rules:\n- SHORT_TITLE: max 8 words\n- SUMMARY: max 3 sentences\n"
-          prompt += "- Focus on user-visible changes\n- Ignore formatting/trivial edits\n- Output valid JSON only\n\n"
-          prompt += f"Commits:\n{commits}\n\nDiff Summary:\n{diff}"
+          prompt += "- Base content ONLY on actual commits and code changes shown below\n"
+          prompt += "- Focus on firmware/embedded system changes visible in the C code\n"
+          prompt += "- DO NOT invent features like 'user login' or 'data input' if not present in the code\n"
+          prompt += "- If no significant changes exist for a section, output 'No changes in this release.'\n"
+          prompt += "- Ignore formatting/trivial edits\n- Output valid JSON only\n\n"
+          prompt += f"Commits:\n{commits}\n\nCode Changes:\n{diff}"
 
           resp = client.chat.completions.create(
               model="gpt-4o-mini",

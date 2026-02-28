@@ -118,14 +118,3 @@ If nothing displays:
 
 - [Flash the Firmware](flashing.md) →
 - [Configure WiFi & Location](configuration.md) →
-
----
-
-!!! example "Example Build"
-Add photos of your completed build here!
-
-    ```
-    [Photo 1: Breadboard prototype]
-    [Photo 2: Close-up of wiring]
-    [Photo 3: Finished enclosure]
-    ```

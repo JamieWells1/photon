@@ -1,22 +1,22 @@
 # **Photon {{VERSION}} – {{SHORT_TITLE}}**
 
-> 🤖 AI-generated release notes based on code changes and commit messages
+> AI-generated release notes based on code changes and commit messages
 
 ---
 
-## 📦 Download
+## Download
 
 **Firmware:** [photon.uf2](../../releases/download/{{VERSION}}/photon.uf2)
 
 ---
 
-## 📝 Summary
+## Summary
 
 {{SUMMARY}}
 
 ---
 
-## ✨ What's New
+## What's New
 
 #### {{FEATURE_GROUP}}
 
@@ -24,25 +24,25 @@
 
 ---
 
-## 🚀 Enhancements
+## Enhancements
 
 - {{ENHANCEMENTS}}
 
 ---
 
-## 🐛 Bug Fixes
+## Bug Fixes
 
 - {{BUG_DESCRIPTIONS}}
 
 ---
 
-## 📚 Documentation Updates
+## Documentation Updates
 
 - {{DOC_UPDATES}}
 
 ---
 
-## 💡 Need Help?
+## Need Help?
 
 - [Report an issue](../../issues)
 - [View documentation](../../blob/main/README.md)
