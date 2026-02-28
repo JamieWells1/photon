@@ -22,9 +22,6 @@ extern const LogLevel LOG_LEVEL;
 #define MATRIX_HEIGHT 8
 #define NUM_PIXELS (MATRIX_WIDTH * MATRIX_HEIGHT)
 
-// Matrix pixels
-#define BRIGHTNESS_COEFFICIENT 0.02
-
 // GPIO pins
 #define BUTTON_LEFT_PIN 10  // GP10
 #define BUTTON_RIGHT_PIN 5  // GP5
@@ -45,15 +42,5 @@ extern const LogLevel LOG_LEVEL;
 
 // Weather
 #define WEATHER_HOURS 48
-
-// Tickers
-typedef enum
-{
-    XBT = 0,
-    XAU = 1,
-    XAG = 2,
-} Tickers;
-
-#define TKR_
 
 #endif  // CONST_H

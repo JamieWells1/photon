@@ -103,7 +103,7 @@ Edit [`src/common/const.h`](https://github.com/JamieWells1/photon/blob/main/src/
 Adjust LED brightness in [`src/common/const.h`](https://github.com/JamieWells1/photon/blob/main/src/common/const.h#L24):
 
 ```c title="src/common/const.h"
-#define BRIGHTNESS_COEFFICIENT 0.02  // 2% brightness
+#define BRIGHTNESS 0.02  // 2% brightness
 ```
 
 - **Range**: `0.0` (off) to `1.0` (full)

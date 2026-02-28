@@ -38,7 +38,7 @@ static void menu_set_underscore(bool underscore_on)
         matrix_clear_horiz_line(uscr_starting_x, uscr_starting_y, uscr_length);
     }
 }
-static void menu_set_initial_display()
+static void menu_set_initial_display(void)
 {
     // MenuState already initialised in global.c
     Menu currentMode = MENUS[MENU_STATE.mode];

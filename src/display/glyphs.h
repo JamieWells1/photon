@@ -56,9 +56,9 @@ typedef enum
     ICON_COUNT
 } IconType;
 
-// ==========================
+// =======
 // COLOURS
-// ==========================
+// =======
 
 static const RGB DEFAULT_COLOUR = {255, 255, 255};
 static const RGB LOGO_COLOUR = {100, 200, 250};
@@ -70,9 +70,9 @@ static const RGB LIGHT_BLUE = {150, 250, 250};
 static const RGB BLUE = {50, 150, 200};
 static const RGB ORANGE = {240, 120, 30};
 
-// ==========================
+// =======
 // LETTERS
-// ==========================
+// =======
 
 static const Pixel LETTER_A[] = {
     // 3x5
@@ -253,9 +253,9 @@ static const Pixel LETTER_Z[] = {
     {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
 };
 
-// ==========================
+// =====================
 // ALPHABET LOOKUP TABLE
-// ==========================
+// =====================
 
 // PUNCTUATION
 static const Pixel PUNCT_EXCLAIM[] = {
@@ -288,9 +288,9 @@ static const Pixel PUNCT_DEGREE[] = {
     // 1x5
     {0, 0, DEFAULT_COLOUR}};
 
-// ==========================
+// =======
 // NUMBERS
-// ==========================
+// =======
 
 static const Pixel DIGIT_0[] = {
     // 3x5
@@ -301,8 +301,8 @@ static const Pixel DIGIT_0[] = {
 
 static const Pixel DIGIT_1[] = {
     // 2x5
-    {0, 1, DEFAULT_COLOUR},{0, 4, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR},
-    {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR},{2, 4, DEFAULT_COLOUR},
+    {0, 1, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
 };
 
 static const Pixel DIGIT_2[] = {
@@ -412,9 +412,9 @@ static const Glyph NUMBERS[10] = {
     {DIGIT_9, ARRAY_SIZE(DIGIT_9), 3, 5},  // 9
 };
 
-// ==========================
+// =====
 // ICONS
-// ==========================
+// =====
 
 // LOGO
 
@@ -520,9 +520,9 @@ static const Pixel ICON_DATA[16] = {
     {3, 4, BLUE}, {4, 0, BLUE}, {4, 3, BLUE}, {4, 4, BLUE},
 };
 
-// ==========================
+// =================
 // ICON LOOKUP TABLE
-// ==========================
+// =================
 
 static const Glyph ICONS_ARR[ICON_COUNT] = {
     {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},              // 0: PHOTON

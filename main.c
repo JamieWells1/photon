@@ -49,7 +49,7 @@ void debug_inputs(Button* btns, Rotator* rtr)
     }
 }
 
-Button* main_init_buttons()
+Button* main_init_buttons(void)
 {
     static Button buttons[2] = {{.pin = BUTTON_LEFT_PIN}, {.pin = BUTTON_RIGHT_PIN}};
 
@@ -72,7 +72,7 @@ Button* main_init_buttons()
     return buttons;
 }
 
-Rotator* main_init_rotator()
+Rotator* main_init_rotator(void)
 {
     static Rotator rotator = {
         .pin_clk = ROTATOR_CLK_PIN, .pin_dt = ROTATOR_DT_PIN, .pin_sw = ROTATOR_SW_PIN};
@@ -106,7 +106,7 @@ Rotator* main_init_rotator()
     return &rotator;
 }
 
-Matrix* main_init_matrix()
+Matrix* main_init_matrix(void)
 {
     PIO pio = pio0;
     int sm = 0;
@@ -119,7 +119,7 @@ Matrix* main_init_matrix()
     return &matrix;
 }
 
-int main()
+int main(void)
 {
     stdio_init_all();
     sleep_ms(2000);

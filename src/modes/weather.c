@@ -1,10 +1,10 @@
 #include <weather.h>
 
+#include <config.h>
 #include <const.h>
 #include <glyphs.h>
 #include <graphics.h>
 #include <http.h>
-#include <location.h>
 #include <matrix.h>
 #include <menu.h>
 #include <secrets_config.h>
@@ -41,8 +41,8 @@ static int g_last_displayed_code = -1;
 
 // Getters
 
-int weather_current_hour_index() { return g_current_hour_index; }
-int weather_hours_fetched() { return g_hours_fetched; }
+int weather_current_hour_index(void) { return g_current_hour_index; }
+int weather_hours_fetched(void) { return g_hours_fetched; }
 
 // Parsing logic
 
@@ -318,7 +318,7 @@ static RGB get_dynamic_temp_display_colour(float temp)
 
 void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
 {
-    uint64_t current_time_ms = get_current_time();
+    uint64_t current_time_ms = get_current_time_ms();
     bool should_fetch = !g_data_fetched || current_time_ms >= g_next_fetch_time_ms;
 
     if (g_data_fetched && g_last_hour_advance_ms > 0)

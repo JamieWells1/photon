@@ -3,6 +3,7 @@
 #include <const.h>
 #include <global.h>
 #include <macro.h>
+#include <config.h>
 
 #include <ctype.h>
 #include <pico/time.h>
@@ -12,9 +13,9 @@
 #include <glyphs.h>
 #include <stdio.h>
 
-// ==========================
+// ======
 // STATIC
-// ==========================
+// ======
 
 static uint32_t g_pixels[NUM_PIXELS];
 
@@ -40,9 +41,9 @@ static int matrix_xy_to_index(int input_x, int input_y)
 
 static void matrix_set_brightness(RGB* col)
 {
-    col->r *= BRIGHTNESS_COEFFICIENT;
-    col->g *= BRIGHTNESS_COEFFICIENT;
-    col->b *= BRIGHTNESS_COEFFICIENT;
+    col->r *= BRIGHTNESS;
+    col->g *= BRIGHTNESS;
+    col->b *= BRIGHTNESS;
 }
 
 static uint32_t matrix_rgb_to_grb(RGB* col) { return (col->g << 16) | (col->r << 8) | col->b; }
@@ -83,9 +84,9 @@ static const Glyph* matrix_char_in_pxls(char ch)
     }
 }
 
-// ==========================
+// ======
 // PUBLIC
-// ==========================
+// ======
 
 // Set a pixel's colour state on the matrix
 void matrix_set_pixel(Pixel* pxl)

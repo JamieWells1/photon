@@ -14,11 +14,11 @@ typedef enum
 } Mode;
 
 #define TKR_START 0
-#define TKR_COUNT 3
-#define GAME_START (TKR_START + TKR_COUNT)
-#define GAME_COUNT 1
-#define TEMP_START (GAME_START + GAME_COUNT)
-#define TEMP_COUNT 2
+#define TKR_END 3
+#define GAME_START (TKR_START + TKR_END)
+#define GAME_END 1
+#define TEMP_START (GAME_START + GAME_END)
+#define TEMP_END 2
 
 // Structs
 typedef struct

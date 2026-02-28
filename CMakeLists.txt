@@ -73,6 +73,11 @@ set(UTILS_SOURCES
         src/utils.c
 )
 
+# Config
+set(CONFIG_SOURCES
+        src/config.c
+)
+
 # Middleware
 set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
