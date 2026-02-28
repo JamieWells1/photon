@@ -4,11 +4,11 @@
 #include <glyphs.h>
 #include <graphics.h>
 #include <http.h>
+#include <location.h>
 #include <matrix.h>
 #include <menu.h>
 #include <secrets_config.h>
 #include <wifi.h>
-#include <location.h>
 
 #include <math.h>
 #include <stddef.h>
@@ -356,11 +356,6 @@ static void weather_response_callback(const char* body, size_t len, bool complet
 
 static void weather_fetch_data(void)
 {
-    if (wifi_join(WIFI_SSID, WIFI_PASSWORD) != 0)
-    {
-        return;
-    }
-
     debug("Fetching weather data...");
 
     float lat = location_get_latitude(LOCATION);
@@ -459,12 +454,10 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
 
     bool should_fetch = !g_data_fetched || current_time_ms >= g_next_fetch_time_ms;
 
-    if (should_fetch && !wifi_manager_is_connecting(&g_wifi_manager) &&
-        !wifi_manager_has_failed(&g_wifi_manager) && wifi_get_state() == WIFI_DISCONNECTED)
+    if (should_fetch)
     {
-        debug("Starting WiFi connection for weather data...");
-        wifi_manager_init(&g_wifi_manager, MAX_WIFI_CONNECTION_ATTEMPTS);
-        wifi_manager_start(&g_wifi_manager, WIFI_SSID, WIFI_PASSWORD);
+        wifi_manager_connect_if_needed(&g_wifi_manager, WIFI_SSID, WIFI_PASSWORD,
+                                        MAX_WIFI_CONNECTION_ATTEMPTS);
         g_http_request_sent = false;
     }
     WifiState wifi_state = wifi_manager_update(&g_wifi_manager, WIFI_SSID, WIFI_PASSWORD);
@@ -579,11 +572,7 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
         return;
     }
 
-    if (wifi_state == WIFI_CONNECTED)
-    {
-        debug("Disconnecting WiFi to save power");
-        wifi_disconnect();
-    }
+    wifi_manager_disconnect_if_connected();
 
     int hour_index = g_current_hour_index;
 
@@ -641,11 +630,7 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
 
 void weather_cleanup(void)
 {
-    if (wifi_manager_is_connecting(&g_wifi_manager))
-    {
-        wifi_disconnect();
-    }
-
+    wifi_manager_disconnect_if_connected();
     wifi_manager_reset(&g_wifi_manager);
 
     g_last_wifi_state = WIFI_DISCONNECTED;

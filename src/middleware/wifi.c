@@ -225,6 +225,31 @@ void wifi_manager_reset(WifiConnectionManager* mgr)
     mgr->in_progress = false;
 }
 
+bool wifi_manager_should_connect(const WifiConnectionManager* mgr)
+{
+    return !mgr->in_progress && !mgr->failed && wifi_get_state() == WIFI_DISCONNECTED;
+}
+
+void wifi_manager_connect_if_needed(WifiConnectionManager* mgr, const char* ssid,
+                                    const char* password, int max_attempts)
+{
+    if (wifi_manager_should_connect(mgr))
+    {
+        debug("Starting WiFi connection...");
+        wifi_manager_init(mgr, max_attempts);
+        wifi_manager_start(mgr, ssid, password);
+    }
+}
+
+void wifi_manager_disconnect_if_connected(void)
+{
+    if (wifi_get_state() == WIFI_CONNECTED)
+    {
+        debug("Auto-disconnecting WiFi to save power");
+        wifi_disconnect();
+    }
+}
+
 void wifi_append_connecting_dots(char* buffer, size_t buffer_size, int* dot_counter)
 {
     size_t len = 0;

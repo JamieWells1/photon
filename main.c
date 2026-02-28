@@ -122,7 +122,6 @@ Matrix* main_init_matrix()
     debug("✓ WS2812 program initialised");
 
     static Matrix matrix = {.pin = MATRIX_DIN_PIN, .pio = pio0, .sm = 0};
-    MATRIX_ORIENTATION = HORIZONTAL;
     return &matrix;
 }
 
