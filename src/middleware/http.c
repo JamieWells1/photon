@@ -232,7 +232,6 @@ static void http_display_status(Matrix* mtrx, int dot_counter)
 {
     char status[256] = "DATA";
 
-    // Append animated dots
     size_t len = strlen(status);
     int num_dots = (dot_counter % 3) + 1;
     for (int i = 0; i < num_dots && len + i + 1 < sizeof(status); i++)
@@ -295,14 +294,12 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
         return -1;
     }
 
-    // Block until complete or timeout
     uint64_t start_time = to_ms_since_boot(get_absolute_time());
     int dot_counter = 0;
     int display_frame_counter = 0;
 
     while (!g_http_state->complete)
     {
-        // Update display every 3-4 polls (300-400ms between frames)
         if (display_frame_counter % 4 == 0)
         {
             http_display_status(mtrx, dot_counter);
@@ -310,14 +307,12 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
         }
         display_frame_counter++;
 
-        // Check timeout
         uint64_t elapsed = to_ms_since_boot(get_absolute_time()) - start_time;
         if (elapsed > HTTP_TIMEOUT_MS)
         {
             debug("HTTP request timeout");
             http_cleanup(g_http_state);
 
-            // Display timeout
             matrix_clear(mtrx);
             matrix_display_word_icon_pair("TIMEOUT", &RED, NULL, 0);
             matrix_show(mtrx);
@@ -326,7 +321,6 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
             return -1;
         }
 
-        // Allow lwIP to process
         cyw43_arch_poll();
         sleep_ms(100);
     }
@@ -338,7 +332,6 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
     {
         debug("HTTP request failed");
 
-        // Display timeout
         matrix_clear(mtrx);
         matrix_display_word_icon_pair("TIMEOUT", &RED, NULL, 0);
         matrix_show(mtrx);
@@ -349,7 +342,6 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
 
     debug("HTTP request completed successfully");
 
-    // Brief delay to show DATA status before transitioning to weather display
     sleep_ms(300);
 
     return 0;

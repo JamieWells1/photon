@@ -2,7 +2,7 @@
 #define LOCATION_H
 
 // Define location you want to use
-#define LOCATION LOC_TOKYO
+#define LOCATION LOC_LONDON
 
 #define LAT_LONDON 51.6611
 #define LAT_MIAMI 25.7617
@@ -41,5 +41,9 @@ typedef enum
     LOC_CAPE_TOWN,
     LOC_ATHENS,
 } Location;
+
+float location_get_latitude(Location loc);
+float location_get_longitude(Location loc);
+const char* location_get_timezone(Location loc);
 
 #endif  // LOCATION_H

@@ -39,7 +39,6 @@ static void wifi_display_status(Matrix* mtrx, int dot_counter)
 {
     char status[256] = "WIFI";
 
-    // Append animated dots
     size_t len = strlen(status);
     int num_dots = (dot_counter % 3) + 1;
     for (int i = 0; i < num_dots && len + i + 1 < sizeof(status); i++)
@@ -69,17 +68,14 @@ int wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
 
     debug("Starting WiFi connection...");
 
-    // Start async connection
     cyw43_arch_wifi_connect_async(ssid, password, CYW43_AUTH_WPA2_AES_PSK);
 
     int dot_counter = 0;
     int attempts = 0;
     int display_frame_counter = 0;
 
-    // Block until connected or timeout
     while (attempts < MAX_WIFI_CONNECTION_ATTEMPTS)
     {
-        // Update display every 3-4 polls (300-400ms between frames)
         if (display_frame_counter % 4 == 0)
         {
             wifi_display_status(mtrx, dot_counter);
@@ -87,7 +83,6 @@ int wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
         }
         display_frame_counter++;
 
-        // Check connection status
         int link_status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
 
         if (link_status == CYW43_LINK_UP)
@@ -96,14 +91,12 @@ int wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
             connected = true;
             return 0;
         }
-        else if (link_status == CYW43_LINK_FAIL ||
-                 link_status == CYW43_LINK_BADAUTH ||
+        else if (link_status == CYW43_LINK_FAIL || link_status == CYW43_LINK_BADAUTH ||
                  link_status == CYW43_LINK_NONET)
         {
             debug("WiFi connection failed (status: %d)", link_status);
             connected = false;
 
-            // Display timeout
             matrix_clear(mtrx);
             matrix_display_word_icon_pair("TIMEOUT", &RED, NULL, 0);
             matrix_show(mtrx);
@@ -113,13 +106,12 @@ int wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
         }
 
         attempts++;
-        sleep_ms(100);  // Poll every 100ms
+        sleep_ms(100);
     }
 
     debug("WiFi connection timeout");
     connected = false;
 
-    // Display timeout
     matrix_clear(mtrx);
     matrix_display_word_icon_pair("TIMEOUT", &RED, NULL, 0);
     matrix_show(mtrx);

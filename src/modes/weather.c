@@ -33,8 +33,8 @@ static volatile int g_current_hour_index = 0;
 static volatile int g_hours_fetched = 0;
 static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
+static volatile uint64_t g_last_hour_advance_ms = 0;
 
-// Display state cache
 static float g_last_displayed_temp = -999.0f;
 static int g_last_displayed_code = -1;
 
@@ -44,93 +44,6 @@ int weather_current_hour_index() { return g_current_hour_index; }
 int weather_hours_fetched() { return g_hours_fetched; }
 
 // Parsing logic
-
-static float location_get_latitude(Location loc)
-{
-    switch (loc)
-    {
-        case LOC_LONDON:
-            return LAT_LONDON;
-        case LOC_MIAMI:
-            return LAT_MIAMI;
-        case LOC_LOS_ANGELES:
-            return LAT_LOS_ANGELES;
-        case LOC_CHICAGO:
-            return LAT_CHICAGO;
-        case LOC_TOKYO:
-            return LAT_TOKYO;
-        case LOC_SYDNEY:
-            return LAT_SYDNEY;
-        case LOC_STOCKHOLM:
-            return LAT_STOCKHOLM;
-        case LOC_RIO_DE_JANEIRO:
-            return LAT_RIO_DE_JANEIRO;
-        case LOC_CAPE_TOWN:
-            return LAT_CAPE_TOWN;
-        case LOC_ATHENS:
-            return LAT_ATHENS;
-        default:
-            return 0.0;
-    }
-}
-
-static float location_get_longitude(Location loc)
-{
-    switch (loc)
-    {
-        case LOC_LONDON:
-            return LON_LONDON;
-        case LOC_MIAMI:
-            return LON_MIAMI;
-        case LOC_LOS_ANGELES:
-            return LON_LOS_ANGELES;
-        case LOC_CHICAGO:
-            return LON_CHICAGO;
-        case LOC_TOKYO:
-            return LON_TOKYO;
-        case LOC_SYDNEY:
-            return LON_SYDNEY;
-        case LOC_STOCKHOLM:
-            return LON_STOCKHOLM;
-        case LOC_RIO_DE_JANEIRO:
-            return LON_RIO_DE_JANEIRO;
-        case LOC_CAPE_TOWN:
-            return LON_CAPE_TOWN;
-        case LOC_ATHENS:
-            return LON_ATHENS;
-        default:
-            return 0.0;
-    }
-}
-
-static const char* location_get_timezone(Location loc)
-{
-    switch (loc)
-    {
-        case LOC_LONDON:
-            return "Europe/London";
-        case LOC_MIAMI:
-            return "America/New_York";
-        case LOC_LOS_ANGELES:
-            return "America/Los_Angeles";
-        case LOC_CHICAGO:
-            return "America/Chicago";
-        case LOC_TOKYO:
-            return "Asia/Tokyo";
-        case LOC_SYDNEY:
-            return "Australia/Sydney";
-        case LOC_STOCKHOLM:
-            return "Europe/Stockholm";
-        case LOC_RIO_DE_JANEIRO:
-            return "America/Sao_Paulo";
-        case LOC_CAPE_TOWN:
-            return "Africa/Johannesburg";
-        case LOC_ATHENS:
-            return "Europe/Athens";
-        default:
-            return "UTC";
-    }
-}
 
 static int weather_parse_float_array(const char* json, const char* key, float* values,
                                      int max_values)
@@ -325,13 +238,13 @@ static void weather_response_callback(const char* body, size_t len, bool complet
         debug("Current hour (%s): temp=%.1f, code=%d", g_hourly_times[g_current_hour_index],
               g_hourly_temps[g_current_hour_index], g_hourly_codes[g_current_hour_index]);
 
-        uint64_t minutes_until_next_hour = 60 - current_minute;
-        uint64_t ms_until_next_hour = minutes_until_next_hour * 60 * 1000;
+        uint64_t ms_until_next_fetch = 60 * 60 * 1000;
 
         g_data_fetched = true;
-        g_next_fetch_time_ms = to_ms_since_boot(get_absolute_time()) + ms_until_next_hour;
+        g_next_fetch_time_ms = to_ms_since_boot(get_absolute_time()) + ms_until_next_fetch;
+        g_last_hour_advance_ms = to_ms_since_boot(get_absolute_time());
 
-        debug("Next fetch scheduled in %llu minutes (at next hour)", minutes_until_next_hour);
+        debug("Next fetch scheduled in 60 minutes");
     }
 }
 
@@ -405,7 +318,23 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
     uint64_t current_time_ms = to_ms_since_boot(get_absolute_time());
     bool should_fetch = !g_data_fetched || current_time_ms >= g_next_fetch_time_ms;
 
-    // Fetch weather data if needed
+    if (g_data_fetched && g_last_hour_advance_ms > 0)
+    {
+        uint64_t ms_since_last_advance = current_time_ms - g_last_hour_advance_ms;
+        uint64_t hours_elapsed = ms_since_last_advance / (60 * 60 * 1000);
+
+        if (hours_elapsed > 0)
+        {
+            g_current_hour_index += hours_elapsed;
+            if (g_current_hour_index >= WEATHER_HOURS)
+            {
+                g_current_hour_index = WEATHER_HOURS - 1;
+            }
+            g_last_hour_advance_ms = current_time_ms;
+            debug("Auto-advanced to hour index %d", g_current_hour_index);
+        }
+    }
+
     if (should_fetch)
     {
         if (wifi_connect(WIFI_SSID, WIFI_PASSWORD, mtrx) == 0)
@@ -429,7 +358,6 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
         }
     }
 
-    // Display weather data
     if (!g_data_fetched) return;
 
     int hour_index = g_current_hour_index;
