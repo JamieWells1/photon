@@ -19,7 +19,7 @@ static bool g_display_initialized = false;
 static int g_tick = 0;
 static bool g_underscore_on = true;
 static bool g_in_submenu = false;
-static SubMode g_current_submenu = TKR_BTC;
+static Mode g_current_mode = MENU_TICKERS;
 
 static int g_weather_hour_offset = 0;
 
@@ -41,7 +41,7 @@ static void menu_set_underscore(bool underscore_on)
 static void menu_set_initial_display()
 {
     // MenuState already initialised in global.c
-    Menu currentMode = MENUS[MENU_STATE.main_mode];
+    Menu currentMode = MENUS[MENU_STATE.mode];
 
     matrix_display_word_icon_pair(currentMode.text, &DEFAULT_COLOUR, currentMode.icon, 0);
     g_display_initialized = true;
@@ -49,6 +49,7 @@ static void menu_set_initial_display()
 
 static void menu_reset_states(Matrix* mtrx)
 {
+    ticker_cleanup();
     weather_cleanup();
 
     g_display_initialized = false;
@@ -110,13 +111,13 @@ static void menu_main_slide_right(Matrix* mtrx)
 {
     menu_set_underscore(true);
 
-    Menu currentMode = MENUS[MENU_STATE.main_mode];
+    Menu currentMode = MENUS[MENU_STATE.mode];
     // Last element -> wrap to first element
-    int index_next = (MENU_STATE.main_mode + 1) % ARRAY_SIZE(MENUS);
+    int index_next = (MENU_STATE.mode + 1) % ARRAY_SIZE(MENUS);
     Menu nextMode = MENUS[index_next];
 
     menu_slide_from_mode(mtrx, currentMode, nextMode, -1);
-    MENU_STATE.main_mode = index_next;
+    MENU_STATE.mode = index_next;
     menu_reset_states(mtrx);
 }
 
@@ -125,39 +126,39 @@ static void menu_main_slide_left(Matrix* mtrx)
 {
     menu_set_underscore(true);
 
-    Menu currentMode = MENUS[MENU_STATE.main_mode];
+    Menu currentMode = MENUS[MENU_STATE.mode];
 
     int index_previous;
-    if (MENU_STATE.main_mode == 0)
+    if (MENU_STATE.mode == 0)
     {
         index_previous = ARRAY_SIZE(MENUS) - 1;
     }
     else
     {
-        index_previous = (MENU_STATE.main_mode - 1);
+        index_previous = (MENU_STATE.mode - 1);
     }
     Menu nextMode = MENUS[index_previous];
 
     menu_slide_from_mode(mtrx, currentMode, nextMode, 1);
-    MENU_STATE.main_mode = index_previous;
+    MENU_STATE.mode = index_previous;
     menu_reset_states(mtrx);
 }
 
-static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr, Matrix* mtrx)
+static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    SubMode target_submenu;
+    Mode target_menu;
 
-    if (menu_state.main_mode == MENU_TICKERS)
+    if (menu_state.mode == MENU_TICKERS)
     {
-        target_submenu = TKR_START;
+        target_menu = TKR_START;
     }
-    else if (menu_state.main_mode == MENU_GAMES)
+    else if (menu_state.mode == MENU_GAMES)
     {
-        target_submenu = GAME_START;
+        target_menu = GAME_START;
     }
-    else if (menu_state.main_mode == MENU_WEATHER)
+    else if (menu_state.mode == MENU_WEATHER)
     {
-        target_submenu = TEMP_START;
+        target_menu = TEMP_START;
     }
     else
     {
@@ -165,28 +166,28 @@ static void menu_enter_sub_menu(MenuState menu_state, Button* btns, Rotator* rtr
     }
 
     // Only initialise if entering a new submenu or first time
-    if (!g_in_submenu || g_current_submenu != target_submenu)
+    if (!g_in_submenu || g_current_mode != target_menu)
     {
         g_in_submenu = true;
-        g_current_submenu = target_submenu;
+        g_current_mode = target_menu;
         g_display_initialized = false;
 
-        menu_state.sub_mode = target_submenu;
+        menu_state.mode = target_menu;
 
         g_display_initialized = true;
     }
 
-    if (menu_state.main_mode == MENU_TICKERS)
+    if (menu_state.mode == MENU_TICKERS)
     {
-        ticker_display(SUB_MENUS[menu_state.sub_mode], mtrx);
+        ticker_display(mtrx);
     }
-    else if (menu_state.main_mode == MENU_GAMES)
+    else if (menu_state.mode == MENU_GAMES)
     {
-        game_display(SUB_MENUS[menu_state.sub_mode], mtrx);
+        game_display(mtrx);
     }
-    else if (menu_state.main_mode == MENU_WEATHER)
+    else if (menu_state.mode == MENU_WEATHER)
     {
-        weather_display(SUB_MENUS[menu_state.sub_mode].mode, mtrx, &g_weather_hour_offset);
+        weather_display(mtrx, &g_weather_hour_offset);
     }
 }
 
@@ -210,15 +211,13 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
     int max_offset = weather_hours_fetched() - weather_current_hour_index() - 1;
     if (input_rtr_cw(rtr) && g_weather_hour_offset < max_offset)
     {
-        MENU_STATE.sub_mode = TEMP_HOURLY;
-
         // Save current display state
         PixelState current_state[NUM_PIXELS];
         matrix_save_state(current_state);
 
         g_weather_hour_offset++;
 
-        weather_display(MENU_STATE.sub_mode, mtrx, &g_weather_hour_offset);
+        weather_display(mtrx, &g_weather_hour_offset);
         PixelState next_state[NUM_PIXELS];
         matrix_save_state(next_state);
 
@@ -227,8 +226,6 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
 
     if (input_rtr_anti_cw(rtr) && g_weather_hour_offset > 0)
     {
-        MENU_STATE.sub_mode = TEMP_HOURLY;
-
         // Save current display state
         PixelState current_state[NUM_PIXELS];
         matrix_save_state(current_state);
@@ -236,7 +233,7 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
         g_weather_hour_offset--;
         if (g_weather_hour_offset < 0) g_weather_hour_offset = 0;
 
-        weather_display(MENU_STATE.sub_mode, mtrx, &g_weather_hour_offset);
+        weather_display(mtrx, &g_weather_hour_offset);
         PixelState next_state[NUM_PIXELS];
         matrix_save_state(next_state);
 
@@ -253,7 +250,8 @@ static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 
         if (cw || acw)
         {
-            debug(TRACE, "menu_detect_inputs: g_in_submenu=%d, cw=%d, acw=%d\n", g_in_submenu, cw, acw);
+            debug(TRACE, "menu_detect_inputs: g_in_submenu=%d, cw=%d, acw=%d\n", g_in_submenu, cw,
+                  acw);
         }
 
         if (cw)
@@ -276,15 +274,15 @@ static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 
     if (g_in_submenu)
     {
-        if (MENU_STATE.main_mode == MENU_TICKERS)
+        if (MENU_STATE.mode == MENU_TICKERS)
         {
             menu_sub_menu_stocks_detect_inputs(btns, rtr, mtrx);
         }
-        if (MENU_STATE.main_mode == MENU_GAMES)
+        if (MENU_STATE.mode == MENU_GAMES)
         {
             menu_sub_menu_games_detect_inputs(btns, rtr, mtrx);
         }
-        if (MENU_STATE.main_mode == MENU_WEATHER)
+        if (MENU_STATE.mode == MENU_WEATHER)
         {
             menu_sub_menu_weather_detect_inputs(btns, rtr, mtrx);
         }

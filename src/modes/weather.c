@@ -8,6 +8,7 @@
 #include <matrix.h>
 #include <menu.h>
 #include <secrets_config.h>
+#include <utils.h>
 #include <wifi.h>
 
 #include <math.h>
@@ -179,6 +180,8 @@ static const Glyph* weather_code_to_icon(int code, int hour)
     }
 }
 
+// Display logic
+
 static void weather_response_callback(const char* body, size_t len, bool complete)
 {
     debug(TRACE, "weather_response_callback: len=%d, complete=%d", len, complete);
@@ -313,9 +316,9 @@ static RGB get_dynamic_temp_display_colour(float temp)
     return col;
 }
 
-void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_to_display)
+void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
 {
-    uint64_t current_time_ms = to_ms_since_boot(get_absolute_time());
+    uint64_t current_time_ms = get_current_time();
     bool should_fetch = !g_data_fetched || current_time_ms >= g_next_fetch_time_ms;
 
     if (g_data_fetched && g_last_hour_advance_ms > 0)
@@ -356,7 +359,7 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
             int rc = http_get(HOST_URL_WEATHER, path, weather_response_callback, mtrx);
             if (rc != 0)
             {
-                debug(TRACE, "HTTP request failed with RC %d", rc);
+                debug(ERROR, "HTTP request failed with RC %d", rc);
             }
             wifi_disconnect();
         }
@@ -364,14 +367,13 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
 
     if (!g_data_fetched) return;
 
-    int hour_index = g_current_hour_index;
+    ASSERT_IN_RANGE(g_current_hour_index, 0, WEATHER_HOURS - 1);
 
-    if (sub_mode == TEMP_HOURLY && hour_offset_from_now_to_display != NULL)
-    {
-        hour_index = g_current_hour_index + *hour_offset_from_now_to_display;
-    }
-
+    int hour_index = g_current_hour_index + *hour_offset_from_now_to_display;
     if (hour_index >= WEATHER_HOURS) hour_index = WEATHER_HOURS - 1;
+    if (hour_index < 0) hour_index = 0;
+
+    ASSERT_IN_RANGE(hour_index, 0, WEATHER_HOURS - 1);
 
     float current_temp = g_hourly_temps[hour_index];
     int current_code = g_hourly_codes[hour_index];

@@ -6,7 +6,7 @@
 int weather_current_hour_index();
 int weather_hours_fetched();
 
-void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_to_display);
+void weather_display(Matrix* mtrx, int* hour_to_display);
 void weather_cleanup(void);
 
 #endif  // WEATHER_H

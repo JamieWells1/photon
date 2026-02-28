@@ -6,7 +6,7 @@ Display modes are the core features of Photon. This API defines how modes are st
 
 ### Menu Types
 
-#### MainMode
+#### Mode
 
 Top-level menu categories.
 
@@ -15,7 +15,7 @@ typedef enum {
     MENU_TICKERS = 0,
     MENU_GAMES = 1,
     MENU_WEATHER = 2,
-} MainMode;
+} Mode;
 ```
 
 #### SubMode
@@ -48,7 +48,7 @@ Represents a main menu item.
 
 ```c
 typedef struct {
-    const MainMode mode;  // Mode identifier
+    const Mode mode;  // Mode identifier
     const char* text;     // Display text
     const Glyph* icon;    // Icon graphic
 } Menu;
@@ -99,7 +99,7 @@ Tracks current menu selection.
 
 ```c
 typedef struct {
-    MainMode main_mode;  // Currently selected main mode
+    Mode main_mode;  // Currently selected main mode
     SubMode sub_mode;    // Currently selected submode
 } MenuState;
 ```

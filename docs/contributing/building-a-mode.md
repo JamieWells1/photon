@@ -12,7 +12,7 @@ typedef enum {
     MENU_GAMES = 1,
     MENU_WEATHER = 2,
     MENU_YOUR_MODE = 3,  // Add this
-} MainMode;
+} Mode;
 
 typedef enum {
     // ... existing modes

@@ -41,9 +41,19 @@ extern const LogLevel LOG_LEVEL;
 
 // HTTP
 #define HOST_URL_WEATHER "api.open-meteo.com"
-#define HOST_URL_STOCKS "some_stock_api"
+#define HOST_URL_STOCKS "api.kraken.com"
 
 // Weather
 #define WEATHER_HOURS 48
+
+// Tickers
+typedef enum
+{
+    XBT = 0,
+    XAU = 1,
+    XAG = 2,
+} Tickers;
+
+#define TKR_
 
 #endif  // CONST_H

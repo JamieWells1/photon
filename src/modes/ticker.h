@@ -1,8 +1,9 @@
 #ifndef TICKER_H
 #define TICKER_H
 
-#include <menu.h>
+#include <matrix.h>
 
-void ticker_display(SubMenu sub_mode, Matrix* mtrx);
+void ticker_display(Matrix* mtrx);
+void ticker_cleanup();
 
 #endif  // TICKER_H

@@ -3,6 +3,6 @@
 
 #include <menu.h>
 
-void game_display(SubMenu sub_mode, Matrix* mtrx);
+void game_display(Matrix* mtrx);
 
 #endif  // GAME_H

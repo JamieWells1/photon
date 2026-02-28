@@ -1,5 +1,6 @@
 #include <http.h>
 
+#include <const.h>
 #include <glyphs.h>
 #include <graphics.h>
 #include <macro.h>
@@ -12,7 +13,6 @@
 #include <lwip/tcp.h>
 #include <pico/cyw43_arch.h>
 #include <pico/time.h>
-#include "const.h"
 
 #define HTTP_RESPONSE_BUFFER_SIZE 4096
 #define HTTP_TIMEOUT_MS 30000

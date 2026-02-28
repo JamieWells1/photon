@@ -68,6 +68,11 @@ set(GLOBAL_SOURCES
         src/global.c
 )
 
+# Utils
+set(UTILS_SOURCES
+        src/utils.c
+)
+
 # Middleware
 set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
