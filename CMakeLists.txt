@@ -43,6 +43,7 @@ set(COMMON_SOURCES
         src/common/const.c
         src/common/macro.c
         src/common/secrets_config.c
+        src/common/location.c
 )
 
 # Display subsystem

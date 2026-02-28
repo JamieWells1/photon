@@ -51,49 +51,6 @@ docs/
         └── middleware.md        # Middleware API reference
 ```
 
-## Deployment
-
-Documentation is automatically built and deployed to GitHub Pages when changes are pushed to the `main` branch via the [`.github/workflows/docs.yml`](../.github/workflows/docs.yml) workflow.
-
-### Manual Deployment
-
-```bash
-mkdocs gh-deploy
-```
-
-## Adding Content
-
-### New Page
-
-1. Create a Markdown file in the appropriate directory
-2. Add it to the `nav` section in `mkdocs.yml`
-3. Preview with `mkdocs serve`
-
-### Code Blocks
-
-Use fenced code blocks with syntax highlighting:
-
-\`\`\`c
-void example() {
-    printf("Hello, Photon!\\n");
-}
-\`\`\`
-
-### Admonitions
-
-Create callout boxes:
-
-\`\`\`
-!!! note "Title"
-    This is a note
-
-!!! warning
-    This is a warning
-
-!!! tip
-    This is a tip
-\`\`\`
-
 ## Contributing
 
 Improvements to documentation are always welcome! See the [Contributing Guide](contributing/index.md).

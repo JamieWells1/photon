@@ -6,12 +6,25 @@
 #define MAX_Y 7
 #define IN_BOUNDS(x, y) ((x) >= 0 && (x) <= MAX_X && (y) >= 0 && (y) <= MAX_Y)
 
-// Debug levels
-#if DEBUG_LEVEL == TRACE
-#define debug(fmt, ...) printf("[TRACE] %s:%d: " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
-#else
-#define debug(fmt, ...) ((void)0)
-#endif
+// Helper macro to convert debug level to string
+#define LOG_LEVEL_STR(level)      \
+    ((level) == ERROR   ? "ERROR" \
+     : (level) == WARN  ? "WARN"  \
+     : (level) == INFO  ? "INFO"  \
+     : (level) == DEBUG ? "DEBUG" \
+     : (level) == TRACE ? "TRACE" \
+                        : "UNKNOWN")
+
+// Debug macro that takes a level parameter
+#define debug(level, fmt, ...)                                                        \
+    do                                                                                \
+    {                                                                                 \
+        if ((int)LOG_LEVEL >= (int)(level))                                           \
+        {                                                                             \
+            printf("[%s] %s:%d: " fmt "\n", LOG_LEVEL_STR(level), __FILE__, __LINE__, \
+                   ##__VA_ARGS__);                                                    \
+        }                                                                             \
+    } while (0)
 
 // Assert macro that panics with useful information
 #define ASSERT(condition, msg, ...)                      \

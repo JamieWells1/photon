@@ -4,12 +4,14 @@
 // Log level
 typedef enum
 {
-    TRACE = 2,
-    INPUTS = 1,
-    INFO = 0,
-} DebugLevel;
+    ERROR = 0,
+    WARN = 1,
+    INFO = 2,
+    DEBUG = 3,
+    TRACE = 4
+} LogLevel;
 
-extern const DebugLevel DEBUG_LEVEL;
+extern const LogLevel LOG_LEVEL;
 
 // Display
 #define PROJECT_NAME "PHOTON"

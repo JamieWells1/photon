@@ -253,18 +253,18 @@ static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 
         if (cw || acw)
         {
-            printf("menu_detect_inputs: g_in_submenu=%d, cw=%d, acw=%d\n", g_in_submenu, cw, acw);
+            debug(TRACE, "menu_detect_inputs: g_in_submenu=%d, cw=%d, acw=%d\n", g_in_submenu, cw, acw);
         }
 
         if (cw)
         {
-            printf("Calling menu_main_slide_right\n");
+            debug(TRACE, "Calling menu_main_slide_right\n");
             menu_main_slide_right(mtrx);
         }
 
         if (acw)
         {
-            printf("Calling menu_main_slide_left\n");
+            debug(TRACE, "Calling menu_main_slide_left\n");
             menu_main_slide_left(mtrx);
         }
     }

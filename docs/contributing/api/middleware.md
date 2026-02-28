@@ -54,7 +54,7 @@ void wifi_disconnect(void);
 
 ```c
 wifi_disconnect();
-debug("WiFi disconnected to save power");
+debug(INFO, "WiFi disconnected to save power");
 ```
 
 ---
@@ -110,7 +110,7 @@ void handle_weather_response(const char* body, size_t len, bool complete) {
     float temp = parse_temperature(body);
     int code = parse_weather_code(body);
 
-    debug("Temperature: %.1f°C, Code: %d", temp, code);
+    debug(DEBUG, "Temperature: %.1f°C, Code: %d", temp, code);
 }
 
 int result = http_get(
@@ -121,7 +121,7 @@ int result = http_get(
 );
 
 if (result != 0) {
-    debug("HTTP request failed");
+    debug(INFO, "HTTP request failed");
 }
 ```
 

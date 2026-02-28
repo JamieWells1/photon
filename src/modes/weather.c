@@ -181,7 +181,7 @@ static const Glyph* weather_code_to_icon(int code, int hour)
 
 static void weather_response_callback(const char* body, size_t len, bool complete)
 {
-    debug("weather_response_callback: len=%d, complete=%d", len, complete);
+    debug(TRACE, "weather_response_callback: len=%d, complete=%d", len, complete);
 
     if (!body || len == 0) return;
     if (!complete) return;
@@ -201,7 +201,7 @@ static void weather_response_callback(const char* body, size_t len, bool complet
         minute_str[1] = current_time_pos[14];
         current_minute = atoi(minute_str);
 
-        debug("Current time: %d:%02d", g_current_hour_index, current_minute);
+        debug(TRACE, "Current time: %d:%02d", g_current_hour_index, current_minute);
     }
 
     int time_count = weather_parse_time_array(body, "\"time\":[", g_hourly_times, WEATHER_HOURS);
@@ -216,7 +216,7 @@ static void weather_response_callback(const char* body, size_t len, bool complet
         sunrise_pos += 12;
         strncpy(g_sunrise_time, sunrise_pos, 19);
         g_sunrise_time[19] = '\0';
-        debug("Sunrise: %s", g_sunrise_time);
+        debug(TRACE, "Sunrise: %s", g_sunrise_time);
     }
 
     const char* sunset_pos = strstr(body, "\"sunset\":[\"");
@@ -225,17 +225,17 @@ static void weather_response_callback(const char* body, size_t len, bool complet
         sunset_pos += 11;
         strncpy(g_sunset_time, sunset_pos, 19);
         g_sunset_time[19] = '\0';
-        debug("Sunset: %s", g_sunset_time);
+        debug(TRACE, "Sunset: %s", g_sunset_time);
     }
 
-    debug("Parsing results: time_count=%d, temp_count=%d, code_count=%d", time_count, temp_count,
-          code_count);
+    debug(TRACE, "Parsing results: time_count=%d, temp_count=%d, code_count=%d", time_count,
+          temp_count, code_count);
 
     if (time_count > 0 && temp_count > 0 && code_count > 0)
     {
         g_hours_fetched = temp_count;
-        debug("Parsed %d hours of weather data", temp_count);
-        debug("Current hour (%s): temp=%.1f, code=%d", g_hourly_times[g_current_hour_index],
+        debug(TRACE, "Parsed %d hours of weather data", temp_count);
+        debug(TRACE, "Current hour (%s): temp=%.1f, code=%d", g_hourly_times[g_current_hour_index],
               g_hourly_temps[g_current_hour_index], g_hourly_codes[g_current_hour_index]);
 
         uint64_t ms_until_next_fetch = 60 * 60 * 1000;
@@ -244,7 +244,7 @@ static void weather_response_callback(const char* body, size_t len, bool complet
         g_next_fetch_time_ms = to_ms_since_boot(get_absolute_time()) + ms_until_next_fetch;
         g_last_hour_advance_ms = to_ms_since_boot(get_absolute_time());
 
-        debug("Next fetch scheduled in 60 minutes");
+        debug(TRACE, "Next fetch scheduled in 60 minutes");
     }
 }
 
@@ -331,7 +331,7 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
                 g_current_hour_index = WEATHER_HOURS - 1;
             }
             g_last_hour_advance_ms = current_time_ms;
-            debug("Auto-advanced to hour index %d", g_current_hour_index);
+            debug(TRACE, "Auto-advanced to hour index %d", g_current_hour_index);
         }
     }
 
@@ -353,7 +353,11 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
                      "&timezone=%s",
                      lat, lon, WEATHER_HOURS / 24, tz);
 
-            http_get(HOST_URL_WEATHER, path, weather_response_callback, mtrx);
+            int rc = http_get(HOST_URL_WEATHER, path, weather_response_callback, mtrx);
+            if (rc != 0)
+            {
+                debug(TRACE, "HTTP request failed with RC %d", rc);
+            }
             wifi_disconnect();
         }
     }
@@ -395,7 +399,7 @@ void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_offset_from_now_t
         RGB dynamic_temp = get_dynamic_temp_display_colour(current_temp);
         matrix_display_word(temp_str, temp_display_starting_x, 1, &dynamic_temp);
 
-        debug("Displaying weather: hour='%s', temp='%s', code=%d, colour: r=%d, g=%d, b=%d",
+        debug(TRACE, "Displaying weather: hour='%s', temp='%s', code=%d, colour: r=%d, g=%d, b=%d",
               hour_str, temp_str, current_code, dynamic_temp.r, dynamic_temp.g, dynamic_temp.b);
 
         matrix_show(mtrx);

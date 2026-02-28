@@ -13,43 +13,39 @@
 #include <pico/stdlib.h>
 #include <ws2812.pio.h>
 
-// Define DEBUG_LEVEL here (declared as extern in const.h)
-const DebugLevel DEBUG_LEVEL = TRACE;
-
 void debug_inputs(Button* btns, Rotator* rtr)
 {
     if (input_btn_pressed(&btns[0]))
     {
-        debug("Left button pressed");
+        debug(DEBUG, "Left button pressed");
     }
     if (input_btn_pressed(&btns[1]))
     {
-        debug("Right button pressed");
+        debug(DEBUG, "Right button pressed");
     }
     if (input_btn_released(&btns[0]))
     {
-        debug("Left button released");
+        debug(DEBUG, "Left button released");
     }
     if (input_btn_released(&btns[1]))
     {
-        debug("Right button released");
+        debug(DEBUG, "Right button released");
     }
-    // Check direction without consuming it (let menu code handle consumption)
     if (rtr->direction == 1)
     {
-        debug("Rotator clockwise");
+        debug(DEBUG, "Rotator clockwise");
     }
     if (rtr->direction == -1)
     {
-        debug("Rotator anti-clockwise");
+        debug(DEBUG, "Rotator anti-clockwise");
     }
     if (input_rtr_pressed(rtr))
     {
-        debug("Rotator pressed");
+        debug(DEBUG, "Rotator pressed");
     }
     if (input_rtr_released(rtr))
     {
-        debug("Rotator released");
+        debug(DEBUG, "Rotator released");
     }
 }
 
@@ -71,7 +67,7 @@ Button* main_init_buttons()
     buttons[1].current_state = gpio_get(buttons[1].pin);
     buttons[1].last_state = buttons[1].current_state;
 
-    debug("✓ GPIO pins for buttons initialised");
+    debug(INFO, "✓ GPIO pins for buttons initialised");
 
     return buttons;
 }
@@ -81,7 +77,6 @@ Rotator* main_init_rotator()
     static Rotator rotator = {
         .pin_clk = ROTATOR_CLK_PIN, .pin_dt = ROTATOR_DT_PIN, .pin_sw = ROTATOR_SW_PIN};
 
-    // Initialize GPIO pins
     gpio_init(ROTATOR_CLK_PIN);
     gpio_set_dir(ROTATOR_CLK_PIN, GPIO_IN);
     gpio_pull_up(ROTATOR_CLK_PIN);
@@ -94,7 +89,6 @@ Rotator* main_init_rotator()
     gpio_set_dir(ROTATOR_SW_PIN, GPIO_IN);
     gpio_pull_up(ROTATOR_SW_PIN);
 
-    // Read actual GPIO states and initialize both current and last
     rotator.current_clk_state = gpio_get(ROTATOR_CLK_PIN);
     rotator.last_clk_state = rotator.current_clk_state;
 
@@ -107,7 +101,7 @@ Rotator* main_init_rotator()
     rotator.direction = 0;
     rotator.last_change_time = time_us_32();
 
-    debug("✓ GPIO pins for rotary encoder initialised");
+    debug(INFO, "✓ GPIO pins for rotary encoder initialised");
 
     return &rotator;
 }
@@ -119,7 +113,7 @@ Matrix* main_init_matrix()
     uint offset = pio_add_program(pio, &ws2812_program);
 
     ws2812_program_init(pio, sm, offset, MATRIX_DIN_PIN, MATRIX_DATA_FREQ, false);
-    debug("✓ WS2812 program initialised");
+    debug(INFO, "✓ WS2812 program initialised");
 
     static Matrix matrix = {.pin = MATRIX_DIN_PIN, .pio = pio0, .sm = 0};
     return &matrix;
@@ -134,21 +128,9 @@ int main()
     {
         sleep_ms(100);
     }
-    // Time buffer for screening into program to see initial debug logs
     sleep_ms(100);
 
-    if (DEBUG_LEVEL == TRACE)
-    {
-        printf("[INFO]: Debug level TRACE. Trace logs will appear.\n");
-    }
-    else if (DEBUG_LEVEL == INPUTS)
-    {
-        printf("[INFO]: Debug level INPUTS. Only debug logs for hardware inputs will appear.\n");
-    }
-    else
-    {
-        printf("[INFO]: Debug level INFO. No debug logs will appear.\n");
-    }
+    debug(INFO, "Debug level: %u", LOG_LEVEL);
 
     Button* buttons = main_init_buttons();
     Rotator* rotator = main_init_rotator();
@@ -156,15 +138,15 @@ int main()
 
     matrix_clear(mtrx);
     matrix_show(mtrx);
-    debug("✓✓✓ Main init complete. Starting main execution loop.");
-    debug("PRESS ANY BUTTON TO START");
+    debug(INFO, "✓✓✓ Main init complete. Starting main execution loop.");
+    debug(INFO, "PRESS ANY BUTTON TO START");
 
     bool menu_active = false;
 
     while (true)
     {
         input_update(buttons, rotator);
-        if (DEBUG_LEVEL >= INPUTS)
+        if (LOG_LEVEL >= DEBUG)
         {
             debug_inputs(buttons, rotator);
         }

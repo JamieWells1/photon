@@ -20,11 +20,11 @@ static int wifi_init(void)
 
     if (cyw43_arch_init())
     {
-        debug("Wi-Fi init failed");
+        debug(ERROR, "Wi-Fi init failed");
         return -1;
     }
 
-    debug("Wi-Fi initialized");
+    debug(INFO, "Wi-Fi initialized");
     initialized = true;
     return 0;
 }
@@ -32,7 +32,7 @@ static int wifi_init(void)
 static void wifi_enable_sta_mode(void)
 {
     cyw43_arch_enable_sta_mode();
-    debug("Wi-Fi station mode enabled");
+    debug(INFO, "Wi-Fi station mode enabled");
 }
 
 static void wifi_display_status(Matrix* mtrx, int dot_counter)
@@ -56,7 +56,7 @@ int wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
 {
     if (connected)
     {
-        debug("Already connected to WiFi");
+        debug(DEBUG, "Already connected to WiFi");
         return 0;
     }
 
@@ -66,7 +66,7 @@ int wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
         wifi_enable_sta_mode();
     }
 
-    debug("Starting WiFi connection...");
+    debug(DEBUG, "Starting WiFi connection...");
 
     cyw43_arch_wifi_connect_async(ssid, password, CYW43_AUTH_WPA2_AES_PSK);
 
@@ -87,14 +87,14 @@ int wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
 
         if (link_status == CYW43_LINK_UP)
         {
-            debug("WiFi connected successfully");
+            debug(INFO, "WiFi connected successfully");
             connected = true;
             return 0;
         }
         else if (link_status == CYW43_LINK_FAIL || link_status == CYW43_LINK_BADAUTH ||
                  link_status == CYW43_LINK_NONET)
         {
-            debug("WiFi connection failed (status: %d)", link_status);
+            debug(ERROR, "WiFi connection failed (status: %d)", link_status);
             connected = false;
 
             matrix_clear(mtrx);
@@ -109,7 +109,7 @@ int wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
         sleep_ms(100);
     }
 
-    debug("WiFi connection timeout");
+    debug(ERROR, "WiFi connection timeout");
     connected = false;
 
     matrix_clear(mtrx);
@@ -124,13 +124,12 @@ void wifi_disconnect(void)
 {
     if (!connected)
     {
-        debug("WiFi already disconnected");
+        debug(DEBUG, "WiFi already disconnected");
         return;
     }
 
-    debug("Disconnecting WiFi to save power...");
     cyw43_arch_deinit();
     connected = false;
     initialized = false;
-    debug("WiFi disconnected");
+    debug(INFO, "WiFi disconnected");
 }

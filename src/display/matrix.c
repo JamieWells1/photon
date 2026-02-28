@@ -202,7 +202,7 @@ void matrix_display_char(const char c, int x, int y, const RGB* col)
     const Glyph* ch = matrix_char_in_pxls(c);
     if (!ch)
     {
-        debug("Cannot display invalid character: '%c'", c);
+        debug(WARN, "Cannot display invalid character: '%c'", c);
         return;
     }
 

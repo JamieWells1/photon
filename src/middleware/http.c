@@ -61,7 +61,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
     if (!p)
     {
-        debug("HTTP connection closed by remote host");
+        debug(INFO, "HTTP connection closed by remote host");
         if (state->callback && state->body_start)
         {
             char* buffer_end = state->response_buffer + state->bytes_received;
@@ -126,7 +126,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
     if (state->bytes_received >= HTTP_RESPONSE_BUFFER_SIZE - 100)
     {
-        debug("HTTP response buffer nearly full, closing connection");
+        debug(DEBUG, "HTTP response buffer nearly full, closing connection");
         if (state->callback && state->body_start)
         {
             state->callback(state->body_start, strlen(state->body_start), true);
@@ -144,13 +144,13 @@ static err_t http_connected_callback(void* arg, struct tcp_pcb* pcb, err_t err)
 
     if (err != ERR_OK)
     {
-        debug("HTTP connection failed: %d", err);
+        debug(ERROR, "HTTP connection failed: %d", err);
         state->error = true;
         state->complete = true;
         return err;
     }
 
-    debug("HTTP connected, sending request");
+    debug(DEBUG, "HTTP connected, sending request");
 
     char request[512];
     snprintf(request, sizeof(request), "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
@@ -159,7 +159,7 @@ static err_t http_connected_callback(void* arg, struct tcp_pcb* pcb, err_t err)
     err_t write_err = tcp_write(pcb, request, strlen(request), TCP_WRITE_FLAG_COPY);
     if (write_err != ERR_OK)
     {
-        debug("HTTP write failed: %d", write_err);
+        debug(ERROR, "HTTP write failed: %d", write_err);
         state->error = true;
         state->complete = true;
         return write_err;
@@ -168,7 +168,7 @@ static err_t http_connected_callback(void* arg, struct tcp_pcb* pcb, err_t err)
     err_t output_err = tcp_output(pcb);
     if (output_err != ERR_OK)
     {
-        debug("HTTP output failed: %d", output_err);
+        debug(ERROR, "HTTP output failed: %d", output_err);
         state->error = true;
         state->complete = true;
         return output_err;
@@ -180,7 +180,7 @@ static err_t http_connected_callback(void* arg, struct tcp_pcb* pcb, err_t err)
 static void http_error_callback(void* arg, err_t err)
 {
     http_state_t* state = (http_state_t*)arg;
-    debug("HTTP error: %d", err);
+    debug(ERROR, "HTTP error: %d", err);
 
     if (state)
     {
@@ -195,18 +195,18 @@ static void http_dns_callback(const char* hostname, const ip_addr_t* ipaddr, voi
 
     if (!ipaddr)
     {
-        debug("DNS lookup failed for %s", hostname);
+        debug(ERROR, "DNS lookup failed for %s", hostname);
         state->error = true;
         state->complete = true;
         return;
     }
 
-    debug("DNS resolved: %s", ipaddr_ntoa(ipaddr));
+    debug(DEBUG, "DNS resolved: %s", ipaddr_ntoa(ipaddr));
 
     state->pcb = tcp_new();
     if (!state->pcb)
     {
-        debug("Failed to create TCP PCB");
+        debug(ERROR, "Failed to create TCP PCB");
         state->error = true;
         state->complete = true;
         return;
@@ -219,13 +219,13 @@ static void http_dns_callback(const char* hostname, const ip_addr_t* ipaddr, voi
     err_t err = tcp_connect(state->pcb, ipaddr, 80, http_connected_callback);
     if (err != ERR_OK)
     {
-        debug("TCP connect failed: %d", err);
+        debug(ERROR, "TCP connect failed: %d", err);
         state->error = true;
         state->complete = true;
         return;
     }
 
-    debug("TCP connection initiated");
+    debug(DEBUG, "TCP connection initiated");
 }
 
 static void http_display_status(Matrix* mtrx, int dot_counter)
@@ -250,20 +250,20 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
 {
     if (!host_url || !url_sub_path || !callback)
     {
-        debug("Invalid parameters to http_get");
+        debug(ERROR, "Invalid parameters to http_get");
         return -1;
     }
 
     if (g_http_state)
     {
-        debug("HTTP request already in progress");
+        debug(ERROR, "HTTP request already in progress");
         return -1;
     }
 
     g_http_state = (http_state_t*)calloc(1, sizeof(http_state_t));
     if (!g_http_state)
     {
-        debug("Failed to allocate HTTP state");
+        debug(ERROR, "Failed to allocate HTTP state");
         return -1;
     }
 
@@ -275,7 +275,7 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
     g_http_state->complete = false;
     g_http_state->error = false;
 
-    debug("Starting DNS lookup for %s", host_url);
+    debug(TRACE, "Starting DNS lookup for %s", host_url);
 
     ip_addr_t resolved_addr;
     cyw43_arch_lwip_begin();
@@ -284,12 +284,12 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
 
     if (err == ERR_OK)
     {
-        debug("DNS cached");
+        debug(TRACE, "DNS cached");
         http_dns_callback(host_url, &resolved_addr, g_http_state);
     }
     else if (err != ERR_INPROGRESS)
     {
-        debug("DNS lookup failed immediately: %d", err);
+        debug(ERROR, "DNS lookup failed immediately: %d", err);
         http_cleanup(g_http_state);
         return -1;
     }
@@ -310,7 +310,7 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
         uint64_t elapsed = to_ms_since_boot(get_absolute_time()) - start_time;
         if (elapsed > HTTP_TIMEOUT_MS)
         {
-            debug("HTTP request timeout");
+            debug(ERROR, "HTTP request timeout");
             http_cleanup(g_http_state);
 
             matrix_clear(mtrx);
@@ -330,7 +330,7 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
 
     if (had_error)
     {
-        debug("HTTP request failed");
+        debug(ERROR, "HTTP request failed");
 
         matrix_clear(mtrx);
         matrix_display_word_icon_pair("TIMEOUT", &RED, NULL, 0);
@@ -340,7 +340,7 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
         return -1;
     }
 
-    debug("HTTP request completed successfully");
+    debug(INFO, "HTTP request completed successfully");
 
     sleep_ms(300);
 
