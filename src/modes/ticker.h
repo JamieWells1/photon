@@ -43,13 +43,14 @@ typedef enum
 
 typedef struct
 {
-    TkrIndex tkr;
-    char* tkr_str;
-    int* price;
+    const TkrIndex tkr_idx;
+    const char* to_str;
+    float current_price;
+    float open_price;
 } Ticker;
 
-static const Ticker TKR_ARR[TKR_COUNT] = {
-    {XBT, TKR_XBT, NULL}, {XAU, TKR_XAU, NULL}, {XAG, TKR_XAG, NULL}};
+static Ticker TKR_ARR[TKR_COUNT] = {
+    {XBT, TKR_XBT, 0.0f, 0.0f}, {XAU, TKR_XAU, 0.0f, 0.0f}, {XAG, TKR_XAG, 0.0f, 0.0f}};
 
 void ticker_display(Matrix* mtrx);
 void ticker_cleanup(void);

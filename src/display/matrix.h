@@ -25,11 +25,13 @@ void matrix_clear_pixel(int x, int y);
 
 bool matrix_get_pixel_state(int index, Pixel* out_pixel);
 
-// State capture and rendering for animations
+// State capture and shifting for animations
 void matrix_save_state(PixelState* destination);
-void matrix_render_raw(const PixelState* source, int offset_x, int offset_y);
-
 void matrix_shift(Matrix* mtrx, int offset_x, int offset_y);
+
+// Sliding animations
+void matrix_slide_left(Matrix* mtrx, PixelState* current_state, PixelState* next_state);
+void matrix_slide_right(Matrix* mtrx, PixelState* current_state, PixelState* next_state);
 
 void matrix_show(Matrix* mtrx);
 void matrix_clear(Matrix* mtrx);

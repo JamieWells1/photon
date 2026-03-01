@@ -20,6 +20,7 @@
 typedef struct
 {
     struct tcp_pcb* pcb;
+    char* host_url;
     char* request_path;
     http_response_callback_t callback;
     char response_buffer[HTTP_RESPONSE_BUFFER_SIZE];
@@ -43,6 +44,12 @@ static void http_cleanup(http_state_t* state)
         tcp_err(state->pcb, NULL);
         tcp_close(state->pcb);
         state->pcb = NULL;
+    }
+
+    if (state->host_url)
+    {
+        free(state->host_url);
+        state->host_url = NULL;
     }
 
     if (state->request_path)
@@ -154,7 +161,7 @@ static err_t http_connected_callback(void* arg, struct tcp_pcb* pcb, err_t err)
 
     char request[512];
     snprintf(request, sizeof(request), "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n",
-             state->request_path, HOST_URL_WEATHER);
+             state->request_path, state->host_url);
 
     err_t write_err = tcp_write(pcb, request, strlen(request), TCP_WRITE_FLAG_COPY);
     if (write_err != ERR_OK)
@@ -267,6 +274,7 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
         return -1;
     }
 
+    g_http_state->host_url = strdup(host_url);
     g_http_state->request_path = strdup(url_sub_path);
     g_http_state->callback = callback;
     g_http_state->headers_complete = false;

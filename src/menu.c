@@ -64,59 +64,28 @@ static void menu_reset_states(Matrix* mtrx)
     matrix_show(mtrx);
 }
 
-static void menu_slide_from_mode(Matrix* mtrx, Menu currentMode, Menu nextMode, int direction)
-{
-    int sliding_coefficient = -(MATRIX_WIDTH / 2);
-    for (int offset = 0; offset <= MATRIX_WIDTH; offset++)
-    {
-        matrix_clear(mtrx);
-
-        // Move current out
-        matrix_display_word_icon_pair(currentMode.text, &DEFAULT_COLOUR, currentMode.icon,
-                                      direction * offset);
-        // Move next in
-        matrix_display_word_icon_pair(nextMode.text, &DEFAULT_COLOUR, nextMode.icon,
-                                      direction * offset - (direction * MATRIX_WIDTH));
-
-        matrix_show(mtrx);
-        // Quadratic smoothing for sliding menu
-        sleep_ms((sliding_coefficient * sliding_coefficient) / 10);
-        sliding_coefficient++;
-    }
-}
-
-static void menu_slide_from_state(Matrix* mtrx, PixelState* current_state, PixelState* next_state,
-                                  int direction)
-{
-    int sliding_coefficient = -(MATRIX_WIDTH / 2);
-    for (int offset = 0; offset <= MATRIX_WIDTH; offset++)
-    {
-        matrix_clear(mtrx);
-
-        // Render current state sliding out
-        matrix_render_raw(current_state, direction * offset, 0);
-
-        // Render next state sliding in
-        matrix_render_raw(next_state, direction * offset - (direction * MATRIX_WIDTH), 0);
-
-        matrix_show(mtrx);
-        // Quadratic smoothing for sliding menu
-        sleep_ms((sliding_coefficient * sliding_coefficient) / 10);
-        sliding_coefficient++;
-    }
-}
-
 // From clockwise turn
 static void menu_main_slide_right(Matrix* mtrx)
 {
     menu_set_underscore(true);
 
-    Menu currentMode = MENUS[MENU_STATE.mode];
     // Last element -> wrap to first element
     int index_next = (MENU_STATE.mode + 1) % ARRAY_SIZE(MENUS);
     Menu nextMode = MENUS[index_next];
 
-    menu_slide_from_mode(mtrx, currentMode, nextMode, -1);
+    // Save current state
+    PixelState current_state[NUM_PIXELS];
+    matrix_save_state(current_state);
+
+    // Render next state
+    matrix_clear(mtrx);
+    matrix_display_word_icon_pair(nextMode.text, &DEFAULT_COLOUR, nextMode.icon, 0);
+    PixelState next_state[NUM_PIXELS];
+    matrix_save_state(next_state);
+
+    // Animate slide
+    matrix_slide_right(mtrx, current_state, next_state);
+
     MENU_STATE.mode = index_next;
     menu_reset_states(mtrx);
 }
@@ -125,8 +94,6 @@ static void menu_main_slide_right(Matrix* mtrx)
 static void menu_main_slide_left(Matrix* mtrx)
 {
     menu_set_underscore(true);
-
-    Menu currentMode = MENUS[MENU_STATE.mode];
 
     int index_previous;
     if (MENU_STATE.mode == 0)
@@ -139,7 +106,19 @@ static void menu_main_slide_left(Matrix* mtrx)
     }
     Menu nextMode = MENUS[index_previous];
 
-    menu_slide_from_mode(mtrx, currentMode, nextMode, 1);
+    // Save current state
+    PixelState current_state[NUM_PIXELS];
+    matrix_save_state(current_state);
+
+    // Render next state
+    matrix_clear(mtrx);
+    matrix_display_word_icon_pair(nextMode.text, &DEFAULT_COLOUR, nextMode.icon, 0);
+    PixelState next_state[NUM_PIXELS];
+    matrix_save_state(next_state);
+
+    // Animate slide
+    matrix_slide_left(mtrx, current_state, next_state);
+
     MENU_STATE.mode = index_previous;
     menu_reset_states(mtrx);
 }
@@ -221,7 +200,7 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
         PixelState next_state[NUM_PIXELS];
         matrix_save_state(next_state);
 
-        menu_slide_from_state(mtrx, current_state, next_state, -1);
+        matrix_slide_right(mtrx, current_state, next_state);
     }
 
     if (input_rtr_anti_cw(rtr) && g_weather_hour_offset > 0)
@@ -237,7 +216,7 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
         PixelState next_state[NUM_PIXELS];
         matrix_save_state(next_state);
 
-        menu_slide_from_state(mtrx, current_state, next_state, 1);
+        matrix_slide_left(mtrx, current_state, next_state);
     }
 }
 

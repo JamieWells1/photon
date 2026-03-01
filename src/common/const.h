@@ -37,6 +37,9 @@ extern const LogLevel LOG_LEVEL;
 #define MAX_WIFI_CONNECTION_ATTEMPTS 100
 
 // HTTP
+#define PROXY_HOST "138.68.190.163"
+#define PROXY_PORT "8080"
+
 #define HOST_URL_WEATHER "api.open-meteo.com"
 #define HOST_URL_STOCKS "api.kraken.com"
 

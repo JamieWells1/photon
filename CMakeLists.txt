@@ -103,6 +103,8 @@ add_executable(photon
         ${INPUT_SOURCES}
         ${MENU_SOURCES}
         ${GLOBAL_SOURCES}
+        ${UTILS_SOURCES}
+        ${CONFIG_SOURCES}
         ${MIDDLEWARE_SOURCES}
         ${GAME_SOURCES}
         ${MODE_SOURCES}
