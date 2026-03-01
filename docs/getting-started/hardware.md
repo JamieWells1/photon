@@ -53,7 +53,7 @@ The LED matrix has three connections:
 At full brightness, a 32x8 (256 LED) matrix can draw up to 15A (5V). For safety and longevity:
 
     - Use external power supply (not USB) for production
-    - Set `BRIGHTNESS_COEFFICIENT` low (default: 0.02 = 2%)
+    - Set `BRIGHTNESS` low (default: 0.02 = 2%)
     - Never exceed your power supply's rating
 
 ### Rotary Encoder
@@ -81,23 +81,20 @@ Connect one side of each button to the GPIO pin and the other side to GND. The f
 1. **Safety First**: Disconnect all power before wiring
 
 2. **Connect the LED Matrix**:
-
-    - Wire VCC to VBUS (5V)
-    - Wire GND to GND
-    - Wire DIN to GP21
+   - Wire VCC to VBUS (5V)
+   - Wire GND to GND
+   - Wire DIN to GP21
 
 3. **Connect the Rotary Encoder**:
-
-    - Wire CLK → GP2
-    - Wire DT → GP3
-    - Wire SW → GP4
-    - Wire + → 3V3
-    - Wire GND → GND
+   - Wire CLK → GP2
+   - Wire DT → GP3
+   - Wire SW → GP4
+   - Wire + → 3V3
+   - Wire GND → GND
 
 4. **Connect the Buttons**:
-
-    - Left button: GP10 ↔ GND
-    - Right button: GP5 ↔ GND
+   - Left button: GP10 ↔ GND
+   - Right button: GP5 ↔ GND
 
 5. **Double-check connections** against the pinout diagram
 

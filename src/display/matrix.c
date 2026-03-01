@@ -1,5 +1,6 @@
 #include <matrix.h>
 
+#include <config.h>
 #include <const.h>
 #include <global.h>
 #include <macro.h>
@@ -12,9 +13,9 @@
 #include <glyphs.h>
 #include <stdio.h>
 
-// ==========================
+// ======
 // STATIC
-// ==========================
+// ======
 
 static uint32_t g_pixels[NUM_PIXELS];
 
@@ -40,9 +41,9 @@ static int matrix_xy_to_index(int input_x, int input_y)
 
 static void matrix_set_brightness(RGB* col)
 {
-    col->r *= BRIGHTNESS_COEFFICIENT;
-    col->g *= BRIGHTNESS_COEFFICIENT;
-    col->b *= BRIGHTNESS_COEFFICIENT;
+    col->r *= BRIGHTNESS;
+    col->g *= BRIGHTNESS;
+    col->b *= BRIGHTNESS;
 }
 
 static uint32_t matrix_rgb_to_grb(RGB* col) { return (col->g << 16) | (col->r << 8) | col->b; }
@@ -78,14 +79,18 @@ static const Glyph* matrix_char_in_pxls(char ch)
             return &PUNCTUATION[4];
         case (char)0xB0:  // UTF-8 degree symbol ° (second byte)
             return &PUNCTUATION[5];
+        case '%':
+            return &PUNCTUATION[6];
+        case '+':
+            return &PUNCTUATION[7];
         default:
             return NULL;
     }
 }
 
-// ==========================
+// ======
 // PUBLIC
-// ==========================
+// ======
 
 // Set a pixel's colour state on the matrix
 void matrix_set_pixel(Pixel* pxl)
@@ -136,7 +141,7 @@ void matrix_save_state(PixelState* destination)
     }
 }
 
-void matrix_render_raw(const PixelState* source, int offset_x, int offset_y)
+static void matrix_render_raw(const PixelState* source, int offset_x, int offset_y)
 {
     for (int i = 0; i < NUM_PIXELS; i++)
     {
@@ -339,5 +344,45 @@ void matrix_display_word_icon_pair(const char* word, const RGB* word_col, const 
         // Start the icon at the end of the screen
         int icon_x = MATRIX_WIDTH - icon->width - 1 + offset_x;
         matrix_display_icon(icon, icon_x, 1, NULL);
+    }
+}
+
+void matrix_slide_left(Matrix* mtrx, PixelState* current_state, PixelState* next_state)
+{
+    int sliding_coefficient = -(MATRIX_WIDTH / 2);
+    for (int offset = 0; offset <= MATRIX_WIDTH; offset++)
+    {
+        matrix_clear(mtrx);
+
+        // Render current state sliding out to the right
+        matrix_render_raw(current_state, offset, 0);
+
+        // Render next state sliding in from the left
+        matrix_render_raw(next_state, offset - MATRIX_WIDTH, 0);
+
+        matrix_show(mtrx);
+        // Quadratic smoothing for sliding animation
+        sleep_ms((sliding_coefficient * sliding_coefficient) / 10);
+        sliding_coefficient++;
+    }
+}
+
+void matrix_slide_right(Matrix* mtrx, PixelState* current_state, PixelState* next_state)
+{
+    int sliding_coefficient = -(MATRIX_WIDTH / 2);
+    for (int offset = 0; offset <= MATRIX_WIDTH; offset++)
+    {
+        matrix_clear(mtrx);
+
+        // Render current state sliding out to the left
+        matrix_render_raw(current_state, -offset, 0);
+
+        // Render next state sliding in from the right
+        matrix_render_raw(next_state, -offset + MATRIX_WIDTH, 0);
+
+        matrix_show(mtrx);
+        // Quadratic smoothing for sliding animation
+        sleep_ms((sliding_coefficient * sliding_coefficient) / 10);
+        sliding_coefficient++;
     }
 }

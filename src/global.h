@@ -11,6 +11,6 @@ typedef enum
     VERTICAL,
 } MatrixOrientation;
 
-extern MenuState MENU_STATE;
+extern Menu MENU_STATE;
 
 #endif  // GLOBAL_H

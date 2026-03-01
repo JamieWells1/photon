@@ -5,3 +5,9 @@ secrets.h
 INSTRUCTIONS.md
 .claude
 site/
+
+proxy/__pycache__/
+proxy/*.pyc
+proxy/*.log
+proxy/.env
+proxy/venv/

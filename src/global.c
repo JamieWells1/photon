@@ -1,3 +1,4 @@
 #include <global.h>
+#include <glyphs.h>
 
-MenuState MENU_STATE = {.main_mode = MENU_TICKERS, .sub_mode = TKR_BTC};
+Menu MENU_STATE = {.mode = MENU_TICKERS, .icon = &ICONS_ARR[TICKERS], .text = "STOCKS"};

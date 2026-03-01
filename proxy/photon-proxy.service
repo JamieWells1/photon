@@ -1,0 +1,23 @@
+[Unit]
+Description=Photon HTTPS Proxy
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/photon-proxy
+ExecStart=/usr/bin/python3 /root/photon-proxy/https_proxy.py
+Restart=always
+RestartSec=10
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=photon-proxy
+
+[Install]
+WantedBy=multi-user.target

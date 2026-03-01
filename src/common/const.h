@@ -22,9 +22,6 @@ extern const LogLevel LOG_LEVEL;
 #define MATRIX_HEIGHT 8
 #define NUM_PIXELS (MATRIX_WIDTH * MATRIX_HEIGHT)
 
-// Matrix pixels
-#define BRIGHTNESS_COEFFICIENT 0.02
-
 // GPIO pins
 #define BUTTON_LEFT_PIN 10  // GP10
 #define BUTTON_RIGHT_PIN 5  // GP5
@@ -40,8 +37,11 @@ extern const LogLevel LOG_LEVEL;
 #define MAX_WIFI_CONNECTION_ATTEMPTS 100
 
 // HTTP
+#define PROXY_HOST "138.68.190.163"
+#define PROXY_PORT "8080"
+
 #define HOST_URL_WEATHER "api.open-meteo.com"
-#define HOST_URL_STOCKS "some_stock_api"
+#define HOST_URL_STOCKS "api.kraken.com"
 
 // Weather
 #define WEATHER_HOURS 48

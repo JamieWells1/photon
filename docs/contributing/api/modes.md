@@ -6,7 +6,7 @@ Display modes are the core features of Photon. This API defines how modes are st
 
 ### Menu Types
 
-#### MainMode
+#### Mode
 
 Top-level menu categories.
 
@@ -15,7 +15,7 @@ typedef enum {
     MENU_TICKERS = 0,
     MENU_GAMES = 1,
     MENU_WEATHER = 2,
-} MainMode;
+} Mode;
 ```
 
 #### SubMode
@@ -25,9 +25,9 @@ Specific items within each main mode.
 ```c
 typedef enum {
     // Ticker submodes (0-2)
-    TKR_BTC = 0,
-    TKR_XAU,
-    TKR_XAG,
+    TKR_XBT = 0,
+    TKR_ETH,
+    TKR_SOL,
 
     // Game submodes (3)
     GAME_TETRIS,
@@ -48,7 +48,7 @@ Represents a main menu item.
 
 ```c
 typedef struct {
-    const MainMode mode;  // Mode identifier
+    const Mode mode;  // Mode identifier
     const char* text;     // Display text
     const Glyph* icon;    // Icon graphic
 } Menu;
@@ -82,9 +82,9 @@ typedef struct {
 
 ```c
 static const SubMenu SUB_MENUS[6] = {
-    {TKR_BTC, "BTC", NULL},
-    {TKR_XAU, "XAU", NULL},
-    {TKR_XAG, "XAG", NULL},
+    {TKR_XBT, "XBT", NULL},
+    {TKR_ETH, "ETH", NULL},
+    {TKR_SOL, "SOL", NULL},
     {GAME_TETRIS, "TETRIS", &ICONS_ARR[TETRIS]},
     {TEMP_CURRENT, "NOW", NULL},
     {TEMP_HOURLY, "00", NULL},
@@ -99,7 +99,7 @@ Tracks current menu selection.
 
 ```c
 typedef struct {
-    MainMode main_mode;  // Currently selected main mode
+    Mode main_mode;  // Currently selected main mode
     SubMode sub_mode;    // Currently selected submode
 } MenuState;
 ```
@@ -153,12 +153,13 @@ Each display mode must implement a display function matching this signature:
 void ticker_display(SubMenu sub_mode, Matrix* mtrx);
 ```
 
-**Purpose:** Display stock/commodity ticker information
+**Purpose:** Display cryptocurrency ticker information
 
 **Current Implementation:**
 
-- BTC, XAU (gold), XAG (silver) tickers
-- TODO: Fetch live prices via API
+- XBT (Bitcoin), ETH (Ethereum), SOL (Solana)
+- Fetches live prices from Kraken API every 15 minutes
+- Displays current price and 24-hour percentage change
 
 ---
 

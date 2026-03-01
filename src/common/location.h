@@ -1,9 +1,6 @@
 #ifndef LOCATION_H
 #define LOCATION_H
 
-// Define location you want to use
-#define LOCATION LOC_LONDON
-
 #define LAT_LONDON 51.6611
 #define LAT_MIAMI 25.7617
 #define LAT_LOS_ANGELES 34.0522

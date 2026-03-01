@@ -68,6 +68,16 @@ set(GLOBAL_SOURCES
         src/global.c
 )
 
+# Utils
+set(UTILS_SOURCES
+        src/utils.c
+)
+
+# Config
+set(CONFIG_SOURCES
+        src/config.c
+)
+
 # Middleware
 set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
@@ -93,6 +103,8 @@ add_executable(photon
         ${INPUT_SOURCES}
         ${MENU_SOURCES}
         ${GLOBAL_SOURCES}
+        ${UTILS_SOURCES}
+        ${CONFIG_SOURCES}
         ${MIDDLEWARE_SOURCES}
         ${GAME_SOURCES}
         ${MODE_SOURCES}
