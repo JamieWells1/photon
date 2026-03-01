@@ -294,12 +294,15 @@ static const Pixel PUNCT_PERCENT[] = {
     {0, 3, DEFAULT_COLOUR},
     {1, 2, DEFAULT_COLOUR},
     {2, 1, DEFAULT_COLOUR},
-    {4, 4, DEFAULT_COLOUR}};
+    {2, 4, DEFAULT_COLOUR}};
 
 static const Pixel PUNCT_PLUS[] = {
     // 3x5
-    {0, 2, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR},
-    {1, 3, DEFAULT_COLOUR}, {1, 4, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}};
+    {0, 2, DEFAULT_COLOUR},
+    {1, 1, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {1, 3, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR}};
 
 // =======
 // NUMBERS
@@ -454,8 +457,8 @@ static const Pixel ICON_TKR_UP[9] = {
 };
 
 static const Pixel ICON_TKR_DOWN[9] = {
-    {0, 3, RED}, {1, 2, RED}, {1, 3, RED}, {2, 1, RED}, {2, 2, RED},
-    {2, 3, RED}, {3, 2, RED}, {3, 3, RED}, {4, 3, RED},
+    {0, 1, RED}, {1, 1, RED}, {1, 2, RED}, {2, 1, RED}, {2, 2, RED},
+    {2, 3, RED}, {3, 1, RED}, {3, 2, RED}, {4, 1, RED},
 };
 
 // GAMES

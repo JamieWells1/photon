@@ -1,19 +1,20 @@
 # Photon
 
-Photon is a firmware application for the Raspberry Pi Pico 2 W that transforms a 32x8 WS2812B LED matrix into an interactive display system. The firmware provides a menu-driven interface for displaying real-time weather information, controlled through a rotary encoder and push buttons.
+Photon is a firmware application for the Raspberry Pi Pico 2 W that transforms a 32x8 WS2812B LED matrix into an interactive display system. The firmware provides a menu-driven interface for displaying real-time weather and cryptocurrency prices, controlled through a rotary encoder and push buttons.
 
 ## Overview
 
-The system connects to WiFi to fetch weather data from the Open-Meteo API and displays current conditions with dynamic color-coded temperatures and weather-appropriate icons. Navigation through the menu system and hourly forecasts is handled via a rotary encoder with integrated push button and two additional tactile buttons.
+The system connects to WiFi to fetch data from multiple sources and displays dynamic, color-coded information with custom icons. Display weather data from Open-Meteo API or live cryptocurrency prices from Kraken. Navigation through the menu system is handled via a rotary encoder with integrated push button and two additional tactile buttons.
 
 ## Features
 
 ### Weather Display
 
-Retrieves real-time weather data including current temperature, hourly forecasts, and weather conditions. Temperature values are displayed with dynamic color coding that transitions from blue (cold) through green (moderate) to red (hot). Weather icons automatically adapt based on conditions and time of day, with sunrise and sunset data used to determine appropriate day or night mode icons.
+Retrieves real-time weather data including current temperature, hourly forecasts, and weather conditions. Temperature values are displayed with dynamic color coding that transitions from blue (cold) through green (moderate) to red (hot). Weather icons automatically adapt based on conditions and time of day. Includes predefined configurations for ten global cities with proper timezone handling.
 
-### Multi-Location Support
-The weather system includes predefined configurations for ten global cities: London, Miami, Los Angeles, Chicago, Tokyo, Sydney, Stockholm, Rio de Janeiro, Cape Town, and Athens. Each location includes proper timezone handling for accurate local time display.
+### Cryptocurrency Ticker
+
+Displays live prices for various cryptocurrencies from Kraken's API. Shows current price and 24-hour percentage change with color-coded up/down indicators. Prices scroll continuously across the display with automatic refresh every 15 minutes.
 
 ### Interactive Navigation
 A rotary encoder provides smooth navigation through the menu system and hourly weather forecasts. The interface includes quadratic-eased sliding animations between menu states for a polished user experience.

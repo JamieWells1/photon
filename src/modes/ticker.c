@@ -17,6 +17,9 @@
 
 #include <pico/time.h>
 
+Ticker TKR_ARR[TKR_COUNT] = {
+    {XBT, TKR_XBT, 0.0f, 0.0f}, {ETH, TKR_ETH, 0.0f, 0.0f}, {SOL, TKR_SOL, 0.0f, 0.0f}};
+
 static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
 static unsigned int g_tkr_to_fetch_index = 0;
@@ -113,16 +116,15 @@ void ticker_display(Matrix* mtrx)
             {
                 const char* tkr_to_fetch = TKR_ARR[g_tkr_to_fetch_index].to_str;
 
-                char proxy_host[64];
-                snprintf(proxy_host, sizeof(proxy_host), "%s:%s", PROXY_HOST, PROXY_PORT);
-
                 char path[256];
                 snprintf(path, sizeof(path), "/proxy/%s/0/public/Ticker?pair=%s%s", HOST_URL_STOCKS,
                          tkr_to_fetch, CURRENCY);
 
-                debug(INFO, "Fetching %s via proxy: %s%s", tkr_to_fetch, proxy_host, path);
+                debug(INFO, "Fetching %s via proxy: %s:%s%s", tkr_to_fetch, PROXY_HOST, PROXY_PORT,
+                      path);
 
-                int rc = http_get(proxy_host, path, ticker_response_callback, mtrx);
+                uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
+                int rc = http_get(PROXY_HOST, proxy_port, path, ticker_response_callback, mtrx);
                 if (rc != 0)
                 {
                     debug(ERROR, "HTTP request failed for %s with RC %d", tkr_to_fetch, rc);
@@ -161,14 +163,11 @@ void ticker_display(Matrix* mtrx)
             int width = matrix_calculate_word_width_with_space(tkr->to_str) + 3 +
                         matrix_calculate_word_width_with_space(price_str) +
                         ICONS_ARR[TKR_UP].width +
-                        matrix_calculate_word_width_with_space(change_perc_str) + 5;
+                        matrix_calculate_word_width_with_space(change_perc_str) + 2;
 
             ticker_widths[i] = width;
             total_width += width;
         }
-
-        // Padding between tickers
-        total_width += 10;
 
         matrix_clear(mtrx);
 
@@ -196,10 +195,10 @@ void ticker_display(Matrix* mtrx)
 
             for (int wrap = 0; wrap < 2; wrap++)
             {
-                int tkr_x = base_x + (wrap * total_width);
+                int tkr_x = base_x + (wrap * total_width) + 2;
                 int price_x = tkr_x + matrix_calculate_word_width_with_space(tkr->to_str) + 3;
                 int icon_x = price_x + matrix_calculate_word_width_with_space(price_str);
-                int perc_diff_x = icon_x + icon->width;
+                int perc_diff_x = icon_x + icon->width + 4;
 
                 const unsigned int y = 1;
 

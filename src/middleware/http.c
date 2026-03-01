@@ -23,6 +23,7 @@ typedef struct
     char* host_url;
     char* request_path;
     http_response_callback_t callback;
+    uint16_t port;
     char response_buffer[HTTP_RESPONSE_BUFFER_SIZE];
     size_t bytes_received;
     bool headers_complete;
@@ -223,7 +224,7 @@ static void http_dns_callback(const char* hostname, const ip_addr_t* ipaddr, voi
     tcp_recv(state->pcb, http_recv_callback);
     tcp_err(state->pcb, http_error_callback);
 
-    err_t err = tcp_connect(state->pcb, ipaddr, 80, http_connected_callback);
+    err_t err = tcp_connect(state->pcb, ipaddr, state->port, http_connected_callback);
     if (err != ERR_OK)
     {
         debug(ERROR, "TCP connect failed: %d", err);
@@ -252,8 +253,8 @@ static void http_display_status(Matrix* mtrx, int dot_counter)
     matrix_show(mtrx);
 }
 
-int http_get(const char* host_url, const char* url_sub_path, http_response_callback_t callback,
-             Matrix* mtrx)
+int http_get(const char* host_url, uint16_t port, const char* url_sub_path,
+             http_response_callback_t callback, Matrix* mtrx)
 {
     if (!host_url || !url_sub_path || !callback)
     {
@@ -277,6 +278,7 @@ int http_get(const char* host_url, const char* url_sub_path, http_response_callb
     g_http_state->host_url = strdup(host_url);
     g_http_state->request_path = strdup(url_sub_path);
     g_http_state->callback = callback;
+    g_http_state->port = port;
     g_http_state->headers_complete = false;
     g_http_state->bytes_received = 0;
     g_http_state->body_start = NULL;

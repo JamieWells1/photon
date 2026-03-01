@@ -8,14 +8,14 @@
 // ============
 
 #define TKR_XBT "XBT"
-#define TKR_XAU "XAU"
-#define TKR_XAG "XAG"
+#define TKR_ETH "ETH"
+#define TKR_SOL "SOL"
 
 typedef enum
 {
     XBT = 0,
-    XAU = 1,
-    XAG = 2,
+    ETH = 1,
+    SOL = 2,
     TKR_COUNT
 } TkrIndex;
 
@@ -49,8 +49,7 @@ typedef struct
     float open_price;
 } Ticker;
 
-static Ticker TKR_ARR[TKR_COUNT] = {
-    {XBT, TKR_XBT, 0.0f, 0.0f}, {XAU, TKR_XAU, 0.0f, 0.0f}, {XAG, TKR_XAG, 0.0f, 0.0f}};
+extern Ticker TKR_ARR[TKR_COUNT];
 
 void ticker_display(Matrix* mtrx);
 void ticker_cleanup(void);

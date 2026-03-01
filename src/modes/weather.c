@@ -356,7 +356,7 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
                      "&timezone=%s",
                      lat, lon, WEATHER_HOURS / 24, tz);
 
-            int rc = http_get(HOST_URL_WEATHER, path, weather_response_callback, mtrx);
+            int rc = http_get(HOST_URL_WEATHER, 80, path, weather_response_callback, mtrx);
             if (rc != 0)
             {
                 debug(ERROR, "HTTP request failed with RC %d", rc);

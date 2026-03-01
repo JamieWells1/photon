@@ -12,7 +12,7 @@ Photon is an embedded firmware project that transforms a Raspberry Pi Pico 2 W i
 
 ### Multiple Display Modes
 
-- **Tickers**: Real-time stock and commodity prices (BTC, Gold, Silver)
+- **Tickers**: Live cryptocurrency prices (Bitcoin, Ethereum, Solana)
 - **Games**: Play Tetris directly on the LED matrix
 - **Weather**: Current temperature and hourly forecasts for multiple locations
 
