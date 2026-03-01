@@ -1,8 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <location.h>
 #include <const.h>
+#include <location.h>
 
 // ===================
 // DISPLAY PREFERENCES

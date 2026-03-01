@@ -15,7 +15,7 @@ extern const LogLevel LOG_LEVEL;
 
 // Display
 #define PROJECT_NAME "PHOTON"
-#define DISPLAY_UPDATE_INTERVAL_TICKS_MS 50
+#define DISPLAY_UPDATE_INTERVAL_TICKS_MS 30
 
 // Matrix layout
 #define MATRIX_WIDTH 32

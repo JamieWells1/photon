@@ -22,6 +22,7 @@ static bool g_in_submenu = false;
 static Mode g_current_mode = MENU_TICKERS;
 
 static int g_weather_hour_offset = 0;
+static int g_ticker_offset = 0;
 
 static void menu_set_underscore(bool underscore_on)
 {
@@ -56,7 +57,8 @@ static void menu_reset_states(Matrix* mtrx)
     g_underscore_on = true;
     g_tick = 0;
     g_in_submenu = false;
-    g_weather_hour_offset = 0;  // Reset to current hour
+    g_weather_hour_offset = 0;
+    g_ticker_offset = 0;
 
     matrix_clear(mtrx);
     menu_set_initial_display();
@@ -64,33 +66,27 @@ static void menu_reset_states(Matrix* mtrx)
     matrix_show(mtrx);
 }
 
-// From clockwise turn
 static void menu_main_slide_right(Matrix* mtrx)
 {
     menu_set_underscore(true);
 
-    // Last element -> wrap to first element
     int index_next = (MENU_STATE.mode + 1) % ARRAY_SIZE(MENUS);
     Menu nextMode = MENUS[index_next];
 
-    // Save current state
     PixelState current_state[NUM_PIXELS];
     matrix_save_state(current_state);
 
-    // Render next state
     matrix_clear(mtrx);
     matrix_display_word_icon_pair(nextMode.text, &DEFAULT_COLOUR, nextMode.icon, 0);
     PixelState next_state[NUM_PIXELS];
     matrix_save_state(next_state);
 
-    // Animate slide
     matrix_slide_right(mtrx, current_state, next_state);
 
     MENU_STATE.mode = index_next;
     menu_reset_states(mtrx);
 }
 
-// From anti-clockwise turn
 static void menu_main_slide_left(Matrix* mtrx)
 {
     menu_set_underscore(true);
@@ -106,17 +102,14 @@ static void menu_main_slide_left(Matrix* mtrx)
     }
     Menu nextMode = MENUS[index_previous];
 
-    // Save current state
     PixelState current_state[NUM_PIXELS];
     matrix_save_state(current_state);
 
-    // Render next state
     matrix_clear(mtrx);
     matrix_display_word_icon_pair(nextMode.text, &DEFAULT_COLOUR, nextMode.icon, 0);
     PixelState next_state[NUM_PIXELS];
     matrix_save_state(next_state);
 
-    // Animate slide
     matrix_slide_left(mtrx, current_state, next_state);
 
     MENU_STATE.mode = index_previous;
@@ -158,7 +151,7 @@ static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Mat
 
     if (menu_state.mode == MENU_TICKERS)
     {
-        ticker_display(mtrx);
+        ticker_display(mtrx, &g_ticker_offset);
     }
     else if (menu_state.mode == MENU_GAMES)
     {
@@ -172,7 +165,10 @@ static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Mat
 
 static void menu_sub_menu_stocks_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    // TODO
+    if (input_rtr_cw(rtr))
+    {
+        g_ticker_offset += 1;
+    }
 }
 
 static void menu_sub_menu_games_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)

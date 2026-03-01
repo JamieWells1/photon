@@ -51,7 +51,7 @@ typedef struct
 
 extern Ticker TKR_ARR[TKR_COUNT];
 
-void ticker_display(Matrix* mtrx);
+void ticker_display(Matrix* mtrx, int* offset);
 void ticker_cleanup(void);
 
 #endif  // TICKER_H

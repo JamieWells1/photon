@@ -99,9 +99,10 @@ static void ticker_response_callback(const char* body, size_t len, bool complete
     }
 }
 
-void ticker_display(Matrix* mtrx)
+void ticker_display(Matrix* mtrx, int* offset)
 {
     ASSERT_NOT_NULL(mtrx);
+    ASSERT_NOT_NULL(offset);
 
     uint64_t current_time_ms = get_current_time_ms();
     bool should_fetch = (g_next_fetch_time_ms == 0) || (current_time_ms >= g_next_fetch_time_ms);
@@ -191,7 +192,7 @@ void ticker_display(Matrix* mtrx)
             char change_perc_str[16];
             snprintf(change_perc_str, sizeof(change_perc_str), "%+.1f%%", change_perc);
 
-            int base_x = current_x - g_scroll_offset;
+            int base_x = current_x - *offset;
 
             for (int wrap = 0; wrap < 2; wrap++)
             {
@@ -213,10 +214,10 @@ void ticker_display(Matrix* mtrx)
 
         matrix_show(mtrx);
 
-        g_scroll_offset++;
-        if (g_scroll_offset >= total_width)
+        (*offset)++;
+        if (*offset >= total_width)
         {
-            g_scroll_offset = 0;
+            *offset = 0;
         }
     }
 }
