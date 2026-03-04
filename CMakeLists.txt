@@ -82,6 +82,10 @@ set(CONFIG_SOURCES
 set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
         src/middleware/http.c
+        src/middleware/flash_config.c
+        src/middleware/dns_server.c
+        src/middleware/http_server.c
+        src/middleware/dhcpserver/dhcpserver.c
 )
 
 # Games
@@ -136,6 +140,7 @@ target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/display
         ${CMAKE_CURRENT_LIST_DIR}/src/input
         ${CMAKE_CURRENT_LIST_DIR}/src/middleware
+        ${CMAKE_CURRENT_LIST_DIR}/src/middleware/dhcpserver
         ${CMAKE_CURRENT_LIST_DIR}/src/modes
         ${CMAKE_CURRENT_LIST_DIR}/src/modes/games
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -143,6 +148,8 @@ target_include_directories(photon PRIVATE
 
 target_link_libraries(photon
         hardware_pio
+        hardware_flash
+        hardware_sync
         pico_cyw43_arch_lwip_threadsafe_background
         )
 

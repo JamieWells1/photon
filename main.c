@@ -1,15 +1,22 @@
 #include <const.h>
+#include <dns_server.h>
+#include <flash_config.h>
 #include <global.h>
 #include <graphics.h>
+#include <http_server.h>
 #include <input.h>
 #include <macro.h>
 #include <matrix.h>
 #include <menu.h>
+#include <secrets_config.h>
+#include <wifi.h>
 
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <hardware/watchdog.h>
+#include <pico/cyw43_arch.h>
 #include <pico/stdlib.h>
 #include <ws2812.pio.h>
 
@@ -124,9 +131,11 @@ int main(void)
     stdio_init_all();
     sleep_ms(2000);
 
-    while (!stdio_usb_connected())
+    int usb_wait_count = 0;
+    while (!stdio_usb_connected() && usb_wait_count < 50)
     {
         sleep_ms(100);
+        usb_wait_count++;
     }
     sleep_ms(100);
 
@@ -139,6 +148,65 @@ int main(void)
     matrix_clear(mtrx);
     matrix_show(mtrx);
     debug(INFO, "✓✓✓ Main init complete. Starting main execution loop.");
+
+    wifi_config_t config;
+    bool wifi_ready = false;
+
+    if (flash_config_exists() && flash_config_read(&config))
+    {
+        debug(INFO, "Flash config found, attempting to connect to WiFi");
+        if (wifi_connect(config.ssid, config.password, mtrx) == 0)
+        {
+            debug(INFO, "WiFi connected successfully");
+            wifi_ready = true;
+        }
+        else
+        {
+            debug(WARN, "WiFi connection failed, entering setup mode");
+            matrix_clear(mtrx);
+            matrix_display_word_icon_pair("FAIL", &RED, NULL, 0);
+            matrix_show(mtrx);
+            sleep_ms(2000);
+            flash_config_erase();
+        }
+    }
+
+    if (!wifi_ready)
+    {
+        debug(INFO, "No valid WiFi config, entering setup mode");
+        matrix_clear(mtrx);
+        matrix_display_word_icon_pair("SETUP", &BLUE, NULL, 0);
+        matrix_show(mtrx);
+
+        wifi_init_ap("Photon-Setup", NULL, mtrx);
+        sleep_ms(500);
+
+        dns_server_start();
+        http_server_start();
+
+        for (int i = 0; i < 100; i++)
+        {
+            cyw43_arch_poll();
+            sleep_ms(10);
+        }
+
+        debug(INFO, "Captive portal active, waiting for credentials");
+
+        while (!http_server_credentials_saved())
+        {
+            cyw43_arch_poll();
+            sleep_ms(10);
+        }
+
+        debug(INFO, "Credentials saved, rebooting");
+        matrix_clear(mtrx);
+        matrix_display_word_icon_pair("SAVED", &GREEN, NULL, 0);
+        matrix_show(mtrx);
+        sleep_ms(2000);
+
+        watchdog_reboot(0, 0, 0);
+    }
+
     debug(INFO, "PRESS ANY BUTTON TO START");
 
     bool menu_active = false;

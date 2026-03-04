@@ -8,11 +8,16 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <dhcpserver.h>
+#include <lwip/ip4_addr.h>
+#include <lwip/netif.h>
 #include <pico/cyw43_arch.h>
 #include <pico/time.h>
 
 static bool initialized = false;
 static bool connected = false;
+static bool ap_mode = false;
+static dhcp_server_t dhcp_server;
 
 static int wifi_init(void)
 {
@@ -132,4 +137,39 @@ void wifi_disconnect(void)
     connected = false;
     initialized = false;
     debug(INFO, "WiFi disconnected");
+}
+
+int wifi_init_ap(const char* ssid, const char* password, Matrix* mtrx)
+{
+    if (!initialized)
+    {
+        if (wifi_init() != 0) return -1;
+    }
+
+    cyw43_arch_enable_ap_mode(ssid, password, CYW43_AUTH_OPEN);
+    ap_mode = true;
+
+    debug(INFO, "WiFi AP mode enabled: %s", ssid);
+
+    ip_addr_t gw, mask;
+    IP4_ADDR(ip_2_ip4(&gw), 192, 168, 4, 1);
+    IP4_ADDR(ip_2_ip4(&mask), 255, 255, 255, 0);
+
+    dhcp_server_init(&dhcp_server, &gw, &mask);
+
+    debug(INFO, "DHCP server started at 192.168.4.1");
+
+    if (mtrx)
+    {
+        matrix_clear(mtrx);
+        matrix_display_word_icon_pair("SETUP", &DEFAULT_COLOUR, NULL, 0);
+        matrix_show(mtrx);
+    }
+
+    return 0;
+}
+
+bool wifi_is_ap_mode(void)
+{
+    return ap_mode;
 }
