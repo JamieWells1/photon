@@ -540,7 +540,9 @@ static const Pixel ICON_DATA[16] = {
 };
 
 static const Pixel ICON_POWER[15] = {
-    {0, 0, RED}, {0, 1, RED}, {0, 2, RED}, {0, 3, RED}, {0, 4, RED}, {1, 4, RED}, {2, 0, RED}, {2, 1, RED}, {2, 4, RED}, {3, 4, RED}, {4, 0, RED}, {4, 1, RED}, {4, 2, RED}, {4, 3, RED}, {4, 4, RED},
+    {0, 0, RED}, {0, 1, RED}, {0, 2, RED}, {0, 3, RED}, {0, 4, RED},
+    {1, 4, RED}, {2, 0, RED}, {2, 1, RED}, {2, 4, RED}, {3, 4, RED},
+    {4, 0, RED}, {4, 1, RED}, {4, 2, RED}, {4, 3, RED}, {4, 4, RED},
 };
 
 // =================
@@ -564,7 +566,7 @@ static const Glyph ICONS_ARR[ICON_COUNT] = {
     {ICON_MOON, ARRAY_SIZE(ICON_MOON), 5, 5},                  // 13: MOON
     {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                  // 14: WIFI
     {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                  // 15: DATA
-    {ICON_POWER, ARRAY_SIZE(ICON_POWER), 5, 5},                  // 16: POWER
+    {ICON_POWER, ARRAY_SIZE(ICON_POWER), 5, 5},                // 16: POWER
 };
 
 #endif  // DISPLAYS_H

@@ -233,7 +233,7 @@ int main(void)
         sleep_ms(2000);
 
         watchdog_enable(1, 1);
-        while(1);
+        while (1);
     }
 
     bool menu_active = false;

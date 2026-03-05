@@ -271,9 +271,8 @@ static void menu_sub_menu_reset_detect_inputs(Button* btns, Rotator* rtr, Matrix
 {
     if (!g_reset_submenu_ready)
     {
-        bool all_released = (btns[0].current_state == true &&
-                            btns[1].current_state == true &&
-                            rtr->current_sw_state == true);
+        bool all_released = (btns[0].current_state == true && btns[1].current_state == true &&
+                             rtr->current_sw_state == true);
 
         if (all_released)
         {
@@ -290,21 +289,24 @@ static void menu_sub_menu_reset_detect_inputs(Button* btns, Rotator* rtr, Matrix
 
     if (input_rtr_cw(rtr))
     {
-        debug(DEBUG, "Reset menu: encoder CW, selection %d -> %d", g_reset_selection, (g_reset_selection + 1) % 2);
+        debug(DEBUG, "Reset menu: encoder CW, selection %d -> %d", g_reset_selection,
+              (g_reset_selection + 1) % 2);
         g_reset_selection = (g_reset_selection + 1) % 2;
         menu_reset_display(mtrx);
     }
 
     if (input_rtr_anti_cw(rtr))
     {
-        debug(DEBUG, "Reset menu: encoder CCW, selection %d -> %d", g_reset_selection, (g_reset_selection - 1 + 2) % 2);
+        debug(DEBUG, "Reset menu: encoder CCW, selection %d -> %d", g_reset_selection,
+              (g_reset_selection - 1 + 2) % 2);
         g_reset_selection = (g_reset_selection - 1 + 2) % 2;
         menu_reset_display(mtrx);
     }
 
     if (input_any_btn_pressed(btns, rtr))
     {
-        debug(INFO, "Reset menu: button pressed, selection=%d (%s)", g_reset_selection, g_reset_selection == 0 ? "YES" : "NO");
+        debug(INFO, "Reset menu: button pressed, selection=%d (%s)", g_reset_selection,
+              g_reset_selection == 0 ? "YES" : "NO");
 
         if (g_reset_selection == 0)
         {
@@ -318,7 +320,7 @@ static void menu_sub_menu_reset_detect_inputs(Button* btns, Rotator* rtr, Matrix
 
             debug(INFO, "Rebooting device");
             watchdog_enable(1, 1);
-            while(1);
+            while (1);
         }
         else
         {
@@ -401,7 +403,8 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
         matrix_show(mtrx);
     }
 
-    if (g_in_submenu && g_tick % DISPLAY_UPDATE_INTERVAL_TICKS_MS == 0 && g_current_mode != RESET_START)
+    if (g_in_submenu && g_tick % DISPLAY_UPDATE_INTERVAL_TICKS_MS == 0 &&
+        g_current_mode != RESET_START)
     {
         menu_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
     }

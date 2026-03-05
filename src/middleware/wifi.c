@@ -169,7 +169,4 @@ int wifi_init_ap(const char* ssid, const char* password, Matrix* mtrx)
     return 0;
 }
 
-bool wifi_is_ap_mode(void)
-{
-    return ap_mode;
-}
+bool wifi_is_ap_mode(void) { return ap_mode; }

@@ -6,7 +6,8 @@
 
 #define FLASH_CONFIG_MAGIC 0x50484F54
 
-typedef struct {
+typedef struct
+{
     uint32_t magic;
     char ssid[64];
     char password[64];

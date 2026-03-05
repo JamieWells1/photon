@@ -11,9 +11,11 @@
 
 static struct udp_pcb* dns_pcb = NULL;
 
-static void dns_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p, const ip_addr_t* addr, u16_t port)
+static void dns_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p, const ip_addr_t* addr,
+                              u16_t port)
 {
-    if (p->len < 12) {
+    if (p->len < 12)
+    {
         pbuf_free(p);
         return;
     }
@@ -23,7 +25,8 @@ static void dns_recv_callback(void* arg, struct udp_pcb* pcb, struct pbuf* p, co
     uint16_t flags = (data[2] << 8) | data[3];
     uint16_t questions = (data[4] << 8) | data[5];
 
-    if ((flags & 0x8000) || questions == 0) {
+    if ((flags & 0x8000) || questions == 0)
+    {
         pbuf_free(p);
         return;
     }
