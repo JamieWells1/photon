@@ -174,9 +174,6 @@ int main(void)
     if (!wifi_ready)
     {
         debug(INFO, "No valid WiFi config, entering setup mode");
-        matrix_clear(mtrx);
-        matrix_display_word_icon_pair("SETUP", &BLUE, NULL, 0);
-        matrix_show(mtrx);
 
         wifi_init_ap("Photon-Setup", NULL, mtrx);
         sleep_ms(500);
@@ -192,14 +189,45 @@ int main(void)
 
         debug(INFO, "Captive portal active, waiting for credentials");
 
+        bool blink_state = true;
+        int tick = 0;
+
         while (!http_server_credentials_saved())
         {
+            if (tick % 50 == 0)
+            {
+                matrix_clear(mtrx);
+                if (blink_state)
+                {
+                    matrix_display_word_icon_pair("ENTER", &ORANGE, &ICONS_ARR[WIFI], 0);
+                }
+                else
+                {
+                    matrix_display_word_icon_pair("WIFI", &ORANGE, &ICONS_ARR[WIFI], 0);
+                }
+                matrix_show(mtrx);
+                blink_state = !blink_state;
+            }
+
             cyw43_arch_poll();
             sleep_ms(10);
+            tick++;
         }
 
-        debug(INFO, "Credentials saved, rebooting");
+        debug(INFO, "Credentials saved, displaying wait message");
         matrix_clear(mtrx);
+        matrix_show(mtrx);
+        sleep_ms(200);
+
+        matrix_display_word_icon_pair("WAIT", &ORANGE, &ICONS_ARR[WIFI], 0);
+        matrix_show(mtrx);
+        sleep_ms(1000);
+
+        debug(INFO, "Rebooting");
+        matrix_clear(mtrx);
+        matrix_show(mtrx);
+        sleep_ms(100);
+
         matrix_display_word_icon_pair("SAVED", &GREEN, NULL, 0);
         matrix_show(mtrx);
         sleep_ms(2000);
@@ -208,10 +236,7 @@ int main(void)
         while(1);
     }
 
-    debug(INFO, "PRESS ANY BUTTON TO START");
-
     bool menu_active = false;
-
     while (true)
     {
         input_update(buttons, rotator);
@@ -220,7 +245,7 @@ int main(void)
             debug_inputs(buttons, rotator);
         }
 
-        if (input_any_btn_pressed(buttons, rotator) && !menu_active)
+        if (!menu_active)
         {
             graphics_display_start_screen(mtrx);
 

@@ -15,7 +15,8 @@
 static struct tcp_pcb* http_pcb = NULL;
 static bool credentials_saved = false;
 
-typedef struct {
+typedef struct
+{
     char buffer[2048];
     size_t received;
     size_t content_length;
@@ -27,19 +28,57 @@ static const char* html_form =
     "Content-Type: text/html\r\n"
     "Connection: close\r\n\r\n"
     "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width\">"
-    "<title>Photon Setup</title></head><body><h1>WiFi Setup</h1>"
+    "<meta charset=\"UTF-8\"><title>Photon Setup</title>"
+    "<style>"
+    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe "
+    "UI',Roboto,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 "
+    "100%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:"
+    "center}"
+    ".container{background:white;border-radius:12px;box-shadow:0 8px 24px "
+    "rgba(0,0,0,0.15);padding:32px;max-width:400px;width:100%}"
+    "h1{color:#333;margin:0 0 24px;font-size:28px;font-weight:600;text-align:center}"
+    "label{display:block;color:#555;font-size:14px;font-weight:500;margin-bottom:8px}"
+    "input{width:100%;padding:12px;border:2px solid "
+    "#e0e0e0;border-radius:8px;font-size:16px;box-sizing:border-box;transition:border-color "
+    "0.3s;margin-bottom:20px}"
+    "input:focus{outline:none;border-color:#667eea}"
+    "button{width:100%;background:linear-gradient(135deg,#667eea 0%,#764ba2 "
+    "100%);color:white;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;"
+    "cursor:pointer;transition:transform 0.2s,box-shadow 0.2s}"
+    "button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(102,126,234,0.4)}"
+    "button:active{transform:translateY(0)}"
+    ".subtitle{color:#888;font-size:14px;text-align:center;margin-bottom:24px}"
+    "</style></head><body>"
+    "<div class=\"container\"><h1>Photon Setup</h1>"
+    "<p class=\"subtitle\">Connect your device to WiFi</p>"
     "<form method=\"POST\" action=\"/save\" enctype=\"application/x-www-form-urlencoded\">"
-    "SSID: <input type=\"text\" name=\"ssid\" required><br>"
-    "Password: <input type=\"password\" name=\"password\"><br>"
-    "<button type=\"submit\">Connect</button></form></body></html>";
+    "<label>Network Name (SSID)</label><input type=\"text\" name=\"ssid\" placeholder=\"Enter WiFi "
+    "network name\" required>"
+    "<label>Password</label><input type=\"password\" name=\"password\" placeholder=\"Enter WiFi "
+    "password\">"
+    "<button type=\"submit\">Connect to WiFi</button></form></div></body></html>";
 
 static const char* html_success =
     "HTTP/1.1 200 OK\r\n"
     "Content-Type: text/html\r\n"
     "Connection: close\r\n\r\n"
     "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width\">"
-    "<title>Success</title></head><body><h1>Success!</h1>"
-    "<p>WiFi credentials saved. Device will reboot...</p></body></html>";
+    "<meta charset=\"UTF-8\"><title>Success</title>"
+    "<style>"
+    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe "
+    "UI',Roboto,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 "
+    "100%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:"
+    "center}"
+    ".container{background:white;border-radius:12px;box-shadow:0 8px 24px "
+    "rgba(0,0,0,0.15);padding:32px;max-width:400px;width:100%;text-align:center}"
+    "h1{color:#10b981;margin:0 0 16px;font-size:32px;font-weight:600}"
+    "p{color:#555;font-size:16px;line-height:1.6;margin:0}"
+    ".checkmark{width:64px;height:64px;margin:0 auto "
+    "24px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:"
+    "center;font-size:40px;color:white}"
+    "</style></head><body>"
+    "<div class=\"container\"><div class=\"checkmark\">✓</div><h1>Success!</h1>"
+    "<p>WiFi credentials saved.<br>Device will reboot in a moment...</p></div></body></html>";
 
 static int hex_to_int(char c)
 {
@@ -56,9 +95,9 @@ static void url_decode(char* dst, const char* src, size_t max_len)
 
     while (src[i] && j < max_len - 1)
     {
-        if (src[i] == '%' && src[i+1] && src[i+2])
+        if (src[i] == '%' && src[i + 1] && src[i + 2])
         {
-            dst[j++] = (hex_to_int(src[i+1]) << 4) | hex_to_int(src[i+2]);
+            dst[j++] = (hex_to_int(src[i + 1]) << 4) | hex_to_int(src[i + 2]);
             i += 3;
         }
         else if (src[i] == '+')
@@ -313,7 +352,4 @@ void http_server_stop(void)
     }
 }
 
-bool http_server_credentials_saved(void)
-{
-    return credentials_saved;
-}
+bool http_server_credentials_saved(void) { return credentials_saved; }

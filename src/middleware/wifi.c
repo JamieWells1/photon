@@ -162,7 +162,7 @@ int wifi_init_ap(const char* ssid, const char* password, Matrix* mtrx)
     if (mtrx)
     {
         matrix_clear(mtrx);
-        matrix_display_word_icon_pair("SETUP", &DEFAULT_COLOUR, NULL, 0);
+        matrix_display_word_icon_pair("START...", &DEFAULT_COLOUR, NULL, 0);
         matrix_show(mtrx);
     }
 
