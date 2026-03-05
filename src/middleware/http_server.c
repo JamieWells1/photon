@@ -6,6 +6,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <lwip/tcp.h>
@@ -14,15 +15,22 @@
 static struct tcp_pcb* http_pcb = NULL;
 static bool credentials_saved = false;
 
+typedef struct {
+    char buffer[2048];
+    size_t received;
+    size_t content_length;
+    bool headers_complete;
+} http_request_state_t;
+
 static const char* html_form =
     "HTTP/1.1 200 OK\r\n"
     "Content-Type: text/html\r\n"
     "Connection: close\r\n\r\n"
     "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width\">"
     "<title>Photon Setup</title></head><body><h1>WiFi Setup</h1>"
-    "<form method=\"POST\" action=\"/save\">"
-    "SSID: <input name=\"ssid\" required><br>"
-    "Password: <input name=\"password\" type=\"password\"><br>"
+    "<form method=\"POST\" action=\"/save\" enctype=\"application/x-www-form-urlencoded\">"
+    "SSID: <input type=\"text\" name=\"ssid\" required><br>"
+    "Password: <input type=\"password\" name=\"password\"><br>"
     "<button type=\"submit\">Connect</button></form></body></html>";
 
 static const char* html_success =
@@ -106,6 +114,14 @@ static void parse_post_data(const char* body, wifi_config_t* config)
     debug(INFO, "Parsed WiFi credentials - SSID: %s", config->ssid);
 }
 
+static void http_err_callback(void* arg, err_t err)
+{
+    if (arg)
+    {
+        free(arg);
+    }
+}
+
 static err_t http_close_conn(struct tcp_pcb* pcb)
 {
     tcp_arg(pcb, NULL);
@@ -121,6 +137,11 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 {
     if (!p)
     {
+        if (arg)
+        {
+            free(arg);
+            tcp_arg(pcb, NULL);
+        }
         http_close_conn(pcb);
         return ERR_OK;
     }
@@ -131,15 +152,65 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         return err;
     }
 
-    char request[2048];
-    size_t len = p->tot_len;
-    if (len > sizeof(request) - 1) len = sizeof(request) - 1;
+    http_request_state_t* state = (http_request_state_t*)arg;
+    if (!state)
+    {
+        state = (http_request_state_t*)calloc(1, sizeof(http_request_state_t));
+        if (!state)
+        {
+            pbuf_free(p);
+            http_close_conn(pcb);
+            return ERR_MEM;
+        }
+        tcp_arg(pcb, state);
+    }
 
-    pbuf_copy_partial(p, request, len, 0);
-    request[len] = '\0';
+    size_t len = p->tot_len;
+    if (state->received + len > sizeof(state->buffer) - 1)
+    {
+        len = sizeof(state->buffer) - 1 - state->received;
+    }
+
+    pbuf_copy_partial(p, state->buffer + state->received, len, 0);
+    state->received += len;
+    state->buffer[state->received] = '\0';
 
     tcp_recved(pcb, p->tot_len);
     pbuf_free(p);
+
+    if (!state->headers_complete)
+    {
+        char* body_start = strstr(state->buffer, "\r\n\r\n");
+        if (body_start)
+        {
+            state->headers_complete = true;
+            char* cl_header = strstr(state->buffer, "Content-Length:");
+            if (cl_header)
+            {
+                state->content_length = atoi(cl_header + 15);
+            }
+
+            size_t header_len = (body_start + 4) - state->buffer;
+            size_t body_received = state->received - header_len;
+
+            debug(TRACE, "Headers complete. Content-Length: %zu, Body received: %zu",
+                  state->content_length, body_received);
+
+            if (body_received < state->content_length)
+            {
+                return ERR_OK;
+            }
+        }
+        else
+        {
+            return ERR_OK;
+        }
+    }
+
+    char* request = state->buffer;
+
+    debug(TRACE, "HTTP request complete, length: %zu", state->received);
+    debug(DEBUG, "Request first line: %.100s", request);
 
     if (strncmp(request, "POST /save", 10) == 0)
     {
@@ -175,9 +246,16 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
     }
     else
     {
+        debug(DEBUG, "Serving HTML form (length: %zu)", strlen(html_form));
         tcp_write(pcb, html_form, strlen(html_form), TCP_WRITE_FLAG_COPY);
         tcp_output(pcb);
         sleep_ms(100);
+    }
+
+    if (state)
+    {
+        free(state);
+        tcp_arg(pcb, NULL);
     }
 
     http_close_conn(pcb);
@@ -192,6 +270,7 @@ static err_t http_accept_callback(void* arg, struct tcp_pcb* newpcb, err_t err)
     }
 
     tcp_recv(newpcb, http_recv_callback);
+    tcp_err(newpcb, http_err_callback);
 
     return ERR_OK;
 }

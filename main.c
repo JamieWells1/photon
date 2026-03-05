@@ -204,7 +204,8 @@ int main(void)
         matrix_show(mtrx);
         sleep_ms(2000);
 
-        watchdog_reboot(0, 0, 0);
+        watchdog_enable(1, 1);
+        while(1);
     }
 
     debug(INFO, "PRESS ANY BUTTON TO START");
