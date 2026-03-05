@@ -11,34 +11,36 @@ typedef enum {
     MENU_TICKERS = 0,
     MENU_GAMES = 1,
     MENU_WEATHER = 2,
-    MENU_YOUR_MODE = 3,  // Add this
+    MENU_RESET = 3,
+    MENU_YOUR_MODE = 4,  // Add this
 } Mode;
-
-typedef enum {
-    // ... existing modes
-    YOUR_SUBMODE = 6,  // Add this
-} SubMode;
 ```
 
-Update the menu arrays:
+Update the menu array:
 
 ```c
-static const Menu MENUS[4] = {  // Increase array size
-    // ... existing menus
+static const Menu MENUS[] = {
+    {MENU_TICKERS, "CRYPTO", &ICONS_ARR[TICKERS]},
+    {MENU_GAMES, "GAMES", &ICONS_ARR[GAMES]},
+    {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},
+    {MENU_RESET, "RESET", &ICONS_ARR[POWER]},
     {MENU_YOUR_MODE, "NAME", &ICONS_ARR[YOUR_ICON]},  // Add this
-};
-
-static const SubMenu SUB_MENUS[7] = {  // Increase array size
-    // ... existing submenus
-    {YOUR_SUBMODE, "SUBNAME", NULL},  // Add this
 };
 ```
 
 Update range constants:
 
 ```c
-#define YOUR_START (TEMP_START + TEMP_COUNT)
-#define YOUR_COUNT 1
+#define TKR_START 0
+#define TKR_END 3
+#define GAME_START (TKR_START + TKR_END)
+#define GAME_END 1
+#define TEMP_START (GAME_START + GAME_END)
+#define TEMP_END 2
+#define RESET_START (TEMP_START + TEMP_END)
+#define RESET_END 1
+#define YOUR_START (RESET_START + RESET_END)  // Add this
+#define YOUR_END 1                             // Number of submodes
 ```
 
 ---
@@ -51,11 +53,9 @@ Create `src/modes/yourmode.h`:
 #ifndef YOURMODE_H
 #define YOURMODE_H
 
-#include <menu.h>
 #include <matrix.h>
-#include <input.h>
 
-void yourmode_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr);
+void yourmode_display(Matrix* mtrx);
 
 #endif
 ```
@@ -65,10 +65,17 @@ Create `src/modes/yourmode.c`:
 ```c
 #include <yourmode.h>
 #include <glyphs.h>
+#include <graphics.h>
 
-void yourmode_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr) {
+void yourmode_display(Matrix* mtrx) {
+    static bool initialized = false;
+
+    if (!initialized) {
+        // First-time initialization
+        initialized = true;
+    }
+
     // Your implementation here
-
     // Example: Display static text
     matrix_clear(mtrx);
     matrix_display_word("HELLO", 5, 1, &GREEN);
@@ -88,15 +95,53 @@ Add include:
 #include <yourmode.h>
 ```
 
-Add case to switch statement:
+Add handling in `menu_enter_sub_menu`:
 
 ```c
-switch (state.main_mode) {
-    // ... existing cases
+static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Matrix* mtrx)
+{
+    Mode target_menu;
 
-    case MENU_YOUR_MODE:
-        yourmode_display(SUB_MENUS[state.sub_mode], mtrx, btns, rtr);
-        break;
+    if (menu_state.mode == MENU_TICKERS) {
+        target_menu = TKR_START;
+    }
+    // ... existing cases ...
+    else if (menu_state.mode == MENU_YOUR_MODE) {
+        target_menu = YOUR_START;  // Add this
+    }
+    else {
+        return;
+    }
+
+    // ... rest of function ...
+
+    if (g_current_mode == YOUR_START) {
+        yourmode_display(mtrx);  // Add this
+    }
+}
+```
+
+Add input handling in `menu_detect_inputs`:
+
+```c
+if (g_in_submenu) {
+    // ... existing mode handlers ...
+    if (g_current_mode == YOUR_START) {
+        menu_sub_menu_yourmode_detect_inputs(btns, rtr, mtrx);  // Add this
+    }
+}
+```
+
+Add input handler function:
+
+```c
+static void menu_sub_menu_yourmode_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+{
+    if (input_btn_pressed(&btns[0])) {
+        menu_reset_states(mtrx);  // Exit mode on left button
+    }
+
+    // Add your custom input handling here
 }
 ```
 
@@ -129,7 +174,7 @@ picotool load build/photon.uf2 -fx
 ### Static Display
 
 ```c
-void info_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr) {
+void info_display(Matrix* mtrx) {
     matrix_clear(mtrx);
     matrix_display_word("INFO", 8, 1, &BLUE);
     matrix_show(mtrx);
@@ -139,7 +184,7 @@ void info_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr) {
 ### Animated Display
 
 ```c
-void wave_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr) {
+void wave_display(Matrix* mtrx) {
     static int offset = 0;
 
     matrix_clear(mtrx);
@@ -153,14 +198,20 @@ void wave_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr) {
 }
 ```
 
-### With Input
+### With State Management
 
 ```c
-void counter_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr) {
+void counter_display(Matrix* mtrx) {
     static int count = 0;
+    static bool initialized = false;
 
-    if (input_rtr_cw(rtr)) count++;
-    if (input_rtr_anti_cw(rtr)) count--;
+    if (!initialized) {
+        count = 0;
+        initialized = true;
+    }
+
+    // Input handling is done in menu_sub_menu_counter_detect_inputs()
+    // This function just displays the current count
 
     char buffer[16];
     snprintf(buffer, sizeof(buffer), "%d", count);
@@ -170,6 +221,8 @@ void counter_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr)
     matrix_show(mtrx);
 }
 ```
+
+**Note:** Input handling is done separately in the `menu_sub_menu_yourmode_detect_inputs()` function in `menu.c`, not in the display function.
 
 ---
 

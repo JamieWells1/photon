@@ -59,6 +59,270 @@ debug(INFO, "WiFi disconnected to save power");
 
 ---
 
+### wifi_init_ap
+
+Initialize WiFi in Access Point mode for configuration.
+
+```c
+int wifi_init_ap(const char* ssid, const char* password, Matrix* mtrx);
+```
+
+**Parameters:**
+
+- `ssid` - Access point SSID
+- `password` - Access point password (can be `NULL` for open network)
+- `mtrx` - Matrix display for status feedback
+
+**Returns:**
+
+- `0` on success
+- `-1` on failure
+
+**Behavior:**
+
+- Creates a WiFi access point at `192.168.4.1`
+- Starts a DHCP server for client connections
+- Displays "START..." during initialization
+- Used for captive portal WiFi configuration
+
+**Example:**
+
+```c
+wifi_init_ap("Photon-Setup", NULL, &matrix);
+// AP is now active, start HTTP and DNS servers
+http_server_start();
+dns_server_start();
+```
+
+---
+
+### wifi_is_ap_mode
+
+Check if WiFi is in Access Point mode.
+
+```c
+bool wifi_is_ap_mode(void);
+```
+
+**Returns:**
+
+- `true` if in AP mode
+- `false` if in client mode or disconnected
+
+**Example:**
+
+```c
+if (wifi_is_ap_mode()) {
+    debug(INFO, "Running in AP mode");
+} else {
+    debug(INFO, "Running in client mode");
+}
+```
+
+---
+
+## Flash Configuration
+
+### flash_config_read
+
+Read WiFi credentials from flash memory.
+
+```c
+bool flash_config_read(wifi_config_t* config);
+```
+
+**Parameters:**
+
+- `config` - Pointer to `wifi_config_t` structure to populate
+
+**Returns:**
+
+- `true` if valid config was read
+- `false` if no valid config exists
+
+**Example:**
+
+```c
+wifi_config_t config;
+if (flash_config_read(&config)) {
+    wifi_connect(config.ssid, config.password, &matrix);
+}
+```
+
+---
+
+### flash_config_write
+
+Write WiFi credentials to flash memory.
+
+```c
+bool flash_config_write(const wifi_config_t* config);
+```
+
+**Parameters:**
+
+- `config` - Pointer to `wifi_config_t` structure to save
+
+**Returns:**
+
+- `true` if write succeeded
+- `false` if write failed
+
+**Example:**
+
+```c
+wifi_config_t config;
+strncpy(config.ssid, "MyNetwork", sizeof(config.ssid));
+strncpy(config.password, "MyPassword", sizeof(config.password));
+config.magic = FLASH_CONFIG_MAGIC;
+flash_config_write(&config);
+```
+
+---
+
+### flash_config_exists
+
+Check if valid WiFi configuration exists in flash.
+
+```c
+bool flash_config_exists(void);
+```
+
+**Returns:**
+
+- `true` if valid config exists
+- `false` otherwise
+
+**Example:**
+
+```c
+if (!flash_config_exists()) {
+    // Enter setup mode
+    wifi_init_ap("Photon-Setup", NULL, &matrix);
+}
+```
+
+---
+
+### flash_config_erase
+
+Erase WiFi configuration from flash (factory reset).
+
+```c
+void flash_config_erase(void);
+```
+
+**Behavior:**
+
+- Erases stored WiFi credentials
+- Device will enter setup mode on next boot
+
+**Example:**
+
+```c
+// Factory reset
+flash_config_erase();
+watchdog_enable(1, 1);  // Reboot
+while (1);
+```
+
+---
+
+## HTTP Server (Captive Portal)
+
+### http_server_start
+
+Start HTTP server for WiFi configuration.
+
+```c
+void http_server_start(void);
+```
+
+**Behavior:**
+
+- Starts HTTP server on port 80
+- Serves WiFi configuration web page
+- Handles credential submission
+
+**Example:**
+
+```c
+wifi_init_ap("Photon-Setup", NULL, &matrix);
+http_server_start();
+```
+
+---
+
+### http_server_stop
+
+Stop HTTP server.
+
+```c
+void http_server_stop(void);
+```
+
+---
+
+### http_server_credentials_saved
+
+Check if user has submitted WiFi credentials.
+
+```c
+bool http_server_credentials_saved(void);
+```
+
+**Returns:**
+
+- `true` if credentials have been saved
+- `false` otherwise
+
+**Example:**
+
+```c
+while (!http_server_credentials_saved()) {
+    cyw43_arch_poll();
+    sleep_ms(10);
+}
+// Credentials saved, reboot
+```
+
+---
+
+## DNS Server (Captive Portal)
+
+### dns_server_start
+
+Start DNS server for captive portal.
+
+```c
+void dns_server_start(void);
+```
+
+**Behavior:**
+
+- Responds to all DNS queries with AP IP (192.168.4.1)
+- Enables captive portal redirect
+
+**Example:**
+
+```c
+wifi_init_ap("Photon-Setup", NULL, &matrix);
+dns_server_start();
+http_server_start();
+```
+
+---
+
+### dns_server_stop
+
+Stop DNS server.
+
+```c
+void dns_server_stop(void);
+```
+
+---
+
 ## HTTP Requests
 
 ### http_get

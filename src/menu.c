@@ -209,7 +209,7 @@ static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Mat
     }
 }
 
-static void menu_sub_menu_stocks_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+static void menu_sub_menu_crypto_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (input_btn_pressed(&btns[0]))
     {
@@ -367,7 +367,7 @@ static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
     {
         if (g_current_mode == TKR_START)
         {
-            menu_sub_menu_stocks_detect_inputs(btns, rtr, mtrx);
+            menu_sub_menu_crypto_detect_inputs(btns, rtr, mtrx);
         }
         if (g_current_mode == GAME_START)
         {

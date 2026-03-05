@@ -15,28 +15,31 @@ typedef enum {
     MENU_TICKERS = 0,
     MENU_GAMES = 1,
     MENU_WEATHER = 2,
+    MENU_RESET = 3,
 } Mode;
 ```
 
-#### SubMode
+#### Mode Ranges
 
-Specific items within each main mode.
+Mode ranges define the start positions for each mode's submodes.
 
 ```c
-typedef enum {
-    // Ticker submodes (0-2)
-    TKR_XBT = 0,
-    TKR_ETH,
-    TKR_SOL,
-
-    // Game submodes (3)
-    GAME_TETRIS,
-
-    // Weather submodes (4-5)
-    TEMP_CURRENT,
-    TEMP_HOURLY,
-} SubMode;
+#define TKR_START 0
+#define TKR_END 3
+#define GAME_START (TKR_START + TKR_END)
+#define GAME_END 1
+#define TEMP_START (GAME_START + GAME_END)
+#define TEMP_END 2
+#define RESET_START (TEMP_START + TEMP_END)
+#define RESET_END 1
 ```
+
+**Mode ranges:**
+
+- Crypto Tickers: 0-2 (3 submodes)
+- Games: 3 (1 submode)
+- Weather: 4-5 (2 submodes)
+- Reset: 6 (1 submode)
 
 ---
 
@@ -57,37 +60,11 @@ typedef struct {
 **Example:**
 
 ```c
-static const Menu MENUS[3] = {
-    {MENU_TICKERS, "STOCKS", &ICONS_ARR[TICKERS]},
+static const Menu MENUS[] = {
+    {MENU_TICKERS, "CRYPTO", &ICONS_ARR[TICKERS]},
     {MENU_GAMES, "GAMES", &ICONS_ARR[GAMES]},
     {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},
-};
-```
-
----
-
-#### SubMenu
-
-Represents a submenu item.
-
-```c
-typedef struct {
-    const SubMode mode;  // Submode identifier
-    const char* text;    // Display text
-    const Glyph* icon;   // Optional icon (can be NULL)
-} SubMenu;
-```
-
-**Example:**
-
-```c
-static const SubMenu SUB_MENUS[6] = {
-    {TKR_XBT, "XBT", NULL},
-    {TKR_ETH, "ETH", NULL},
-    {TKR_SOL, "SOL", NULL},
-    {GAME_TETRIS, "TETRIS", &ICONS_ARR[TETRIS]},
-    {TEMP_CURRENT, "NOW", NULL},
-    {TEMP_HOURLY, "00", NULL},
+    {MENU_RESET, "RESET", &ICONS_ARR[POWER]},
 };
 ```
 
@@ -99,10 +76,14 @@ Tracks current menu selection.
 
 ```c
 typedef struct {
-    Mode main_mode;  // Currently selected main mode
-    SubMode sub_mode;    // Currently selected submode
+    Mode mode;  // Currently selected mode
 } MenuState;
 ```
+
+**Notes:**
+
+- Submodes are managed internally by each mode implementation
+- The menu system uses mode ranges to determine which mode handles input
 
 ---
 
@@ -147,47 +128,58 @@ int main() {
 
 Each display mode must implement a display function matching this signature:
 
-### Ticker Mode
+### Crypto Mode
 
 ```c
-void ticker_display(SubMenu sub_mode, Matrix* mtrx);
+void ticker_display(Matrix* mtrx, int* ticker_offset);
 ```
 
 **Purpose:** Display cryptocurrency ticker information
 
+**Parameters:**
+
+- `mtrx` - LED matrix
+- `ticker_offset` - Pointer to offset for cycling through tickers
+
 **Current Implementation:**
 
 - XBT (Bitcoin), ETH (Ethereum), SOL (Solana)
-- Fetches live prices from Kraken API every 15 minutes
+- Fetches live prices from exchange API
 - Displays current price and 24-hour percentage change
+- Rotary encoder cycles through different cryptocurrencies
+
+**Additional Functions:**
+
+```c
+void ticker_cleanup(void);  // Free ticker data
+```
 
 ---
 
 ### Game Mode
 
 ```c
-void game_display(SubMenu sub_mode, Matrix* mtrx);
+void game_display(Matrix* mtrx);
 ```
 
 **Purpose:** Dispatch to specific game implementations
 
 **Current Implementation:**
 
-- Tetris game
+- Tetris game with rotary encoder and button controls
 
 ---
 
 ### Weather Mode
 
 ```c
-void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_to_display);
+void weather_display(Matrix* mtrx, int* hour_to_display);
 ```
 
 **Purpose:** Display weather information
 
 **Parameters:**
 
-- `sub_mode` - `TEMP_CURRENT` or `TEMP_HOURLY`
 - `mtrx` - LED matrix
 - `hour_to_display` - Pointer to hour index (for hourly mode)
 
@@ -198,6 +190,20 @@ int weather_current_hour_index();  // Get current hour offset
 int weather_hours_fetched();       // Get number of hours available
 void weather_cleanup(void);        // Free weather data
 ```
+
+---
+
+### Reset Mode
+
+The reset mode is handled internally by the menu system and does not require a separate display function. It provides a user interface for factory resetting WiFi credentials.
+
+**Functionality:**
+
+- Displays "YES" and "NO" options
+- Allows user to select with rotary encoder
+- Confirms selection with button press
+- Erases flash config and reboots on "YES"
+- Returns to main menu on "NO"
 
 ---
 

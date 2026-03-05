@@ -6,15 +6,16 @@
 
 ## Overview
 
-Photon is an embedded firmware project that transforms a Raspberry Pi Pico 2 W into a versatile LED matrix display system with WiFi connectivity. It features a menu-driven interface controlled by physical buttons and a rotary encoder, supporting multiple display modes including stock tickers, weather information, and games.
+Photon is an embedded firmware project that transforms a Raspberry Pi Pico 2 W into a versatile LED matrix display system with WiFi connectivity. It features a menu-driven interface controlled by physical buttons and a rotary encoder, supporting multiple display modes including cryptocurrency tickers, weather information, and games.
 
 ## Features
 
 ### Multiple Display Modes
 
-- **Tickers**: Live cryptocurrency prices (Bitcoin, Ethereum, Solana)
+- **Crypto**: Live cryptocurrency prices (Bitcoin, Ethereum, Solana)
 - **Games**: Play Tetris directly on the LED matrix
 - **Weather**: Current temperature and hourly forecasts for multiple locations
+- **Reset**: Factory reset WiFi credentials and configuration
 
 ### Custom Graphics Engine
 
@@ -25,8 +26,10 @@ Photon is an embedded firmware project that transforms a Raspberry Pi Pico 2 W i
 
 ### WiFi Connectivity
 
+- Captive portal setup for easy WiFi configuration
+- Persistent WiFi credentials stored in flash memory
+- Access Point mode for initial setup
 - Fetch live data from external APIs
-- Asynchronous connection management
 - HTTP request handling
 
 ### Interactive Controls

@@ -118,7 +118,7 @@ void ticker_display(Matrix* mtrx, int* offset)
                 const char* tkr_to_fetch = TKR_ARR[g_tkr_to_fetch_index].to_str;
 
                 char path[256];
-                snprintf(path, sizeof(path), "/proxy/%s/0/public/Ticker?pair=%s%s", HOST_URL_STOCKS,
+                snprintf(path, sizeof(path), "/proxy/%s/0/public/Ticker?pair=%s%s", HOST_URL_CRYPTO,
                          tkr_to_fetch, CURRENCY);
 
                 debug(INFO, "Fetching %s via proxy: %s:%s%s", tkr_to_fetch, PROXY_HOST, PROXY_PORT,
