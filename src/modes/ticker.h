@@ -19,24 +19,6 @@ typedef enum
     TKR_COUNT
 } TkrIndex;
 
-// ==========
-// Currencies
-// ==========
-
-#define CCY_USD "USD"
-#define CCY_GBP "GBP"
-#define CCY_EUR "EUR"
-#define CCY_JPY "JPY"
-
-typedef enum
-{
-    USD = 0,
-    GBP = 1,
-    EUR = 2,
-    JPY = 3,
-    CCY_COUNT
-} Currency;
-
 // =====
 // Price
 // =====

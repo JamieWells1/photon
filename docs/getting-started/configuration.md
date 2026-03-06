@@ -2,119 +2,61 @@
 
 Configure WiFi credentials, location, and other settings for your Photon display.
 
-## WiFi Configuration
+## Initial WiFi Setup
 
-WiFi credentials are compiled into the firmware for security and simplicity.
+On first boot (or after a factory reset), Photon enters **setup mode** automatically:
 
-### Set WiFi Credentials
+1. The device creates a WiFi access point called **"Photon-Setup"**
+2. The matrix displays **"ENTER WIFI"** with a WiFi icon
+3. Connect to the "Photon-Setup" network from your phone or computer
+4. A captive portal opens automatically (or navigate to any URL)
+5. Enter your WiFi network name (SSID) and password
+6. Press **Connect to WiFi**
+7. The device saves credentials to flash, displays **"SAVED"**, and reboots
 
-1. **Create** a `secrets.h` file in the project root:
+After reboot, Photon connects to your WiFi network and enters the main menu.
 
-   ```bash
-   touch secrets.h
-   ```
+## Device Settings
 
-2. **Add** your WiFi credentials:
+Once connected to WiFi, use the **CONFIG** mode to change settings:
 
-   ```c title="secrets.h"
-   #ifndef SECRETS_H
-   #define SECRETS_H
+1. Use the rotary encoder to scroll to **CONFIG** in the menu
+2. Press the button to enter CONFIG mode
+3. The matrix scrolls `http://photon.local`
+4. Open that URL in a browser on the same WiFi network
+5. Adjust settings:
 
-   #define WIFI_SSID "YourNetworkName"
-   #define WIFI_PASSWORD "YourPassword"
+| Setting      | Options                                      | Default  |
+| ------------ | -------------------------------------------- | -------- |
+| **Brightness** | 1-25%                                      | 8%       |
+| **Location**   | 18 cities (London, New York, Tokyo, etc.)  | London   |
+| **Currency**   | 12 currencies (GBP, USD, EUR, JPY, etc.)  | GBP      |
 
-   #endif  // SECRETS_H
-   ```
+6. Press **Save & Reboot** -- settings are saved to flash and the device reboots
 
-3. **Rebuild** and flash the firmware:
+All settings persist across power cycles.
 
-   ```bash
-   cmake --build build -- -j4
-   picotool load build/photon.uf2 -fx
-   ```
+## Factory Reset
 
-!!! warning "Security"
-**Never commit `secrets.h` to version control!**
+To erase all saved configuration and return to setup mode:
 
-    The file is already in `.gitignore`, but double-check before pushing.
-
-## Location Settings
-
-Set your geographic location for weather data.
-
-### Available Locations
-
-Edit [`src/common/const.h`](https://github.com/JamieWells1/photon/blob/main/src/common/const.h#L44):
-
-```c title="src/common/const.h"
-#define LOCATION LOC_TOKYO  // ← Change this
-```
-
-**Built-in locations:**
-
-| Location       | Constant             | Coordinates       |
-| -------------- | -------------------- | ----------------- |
-| London         | `LOC_LONDON`         | 51.66°N, 0.40°E   |
-| Miami          | `LOC_MIAMI`          | 25.76°N, 80.19°W  |
-| Los Angeles    | `LOC_LOS_ANGELES`    | 34.05°N, 118.24°W |
-| Chicago        | `LOC_CHICAGO`        | 41.88°N, 87.63°W  |
-| Tokyo          | `LOC_TOKYO`          | 35.68°N, 139.65°E |
-| Sydney         | `LOC_SYDNEY`         | 33.87°S, 151.21°E |
-| Stockholm      | `LOC_STOCKHOLM`      | 59.33°N, 18.07°E  |
-| Rio de Janeiro | `LOC_RIO_DE_JANEIRO` | 22.91°S, 43.17°W  |
-| Cape Town      | `LOC_CAPE_TOWN`      | 33.92°S, 18.42°E  |
-| Athens         | `LOC_ATHENS`         | 37.98°N, 23.73°E  |
-
-### Add Custom Location
-
-1. **Add latitude constant**:
-
-   ```c title="src/common/const.h"
-   #define LAT_PARIS 48.8566
-   ```
-
-2. **Add longitude constant**:
-
-   ```c
-   #define LON_PARIS 2.3522
-   ```
-
-3. **Add to Location enum**:
-
-   ```c
-   typedef enum
-   {
-       LOC_LONDON,
-       // ... existing locations
-       LOC_PARIS,  // ← Add here
-   } Location;
-   ```
-
-4. **Set as active location**:
-
-   ```c
-   #define LOCATION LOC_PARIS
-   ```
+1. Use the rotary encoder to scroll to **RESET** in the menu
+2. Press the button to enter RESET mode
+3. Select **YES** or **NO** using the rotary encoder
+4. Press the button to confirm
+5. If YES: flash is erased, device reboots into setup mode
 
 ## Display Settings
 
 ### Brightness
 
-Adjust LED brightness in [`src/common/const.h`](https://github.com/JamieWells1/photon/blob/main/src/common/const.h#L24):
-
-```c title="src/common/const.h"
-#define BRIGHTNESS 0.02  // 2% brightness
-```
-
-- **Range**: `0.0` (off) to `1.0` (full)
-- **Recommended**: `0.01` - `0.05` (1-5%) for indoor use
-- **Warning**: High brightness increases power draw significantly
+Brightness is set via the CONFIG web interface (1-25%). Values above 10% display a warning recommending an external power supply.
 
 ### Update Rate
 
-Change display refresh rate:
+Change display refresh rate in `src/common/const.h`:
 
-```c title="src/common/const.h"
+```c
 #define DISPLAY_UPDATE_INTERVAL_TICKS_MS 50  // 20 FPS
 ```
 
@@ -122,9 +64,9 @@ Lower values = smoother animations, higher CPU usage.
 
 ## Debug Logging
 
-Control serial output verbosity in [`src/common/const.c`](https://github.com/JamieWells1/photon/blob/main/src/common/const.c):
+Control serial output verbosity in `src/common/const.c`:
 
-```c title="src/common/const.c"
+```c
 const LogLevel LOG_LEVEL = INFO;
 ```
 
@@ -132,17 +74,17 @@ const LogLevel LOG_LEVEL = INFO;
 
 | Level   | Value | Description                                    |
 | ------- | ----- | ---------------------------------------------- |
-| `ERROR` | 0     | Errors only (always log critical failures)     |
+| `ERROR` | 0     | Errors only                                    |
 | `WARN`  | 1     | Warnings + errors                              |
 | `INFO`  | 2     | General info + above (default)                 |
 | `DEBUG` | 3     | Detailed debugging info + above                |
-| `TRACE` | 4     | Verbose execution trace + above (most verbose) |
+| `TRACE` | 4     | Verbose execution trace + above                |
 
 ## GPIO Pin Mapping
 
-If your hardware uses different pins, modify [`src/common/const.h`](https://github.com/JamieWells1/photon/blob/main/src/common/const.h#L27):
+If your hardware uses different pins, modify `src/common/const.h`:
 
-```c title="src/common/const.h"
+```c
 // Buttons
 #define BUTTON_LEFT_PIN 10   // GP10
 #define BUTTON_RIGHT_PIN 5   // GP5
@@ -157,25 +99,25 @@ If your hardware uses different pins, modify [`src/common/const.h`](https://gith
 ```
 
 !!! danger "Pin Conflicts"
-Avoid pins used by WiFi (GP23-25, GP29) and reserved system pins.
+    Avoid pins used by WiFi (GP23-25, GP29) and reserved system pins.
 
 ## Matrix Dimensions
 
 For different LED matrix sizes, update:
 
-```c title="src/common/const.h"
+```c
 #define MATRIX_WIDTH 32
 #define MATRIX_HEIGHT 8
 ```
 
 !!! note "Layout Changes Required"
-Changing dimensions may require adjustments to display logic in `src/modes/`.
+    Changing dimensions may require adjustments to display logic in `src/modes/`.
 
 ## Weather Settings
 
 Configure weather forecast range:
 
-```c title="src/common/const.h"
+```c
 #define WEATHER_HOURS 48  // Fetch 48-hour forecast
 ```
 
@@ -183,13 +125,13 @@ Configure weather forecast range:
 
 Adjust max connection attempts:
 
-```c title="src/common/const.h"
+```c
 #define MAX_WIFI_CONNECTION_ATTEMPTS 100
 ```
 
 ## Apply Changes
 
-After modifying any configuration:
+After modifying any compile-time configuration:
 
 1. **Save** the files
 
@@ -209,7 +151,3 @@ After modifying any configuration:
 
 - [View Build Progress](../progress/index.md) →
 - [Contribute to Photon](../contributing/index.md) →
-
----
-
-!!! tip "Configuration Best Practices" - Keep `secrets.h` out of version control - Document custom configurations in code comments - Test after each configuration change

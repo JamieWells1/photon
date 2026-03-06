@@ -13,6 +13,15 @@ typedef enum
 
 extern const LogLevel LOG_LEVEL;
 
+// Device defaults
+#define DEFAULT_BRIGHTNESS 8      // 8%
+#define DEFAULT_LOCATION 0        // London
+#define DEFAULT_CURRENCY 0        // GBP
+
+// Brightness limits by power source
+#define MAX_BRIGHTNESS_USB 5
+#define MAX_BRIGHTNESS_MAINS 20
+
 // Display
 #define PROJECT_NAME "PHOTON"
 #define DISPLAY_UPDATE_INTERVAL_TICKS_MS 30

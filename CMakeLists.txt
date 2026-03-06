@@ -42,8 +42,9 @@ set(CORE_SOURCES
 set(COMMON_SOURCES
         src/common/const.c
         src/common/macro.c
-        src/common/secrets_config.c
         src/common/location.c
+        src/common/currency.c
+        src/common/error.c
 )
 
 # Display subsystem
@@ -73,15 +74,25 @@ set(UTILS_SOURCES
         src/utils.c
 )
 
-# Config
-set(CONFIG_SOURCES
-        src/config.c
-)
-
-# Middleware
+# Middleware (client-side networking & storage)
 set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
         src/middleware/http.c
+        src/middleware/flash_memory.c
+)
+
+# Server (captive portal & config server)
+set(SERVER_SOURCES
+        src/server/dns_server.c
+        src/server/http_server.c
+        src/server/dhcpserver.c
+)
+
+# mDNS sources from lwIP
+set(MDNS_SOURCES
+        ${PICO_LWIP_PATH}/src/apps/mdns/mdns.c
+        ${PICO_LWIP_PATH}/src/apps/mdns/mdns_out.c
+        ${PICO_LWIP_PATH}/src/apps/mdns/mdns_domain.c
 )
 
 # Games
@@ -94,6 +105,7 @@ set(MODE_SOURCES
         src/modes/ticker.c
         src/modes/game.c
         src/modes/weather.c
+        src/modes/config.c
 )
 
 add_executable(photon
@@ -104,8 +116,9 @@ add_executable(photon
         ${MENU_SOURCES}
         ${GLOBAL_SOURCES}
         ${UTILS_SOURCES}
-        ${CONFIG_SOURCES}
         ${MIDDLEWARE_SOURCES}
+        ${SERVER_SOURCES}
+        ${MDNS_SOURCES}
         ${GAME_SOURCES}
         ${MODE_SOURCES}
 )
@@ -136,6 +149,7 @@ target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/display
         ${CMAKE_CURRENT_LIST_DIR}/src/input
         ${CMAKE_CURRENT_LIST_DIR}/src/middleware
+        ${CMAKE_CURRENT_LIST_DIR}/src/server
         ${CMAKE_CURRENT_LIST_DIR}/src/modes
         ${CMAKE_CURRENT_LIST_DIR}/src/modes/games
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -143,6 +157,8 @@ target_include_directories(photon PRIVATE
 
 target_link_libraries(photon
         hardware_pio
+        hardware_flash
+        hardware_sync
         pico_cyw43_arch_lwip_threadsafe_background
         )
 

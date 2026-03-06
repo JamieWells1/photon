@@ -11,34 +11,26 @@ typedef enum {
     MENU_TICKERS = 0,
     MENU_GAMES = 1,
     MENU_WEATHER = 2,
-    MENU_YOUR_MODE = 3,  // Add this
+    MENU_CONFIG = 3,
+    MENU_RESET = 4,
+    MENU_YOUR_MODE = 5,  // Add this
 } Mode;
-
-typedef enum {
-    // ... existing modes
-    YOUR_SUBMODE = 6,  // Add this
-} SubMode;
 ```
 
-Update the menu arrays:
+Update the menu array:
 
 ```c
-static const Menu MENUS[4] = {  // Increase array size
+static const Menu MENUS[] = {
     // ... existing menus
     {MENU_YOUR_MODE, "NAME", &ICONS_ARR[YOUR_ICON]},  // Add this
-};
-
-static const SubMenu SUB_MENUS[7] = {  // Increase array size
-    // ... existing submenus
-    {YOUR_SUBMODE, "SUBNAME", NULL},  // Add this
 };
 ```
 
 Update range constants:
 
 ```c
-#define YOUR_START (TEMP_START + TEMP_COUNT)
-#define YOUR_COUNT 1
+#define YOUR_START (RESET_START + RESET_END)
+#define YOUR_END 1
 ```
 
 ---
@@ -51,11 +43,10 @@ Create `src/modes/yourmode.h`:
 #ifndef YOURMODE_H
 #define YOURMODE_H
 
-#include <menu.h>
 #include <matrix.h>
-#include <input.h>
 
-void yourmode_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr);
+void yourmode_display(Matrix* mtrx);
+void yourmode_cleanup(void);
 
 #endif
 ```
@@ -66,13 +57,14 @@ Create `src/modes/yourmode.c`:
 #include <yourmode.h>
 #include <glyphs.h>
 
-void yourmode_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr) {
-    // Your implementation here
-
-    // Example: Display static text
+void yourmode_display(Matrix* mtrx) {
     matrix_clear(mtrx);
     matrix_display_word("HELLO", 5, 1, &GREEN);
     matrix_show(mtrx);
+}
+
+void yourmode_cleanup(void) {
+    // Reset any static state
 }
 ```
 
@@ -88,15 +80,31 @@ Add include:
 #include <yourmode.h>
 ```
 
-Add case to switch statement:
+Add display call in `menu_enter_sub_menu()`:
 
 ```c
-switch (state.main_mode) {
-    // ... existing cases
+else if (g_current_mode == YOUR_START)
+{
+    yourmode_display(mtrx);
+}
+```
 
-    case MENU_YOUR_MODE:
-        yourmode_display(SUB_MENUS[state.sub_mode], mtrx, btns, rtr);
-        break;
+Add cleanup call in `menu_reset_states()`:
+
+```c
+yourmode_cleanup();
+```
+
+Add input handling in `menu_detect_inputs()`:
+
+```c
+if (g_current_mode == YOUR_START)
+{
+    // Handle inputs for your mode
+    if (input_btn_pressed(&btns[0]))
+    {
+        menu_reset_states(mtrx);  // Exit to main menu
+    }
 }
 ```
 
@@ -129,46 +137,30 @@ picotool load build/photon.uf2 -fx
 ### Static Display
 
 ```c
-void info_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr) {
+void info_display(Matrix* mtrx) {
     matrix_clear(mtrx);
     matrix_display_word("INFO", 8, 1, &BLUE);
     matrix_show(mtrx);
 }
 ```
 
-### Animated Display
+### With Data Fetching
 
 ```c
-void wave_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr) {
-    static int offset = 0;
+void mymode_display(Matrix* mtrx) {
+    device_config_t config;
+    flash_memory_read(&config);  // Defaults applied automatically on failure
 
-    matrix_clear(mtrx);
-    for (int x = 0; x < MATRIX_WIDTH; x++) {
-        int y = 4 + 3 * sin((x + offset) * 0.3);
-        Pixel p = {x, y, {0, 150, 255}};
-        matrix_set_pixel(&p);
-    }
-    matrix_show(mtrx);
-    offset++;
+    // Use config.location, config.currency, etc.
 }
 ```
 
 ### With Input
 
 ```c
-void counter_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr) {
-    static int count = 0;
-
-    if (input_rtr_cw(rtr)) count++;
-    if (input_rtr_anti_cw(rtr)) count--;
-
-    char buffer[16];
-    snprintf(buffer, sizeof(buffer), "%d", count);
-
-    matrix_clear(mtrx);
-    matrix_display_word(buffer, 10, 1, &GREEN);
-    matrix_show(mtrx);
-}
+// Input is handled in menu.c, not in the display function.
+// Your mode gets called each frame via menu_enter_sub_menu().
+// Use rotary encoder state passed through static variables.
 ```
 
 ---
@@ -177,6 +169,8 @@ void counter_display(SubMenu sub_mode, Matrix* mtrx, Button* btns, Rotator* rtr)
 
 - Use `static` variables to preserve state between frames
 - Keep logic under 50ms to maintain frame rate
+- Implement a `cleanup()` function to reset state when exiting
+- `flash_memory_read()` always returns usable defaults, no error handling needed for settings
 - See existing modes in `src/modes/` for reference
 - Check the [API Reference](api/display.md) for available functions
 

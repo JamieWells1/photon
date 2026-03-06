@@ -53,6 +53,7 @@ typedef enum
     MOON = 13,
     WIFI = 14,
     DATA = 15,
+    POWER = 16,
     ICON_COUNT
 } IconType;
 
@@ -304,6 +305,19 @@ static const Pixel PUNCT_PLUS[] = {
     {1, 3, DEFAULT_COLOUR},
     {2, 2, DEFAULT_COLOUR}};
 
+static const Pixel PUNCT_COLON[] = {
+    // 1x5
+    {0, 1, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR}};
+
+static const Pixel PUNCT_SLASH[] = {
+    // 3x5
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}};
+
 // =======
 // NUMBERS
 // =======
@@ -406,7 +420,7 @@ static const Glyph ALPHABET[26] = {
     {LETTER_Z, ARRAY_SIZE(LETTER_Z), 3, 5},  // Z
 };
 
-static const Glyph PUNCTUATION[8] = {
+static const Glyph PUNCTUATION[10] = {
     {PUNCT_EXCLAIM, ARRAY_SIZE(PUNCT_EXCLAIM), 1, 5},    // !
     {PUNCT_QUESTION, ARRAY_SIZE(PUNCT_QUESTION), 3, 5},  // ?
     {PUNCT_PERIOD, ARRAY_SIZE(PUNCT_PERIOD), 1, 5},      // .
@@ -415,6 +429,8 @@ static const Glyph PUNCTUATION[8] = {
     {PUNCT_DEGREE, ARRAY_SIZE(PUNCT_DEGREE), 1, 5},      // °
     {PUNCT_PERCENT, ARRAY_SIZE(PUNCT_PERCENT), 3, 5},    // %
     {PUNCT_PLUS, ARRAY_SIZE(PUNCT_PLUS), 3, 5},          // +
+    {PUNCT_COLON, ARRAY_SIZE(PUNCT_COLON), 1, 5},        // :
+    {PUNCT_SLASH, ARRAY_SIZE(PUNCT_SLASH), 3, 5},        // /
 };
 
 static const Glyph NUMBERS[10] = {
@@ -538,6 +554,12 @@ static const Pixel ICON_DATA[16] = {
     {3, 4, BLUE}, {4, 0, BLUE}, {4, 3, BLUE}, {4, 4, BLUE},
 };
 
+static const Pixel ICON_POWER[15] = {
+    {0, 0, RED}, {0, 1, RED}, {0, 2, RED}, {0, 3, RED}, {0, 4, RED},
+    {1, 4, RED}, {2, 0, RED}, {2, 1, RED}, {2, 4, RED}, {3, 4, RED},
+    {4, 0, RED}, {4, 1, RED}, {4, 2, RED}, {4, 3, RED}, {4, 4, RED},
+};
+
 // =================
 // ICON LOOKUP TABLE
 // =================
@@ -559,6 +581,7 @@ static const Glyph ICONS_ARR[ICON_COUNT] = {
     {ICON_MOON, ARRAY_SIZE(ICON_MOON), 5, 5},                  // 13: MOON
     {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                  // 14: WIFI
     {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                  // 15: DATA
+    {ICON_POWER, ARRAY_SIZE(ICON_POWER), 5, 5},                // 16: POWER
 };
 
 #endif  // DISPLAYS_H

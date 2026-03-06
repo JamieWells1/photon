@@ -1,13 +1,14 @@
 #include <weather.h>
 
-#include <config.h>
 #include <const.h>
+#include <error.h>
+#include <flash_memory.h>
 #include <glyphs.h>
 #include <graphics.h>
 #include <http.h>
+#include <location.h>
 #include <matrix.h>
 #include <menu.h>
-#include <secrets_config.h>
 #include <utils.h>
 #include <wifi.h>
 
@@ -340,11 +341,14 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
 
     if (should_fetch)
     {
-        if (wifi_connect(WIFI_SSID, WIFI_PASSWORD, mtrx) == 0)
+        if (wifi_is_connected())
         {
-            float lat = location_get_latitude(LOCATION);
-            float lon = location_get_longitude(LOCATION);
-            const char* tz = location_get_timezone(LOCATION);
+            device_config_t config;
+            flash_memory_read(&config);
+
+            float lat = location_get_latitude(config.location);
+            float lon = location_get_longitude(config.location);
+            const char* tz = location_get_timezone(config.location);
 
             char path[256];
             snprintf(path, sizeof(path),
@@ -356,12 +360,14 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
                      "&timezone=%s",
                      lat, lon, WEATHER_HOURS / 24, tz);
 
-            int rc = http_get(HOST_URL_WEATHER, 80, path, weather_response_callback, mtrx);
-            if (rc != 0)
+            ReturnCode rc = http_get(HOST_URL_WEATHER, 80, path, weather_response_callback, mtrx);
+            if (RC_FAILED(rc))
             {
-                debug(ERROR, "HTTP request failed with RC %d", rc);
+                debug(ERROR, "HTTP request failed: %s", rc_to_string(rc));
             }
-            wifi_disconnect();
+
+            g_last_displayed_temp = -999.0f;
+            g_last_displayed_code = -1;
         }
     }
 
@@ -413,7 +419,6 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
 
 void weather_cleanup(void)
 {
-    wifi_disconnect();
     g_last_displayed_temp = -999.0f;
     g_last_displayed_code = -1;
 }

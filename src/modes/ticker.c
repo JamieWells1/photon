@@ -1,13 +1,14 @@
 #include <ticker.h>
 
-#include <config.h>
 #include <const.h>
+#include <currency.h>
+#include <error.h>
+#include <flash_memory.h>
 #include <glyphs.h>
 #include <http.h>
 #include <macro.h>
 #include <matrix.h>
 #include <menu.h>
-#include <secrets_config.h>
 #include <utils.h>
 #include <wifi.h>
 
@@ -24,6 +25,26 @@ static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
 static unsigned int g_tkr_to_fetch_index = 0;
 static int g_scroll_offset = 0;
+
+static const char* currency_to_string(Currency ccy)
+{
+    switch (ccy)
+    {
+        case GBP: return CCY_GBP;
+        case USD: return CCY_USD;
+        case EUR: return CCY_EUR;
+        case JPY: return CCY_JPY;
+        case CAD: return CCY_CAD;
+        case AUD: return CCY_AUD;
+        case CHF: return CCY_CHF;
+        case CNY: return CCY_CNY;
+        case INR: return CCY_INR;
+        case KRW: return CCY_KRW;
+        case BRL: return CCY_BRL;
+        case SGD: return CCY_SGD;
+        default: return CCY_GBP;
+    }
+}
 
 // Parsing
 
@@ -111,32 +132,35 @@ void ticker_display(Matrix* mtrx, int* offset)
     {
         debug(INFO, "Starting ticker data fetch");
 
-        if (wifi_connect(WIFI_SSID, WIFI_PASSWORD, mtrx) == 0)
+        if (wifi_is_connected())
         {
+            device_config_t config;
+            flash_memory_read(&config);
+            const char* currency = currency_to_string(config.currency);
+
             while (g_tkr_to_fetch_index < TKR_COUNT)
             {
                 const char* tkr_to_fetch = TKR_ARR[g_tkr_to_fetch_index].to_str;
 
                 char path[256];
                 snprintf(path, sizeof(path), "/proxy/%s/0/public/Ticker?pair=%s%s", HOST_URL_STOCKS,
-                         tkr_to_fetch, CURRENCY);
+                         tkr_to_fetch, currency);
 
                 debug(INFO, "Fetching %s via proxy: %s:%s%s", tkr_to_fetch, PROXY_HOST, PROXY_PORT,
                       path);
 
                 uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-                int rc = http_get(PROXY_HOST, proxy_port, path, ticker_response_callback, mtrx);
-                if (rc != 0)
+                ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, ticker_response_callback, mtrx);
+                if (RC_FAILED(rc))
                 {
-                    debug(ERROR, "HTTP request failed for %s with RC %d", tkr_to_fetch, rc);
+                    debug(ERROR, "HTTP request failed for %s: %s", tkr_to_fetch, rc_to_string(rc));
                 }
 
                 g_tkr_to_fetch_index++;
             }
 
             g_tkr_to_fetch_index = 0;
-            wifi_disconnect();
-            debug(INFO, "Ticker fetch complete, WiFi disconnected");
+            debug(INFO, "Ticker fetch complete");
         }
         else
         {

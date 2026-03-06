@@ -331,6 +331,22 @@ matrix_show(&mtrx);  // ← Display updates here
 
 ---
 
+### matrix_set_brightness
+
+Set the display brightness percentage.
+
+```c
+void matrix_set_brightness(uint8_t brightness_pct);
+```
+
+**Parameters:**
+
+- `brightness_pct` - Brightness as a percentage (1-25 recommended)
+
+All subsequent pixel rendering will use this brightness. Called at startup with the value from flash config.
+
+---
+
 ### matrix_clear
 
 Clear all pixels (turn off entire display).

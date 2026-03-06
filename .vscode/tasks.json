@@ -26,16 +26,13 @@
     {
       "label": "Run Project",
       "type": "process",
-      "command": "${env:HOME}/.pico-sdk/picotool/2.2.0-a4/picotool/picotool",
-      "args": ["load", "${command:raspberry-pi-pico.launchTargetPath}", "-fx"],
+      "command": "picotool",
+      "args": ["load", "${workspaceFolder}/build/photon.uf2", "-fx"],
       "presentation": {
         "reveal": "always",
         "panel": "dedicated"
       },
-      "problemMatcher": [],
-      "windows": {
-        "command": "${env:USERPROFILE}/.pico-sdk/picotool/2.2.0-a4/picotool/picotool.exe"
-      }
+      "problemMatcher": []
     },
     {
       "label": "Flash",

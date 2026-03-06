@@ -1,15 +1,22 @@
 #include <const.h>
+#include <dns_server.h>
+#include <error.h>
+#include <flash_memory.h>
 #include <global.h>
 #include <graphics.h>
+#include <http_server.h>
 #include <input.h>
 #include <macro.h>
 #include <matrix.h>
 #include <menu.h>
+#include <wifi.h>
 
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <hardware/watchdog.h>
+#include <pico/cyw43_arch.h>
 #include <pico/stdlib.h>
 #include <ws2812.pio.h>
 
@@ -124,9 +131,11 @@ int main(void)
     stdio_init_all();
     sleep_ms(2000);
 
-    while (!stdio_usb_connected())
+    int usb_wait_count = 0;
+    while (!stdio_usb_connected() && usb_wait_count < 50)
     {
         sleep_ms(100);
+        usb_wait_count++;
     }
     sleep_ms(100);
 
@@ -138,11 +147,113 @@ int main(void)
 
     matrix_clear(mtrx);
     matrix_show(mtrx);
+
+    bool usb_host = stdio_usb_connected();
+    uint8_t max_brightness = usb_host ? MAX_BRIGHTNESS_USB : MAX_BRIGHTNESS_MAINS;
+    matrix_set_max_brightness(max_brightness);
+    debug(INFO, "Power source: %s (max brightness: %u%%)", usb_host ? "USB" : "mains", max_brightness);
+
     debug(INFO, "✓✓✓ Main init complete. Starting main execution loop.");
-    debug(INFO, "PRESS ANY BUTTON TO START");
+
+    device_config_t config;
+    bool wifi_ready = false;
+    bool config_found = flash_memory_read(&config);
+    matrix_set_brightness(config.brightness);
+
+    if (config_found)
+    {
+        debug(INFO, "Flash config found, attempting to connect to WiFi");
+        ReturnCode rc = wifi_connect(config.ssid, config.password, mtrx);
+        if (RC_SUCCESS(rc))
+        {
+            debug(INFO, "WiFi connected successfully");
+            debug(INFO, "To access web interface:");
+            debug(INFO, "  1. Use rotary encoder to navigate to CONFIG menu");
+            debug(INFO, "  2. Press button to enter CONFIG mode");
+            debug(INFO, "  3. Access http://photon.local in browser");
+            wifi_ready = true;
+        }
+        else
+        {
+            debug(WARN, "WiFi connection failed: %s", rc_to_string(rc));
+            matrix_clear(mtrx);
+            matrix_display_word_icon_pair("FAIL", &RED, NULL, 0);
+            matrix_show(mtrx);
+            sleep_ms(2000);
+            flash_memory_erase();
+        }
+    }
+    else
+    {
+        debug(INFO, "No flash config found");
+    }
+
+    if (!wifi_ready)
+    {
+        debug(INFO, "No valid WiFi config, entering setup mode");
+
+        wifi_init_ap("Photon-Setup", NULL, mtrx);
+        sleep_ms(500);
+
+        dns_server_start();
+        http_server_start();
+
+        for (int i = 0; i < 100; i++)
+        {
+            cyw43_arch_poll();
+            sleep_ms(10);
+        }
+
+        debug(INFO, "Captive portal active, waiting for credentials");
+
+        bool blink_state = true;
+        int tick = 0;
+
+        while (!http_server_credentials_saved())
+        {
+            if (tick % 50 == 0)
+            {
+                matrix_clear(mtrx);
+                if (blink_state)
+                {
+                    matrix_display_word_icon_pair("ENTER", &ORANGE, &ICONS_ARR[WIFI], 0);
+                }
+                else
+                {
+                    matrix_display_word_icon_pair("WIFI", &ORANGE, &ICONS_ARR[WIFI], 0);
+                }
+                matrix_show(mtrx);
+                blink_state = !blink_state;
+            }
+
+            cyw43_arch_poll();
+            sleep_ms(10);
+            tick++;
+        }
+
+        debug(INFO, "Credentials saved, displaying wait message");
+        matrix_clear(mtrx);
+        matrix_show(mtrx);
+        sleep_ms(200);
+
+        matrix_display_word_icon_pair("WAIT", &ORANGE, &ICONS_ARR[WIFI], 0);
+        matrix_show(mtrx);
+        sleep_ms(1000);
+
+        debug(INFO, "Rebooting");
+        matrix_clear(mtrx);
+        matrix_show(mtrx);
+        sleep_ms(100);
+
+        matrix_display_word_icon_pair("SAVED", &GREEN, NULL, 0);
+        matrix_show(mtrx);
+        sleep_ms(2000);
+
+        watchdog_enable(1, 1);
+        while (1);
+    }
 
     bool menu_active = false;
-
     while (true)
     {
         input_update(buttons, rotator);
@@ -151,21 +262,38 @@ int main(void)
             debug_inputs(buttons, rotator);
         }
 
-        if (input_any_btn_pressed(buttons, rotator) && !menu_active)
+        if (!menu_active)
         {
             graphics_display_start_screen(mtrx);
 
             bool all_released = false;
-            while (!all_released)
+            int wait_count = 0;
+            int max_wait = 500;
+
+            while (!all_released && wait_count < max_wait)
             {
                 input_update(buttons, rotator);
                 all_released =
                     (buttons[0].current_state == true && buttons[1].current_state == true &&
                      rotator->current_sw_state == true);
-                sleep_ms(10);
-            }
-            input_update(buttons, rotator);
 
+                if (!all_released && wait_count % 50 == 0)
+                {
+                    debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
+                          buttons[0].current_state, buttons[1].current_state,
+                          rotator->current_sw_state);
+                }
+
+                sleep_ms(10);
+                wait_count++;
+            }
+
+            if (wait_count >= max_wait)
+            {
+                debug(WARN, "Button release timeout, proceeding anyway");
+            }
+
+            input_update(buttons, rotator);
             menu_active = true;
         }
 

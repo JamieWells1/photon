@@ -1,6 +1,5 @@
 #include <matrix.h>
 
-#include <config.h>
 #include <const.h>
 #include <global.h>
 #include <macro.h>
@@ -18,6 +17,8 @@
 // ======
 
 static uint32_t g_pixels[NUM_PIXELS];
+static float g_brightness = 0.08f;
+static uint8_t g_max_brightness_pct = MAX_BRIGHTNESS_MAINS;
 
 static PixelState g_pixel_states[NUM_PIXELS];
 
@@ -39,11 +40,11 @@ static int matrix_xy_to_index(int input_x, int input_y)
     }
 }
 
-static void matrix_set_brightness(RGB* col)
+static void matrix_apply_brightness(RGB* col)
 {
-    col->r *= BRIGHTNESS;
-    col->g *= BRIGHTNESS;
-    col->b *= BRIGHTNESS;
+    col->r *= g_brightness;
+    col->g *= g_brightness;
+    col->b *= g_brightness;
 }
 
 static uint32_t matrix_rgb_to_grb(RGB* col) { return (col->g << 16) | (col->r << 8) | col->b; }
@@ -83,6 +84,10 @@ static const Glyph* matrix_char_in_pxls(char ch)
             return &PUNCTUATION[6];
         case '+':
             return &PUNCTUATION[7];
+        case ':':
+            return &PUNCTUATION[8];
+        case '/':
+            return &PUNCTUATION[9];
         default:
             return NULL;
     }
@@ -99,7 +104,7 @@ void matrix_set_pixel(Pixel* pxl)
     {
         // Copy RGB object to modify when dimming colour values
         RGB dimmed = pxl->col;
-        matrix_set_brightness(&dimmed);
+        matrix_apply_brightness(&dimmed);
 
         int index = 0;
         index = matrix_xy_to_index(pxl->x, pxl->y);
@@ -199,6 +204,20 @@ void matrix_clear(Matrix* mtrx)
         g_pixels[i] = 0;
         g_pixel_states[i].is_set = false;
     }
+}
+
+void matrix_set_max_brightness(uint8_t max_pct)
+{
+    g_max_brightness_pct = max_pct;
+}
+
+void matrix_set_brightness(uint8_t brightness_pct)
+{
+    if (brightness_pct > g_max_brightness_pct)
+    {
+        brightness_pct = g_max_brightness_pct;
+    }
+    g_brightness = brightness_pct / 100.0f;
 }
 
 // Only writes letter to state, not matrix
