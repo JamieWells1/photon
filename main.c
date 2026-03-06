@@ -9,7 +9,7 @@
 #include <macro.h>
 #include <matrix.h>
 #include <menu.h>
-#include <ticker.h>
+#include <crypto.h>
 #include <wifi.h>
 
 #include <stdint.h>
@@ -160,7 +160,7 @@ int main(void)
     bool wifi_ready = false;
     bool config_found = flash_memory_read(&config);
     matrix_set_brightness(config.brightness);
-    ticker_set_enabled_mask(config.tickers);
+    crypto_set_enabled_mask(config.crypto);
 
     if (config_found)
     {

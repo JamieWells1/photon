@@ -17,7 +17,8 @@ extern const LogLevel LOG_LEVEL;
 #define DEFAULT_BRIGHTNESS 8      // 8%
 #define DEFAULT_LOCATION 0        // London
 #define DEFAULT_CURRENCY 0        // GBP
-#define DEFAULT_TICKERS 0x0007    // XBT + ETH + SOL
+#define DEFAULT_CRYPTO 0x0007     // XBT + ETH + SOL
+#define DEFAULT_STOCKS 0x0007     // AAPL + MSFT + GOOGL
 
 // Brightness limits by power source
 #define MAX_BRIGHTNESS_USB 5

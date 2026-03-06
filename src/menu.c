@@ -10,7 +10,8 @@
 #include <macro.h>
 #include <matrix.h>
 #include <stdio.h>
-#include <ticker.h>
+#include <stock.h>
+#include <crypto.h>
 #include <weather.h>
 
 #include <glyphs.h>
@@ -25,7 +26,8 @@ static bool g_in_submenu = false;
 static Mode g_current_mode = MENU_CRYPTO;
 
 static int g_weather_hour_offset = 0;
-static int g_ticker_offset = 0;
+static int g_crypto_offset = 0;
+static int g_stock_offset = 0;
 static int g_reset_selection = 0;
 static bool g_reset_submenu_ready = false;
 
@@ -55,7 +57,8 @@ static void menu_set_initial_display(void)
 
 static void menu_reset_states(Matrix* mtrx)
 {
-    ticker_cleanup();
+    stock_cleanup();
+    crypto_cleanup();
     weather_cleanup();
     config_cleanup();
 
@@ -64,7 +67,8 @@ static void menu_reset_states(Matrix* mtrx)
     g_tick = 0;
     g_in_submenu = false;
     g_weather_hour_offset = 0;
-    g_ticker_offset = 0;
+    g_crypto_offset = 0;
+    g_stock_offset = 0;
     g_reset_selection = 0;
     g_reset_submenu_ready = false;
 
@@ -158,9 +162,13 @@ static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Mat
 {
     Mode target_menu;
 
-    if (menu_state.mode == MENU_CRYPTO)
+    if (menu_state.mode == MENU_STOCKS)
     {
-        target_menu = TKR_START;
+        target_menu = STK_START;
+    }
+    else if (menu_state.mode == MENU_CRYPTO)
+    {
+        target_menu = CRYPTO_START;
     }
     else if (menu_state.mode == MENU_GAMES)
     {
@@ -200,9 +208,13 @@ static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Mat
         g_display_initialized = true;
     }
 
-    if (g_current_mode == TKR_START)
+    if (g_current_mode == STK_START)
     {
-        ticker_display(mtrx, &g_ticker_offset);
+        stock_display(mtrx, &g_stock_offset);
+    }
+    else if (g_current_mode == CRYPTO_START)
+    {
+        crypto_display(mtrx, &g_crypto_offset);
     }
     else if (g_current_mode == GAME_START)
     {
@@ -223,6 +235,19 @@ static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Mat
     }
 }
 
+static void menu_sub_menu_stocks_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+{
+    if (input_btn_pressed(&btns[0]))
+    {
+        menu_reset_states(mtrx);
+    }
+
+    if (input_rtr_cw(rtr))
+    {
+        g_stock_offset += 1;
+    }
+}
+
 static void menu_sub_menu_crypto_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (input_btn_pressed(&btns[0]))
@@ -232,7 +257,7 @@ static void menu_sub_menu_crypto_detect_inputs(Button* btns, Rotator* rtr, Matri
 
     if (input_rtr_cw(rtr))
     {
-        g_ticker_offset += 1;
+        g_crypto_offset += 1;
     }
 }
 
@@ -379,7 +404,11 @@ static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 
     if (g_in_submenu)
     {
-        if (g_current_mode == TKR_START)
+        if (g_current_mode == STK_START)
+        {
+            menu_sub_menu_stocks_detect_inputs(btns, rtr, mtrx);
+        }
+        if (g_current_mode == CRYPTO_START)
         {
             menu_sub_menu_crypto_detect_inputs(btns, rtr, mtrx);
         }

@@ -8,16 +8,19 @@
 // Main modes
 typedef enum
 {
-    MENU_CRYPTO = 0,
-    MENU_GAMES = 1,
-    MENU_WEATHER = 2,
-    MENU_CONFIG = 3,
-    MENU_RESET = 4,
+    MENU_STOCKS = 0,
+    MENU_CRYPTO = 1,
+    MENU_GAMES = 2,
+    MENU_WEATHER = 3,
+    MENU_CONFIG = 4,
+    MENU_RESET = 5,
 } Mode;
 
-#define TKR_START 0
-#define TKR_END 3
-#define GAME_START (TKR_START + TKR_END)
+#define STK_START 0
+#define STK_END 1
+#define CRYPTO_START (STK_START + STK_END)
+#define CRYPTO_END 3
+#define GAME_START (CRYPTO_START + CRYPTO_END)
 #define GAME_END 1
 #define TEMP_START (GAME_START + GAME_END)
 #define TEMP_END 2
@@ -35,6 +38,7 @@ typedef struct
 } Menu;
 
 static const Menu MENUS[] = {
+    {MENU_STOCKS, "STOCKS", &ICONS_ARR[TICKERS]},
     {MENU_CRYPTO, "CRYPTO", &ICONS_ARR[TICKERS]},
     {MENU_GAMES, "GAMES", &ICONS_ARR[GAMES]},
     {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},

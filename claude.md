@@ -28,7 +28,7 @@ src/
 │   ├── wifi.c            # WiFi STA/AP modes, mDNS
 │   └── http.c            # HTTP GET client with callback
 ├── modes/
-│   ├── ticker.c          # Crypto prices from Kraken API
+│   ├── crypto.c          # Crypto prices from Kraken API
 │   ├── weather.c         # Weather from Open-Meteo API
 │   ├── config.c          # Web config server at photon.local
 │   └── game.c            # Game mode (stub)

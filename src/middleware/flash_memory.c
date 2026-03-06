@@ -32,7 +32,8 @@ static void flash_memory_set_defaults(device_config_t* config)
     config->brightness = DEFAULT_BRIGHTNESS;
     config->location = DEFAULT_LOCATION;
     config->currency = DEFAULT_CURRENCY;
-    config->tickers = DEFAULT_TICKERS;
+    config->crypto = DEFAULT_CRYPTO;
+    config->stocks = DEFAULT_STOCKS;
 }
 
 bool flash_memory_read(device_config_t* config)
@@ -62,9 +63,14 @@ bool flash_memory_read(device_config_t* config)
         return false;
     }
 
-    if (config->tickers == 0)
+    if (config->crypto == 0)
     {
-        config->tickers = DEFAULT_TICKERS;
+        config->crypto = DEFAULT_CRYPTO;
+    }
+
+    if (config->stocks == 0)
+    {
+        config->stocks = DEFAULT_STOCKS;
     }
 
     return true;

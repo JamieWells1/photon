@@ -150,18 +150,31 @@ static const char* html_config =
     "<option value=\"10\">BRL (R$)</option>"
     "<option value=\"11\">SGD ($)</option>"
     "</select>"
-    "<label>Tickers</label>"
+    "<label>Crypto</label>"
     "<div class=\"ticker-grid\">"
-    "<label><input type=\"checkbox\" name=\"tkr_0\" value=\"1\" checked>XBT</label>"
-    "<label><input type=\"checkbox\" name=\"tkr_1\" value=\"1\" checked>ETH</label>"
-    "<label><input type=\"checkbox\" name=\"tkr_2\" value=\"1\" checked>SOL</label>"
-    "<label><input type=\"checkbox\" name=\"tkr_3\" value=\"1\">ADA</label>"
-    "<label><input type=\"checkbox\" name=\"tkr_4\" value=\"1\">DOT</label>"
-    "<label><input type=\"checkbox\" name=\"tkr_5\" value=\"1\">LINK</label>"
-    "<label><input type=\"checkbox\" name=\"tkr_6\" value=\"1\">AVAX</label>"
-    "<label><input type=\"checkbox\" name=\"tkr_7\" value=\"1\">DOGE</label>"
-    "<label><input type=\"checkbox\" name=\"tkr_8\" value=\"1\">XRP</label>"
-    "<label><input type=\"checkbox\" name=\"tkr_9\" value=\"1\">LTC</label>"
+    "<label><input type=\"checkbox\" name=\"crypto_0\" value=\"1\" checked>XBT</label>"
+    "<label><input type=\"checkbox\" name=\"crypto_1\" value=\"1\" checked>ETH</label>"
+    "<label><input type=\"checkbox\" name=\"crypto_2\" value=\"1\" checked>SOL</label>"
+    "<label><input type=\"checkbox\" name=\"crypto_3\" value=\"1\">ADA</label>"
+    "<label><input type=\"checkbox\" name=\"crypto_4\" value=\"1\">DOT</label>"
+    "<label><input type=\"checkbox\" name=\"crypto_5\" value=\"1\">LINK</label>"
+    "<label><input type=\"checkbox\" name=\"crypto_6\" value=\"1\">AVAX</label>"
+    "<label><input type=\"checkbox\" name=\"crypto_7\" value=\"1\">DOGE</label>"
+    "<label><input type=\"checkbox\" name=\"crypto_8\" value=\"1\">XRP</label>"
+    "<label><input type=\"checkbox\" name=\"crypto_9\" value=\"1\">LTC</label>"
+    "</div>"
+    "<label>Stocks</label>"
+    "<div class=\"ticker-grid\">"
+    "<label><input type=\"checkbox\" name=\"stk_0\" value=\"1\" checked>AAPL</label>"
+    "<label><input type=\"checkbox\" name=\"stk_1\" value=\"1\" checked>MSFT</label>"
+    "<label><input type=\"checkbox\" name=\"stk_2\" value=\"1\" checked>GOOGL</label>"
+    "<label><input type=\"checkbox\" name=\"stk_3\" value=\"1\">AMZN</label>"
+    "<label><input type=\"checkbox\" name=\"stk_4\" value=\"1\">TSLA</label>"
+    "<label><input type=\"checkbox\" name=\"stk_5\" value=\"1\">NVDA</label>"
+    "<label><input type=\"checkbox\" name=\"stk_6\" value=\"1\">META</label>"
+    "<label><input type=\"checkbox\" name=\"stk_7\" value=\"1\">JPM</label>"
+    "<label><input type=\"checkbox\" name=\"stk_8\" value=\"1\">V</label>"
+    "<label><input type=\"checkbox\" name=\"stk_9\" value=\"1\">DIS</label>"
     "</div>"
     "<button type=\"submit\">Save & Reboot</button>"
     "</form></div>"
@@ -376,17 +389,26 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             val = strstr(body, "currency=");
             if (val) config.currency = (uint8_t)atoi(val + 9);
 
-            uint16_t tickers = 0;
+            uint16_t crypto = 0;
+            for (int i = 0; i < 10; i++)
+            {
+                char key[12];
+                snprintf(key, sizeof(key), "crypto_%d=", i);
+                if (strstr(body, key)) crypto |= (1 << i);
+            }
+            config.crypto = crypto ? crypto : DEFAULT_CRYPTO;
+
+            uint16_t stocks = 0;
             for (int i = 0; i < 10; i++)
             {
                 char key[8];
-                snprintf(key, sizeof(key), "tkr_%d=", i);
-                if (strstr(body, key)) tickers |= (1 << i);
+                snprintf(key, sizeof(key), "stk_%d=", i);
+                if (strstr(body, key)) stocks |= (1 << i);
             }
-            config.tickers = tickers ? tickers : DEFAULT_TICKERS;
+            config.stocks = stocks ? stocks : DEFAULT_STOCKS;
 
-            debug(INFO, "Parsed config - Brightness: %d%%, Location: %d, Currency: %d, Tickers: 0x%04X",
-                  config.brightness, config.location, config.currency, config.tickers);
+            debug(INFO, "Parsed config - Brightness: %d%%, Location: %d, Currency: %d, Crypto: 0x%04X, Stocks: 0x%04X",
+                  config.brightness, config.location, config.currency, config.crypto, config.stocks);
 
             flash_memory_write(&config);
             matrix_set_brightness(config.brightness);
