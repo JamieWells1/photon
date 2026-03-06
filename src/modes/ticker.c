@@ -1,7 +1,7 @@
 #include <ticker.h>
 
-#include <config.h>
 #include <const.h>
+#include <flash_memory.h>
 #include <glyphs.h>
 #include <http.h>
 #include <macro.h>
@@ -10,6 +10,7 @@
 #include <secrets_config.h>
 #include <utils.h>
 #include <wifi.h>
+#include <currency.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +25,18 @@ static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
 static unsigned int g_tkr_to_fetch_index = 0;
 static int g_scroll_offset = 0;
+
+static const char* currency_to_string(Currency ccy)
+{
+    switch (ccy)
+    {
+        case USD: return CCY_USD;
+        case GBP: return CCY_GBP;
+        case EUR: return CCY_EUR;
+        case JPY: return CCY_JPY;
+        default: return CCY_USD;
+    }
+}
 
 // Parsing
 
@@ -113,13 +126,17 @@ void ticker_display(Matrix* mtrx, int* offset)
 
         if (wifi_connect(WIFI_SSID, WIFI_PASSWORD, mtrx) == 0)
         {
+            wifi_config_t config;
+            flash_memory_read_with_defaults(&config);
+            const char* currency = currency_to_string(config.currency);
+
             while (g_tkr_to_fetch_index < TKR_COUNT)
             {
                 const char* tkr_to_fetch = TKR_ARR[g_tkr_to_fetch_index].to_str;
 
                 char path[256];
                 snprintf(path, sizeof(path), "/proxy/%s/0/public/Ticker?pair=%s%s", HOST_URL_STOCKS,
-                         tkr_to_fetch, CURRENCY);
+                         tkr_to_fetch, currency);
 
                 debug(INFO, "Fetching %s via proxy: %s:%s%s", tkr_to_fetch, PROXY_HOST, PROXY_PORT,
                       path);
@@ -135,8 +152,7 @@ void ticker_display(Matrix* mtrx, int* offset)
             }
 
             g_tkr_to_fetch_index = 0;
-            wifi_disconnect();
-            debug(INFO, "Ticker fetch complete, WiFi disconnected");
+            debug(INFO, "Ticker fetch complete");
         }
         else
         {

@@ -44,6 +44,7 @@ set(COMMON_SOURCES
         src/common/macro.c
         src/common/secrets_config.c
         src/common/location.c
+        src/common/currency.c
 )
 
 # Display subsystem
@@ -73,16 +74,11 @@ set(UTILS_SOURCES
         src/utils.c
 )
 
-# Config
-set(CONFIG_SOURCES
-        src/config.c
-)
-
 # Middleware (client-side networking & storage)
 set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
         src/middleware/http.c
-        src/middleware/flash_config.c
+        src/middleware/flash_memory.c
 )
 
 # Server (captive portal & config server)
@@ -120,7 +116,6 @@ add_executable(photon
         ${MENU_SOURCES}
         ${GLOBAL_SOURCES}
         ${UTILS_SOURCES}
-        ${CONFIG_SOURCES}
         ${MIDDLEWARE_SOURCES}
         ${SERVER_SOURCES}
         ${MDNS_SOURCES}

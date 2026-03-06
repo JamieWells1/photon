@@ -1,8 +1,9 @@
 #include <weather.h>
 
-#include <config.h>
 #include <const.h>
+#include <flash_memory.h>
 #include <glyphs.h>
+#include <location.h>
 #include <graphics.h>
 #include <http.h>
 #include <matrix.h>
@@ -342,9 +343,12 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
     {
         if (wifi_connect(WIFI_SSID, WIFI_PASSWORD, mtrx) == 0)
         {
-            float lat = location_get_latitude(LOCATION);
-            float lon = location_get_longitude(LOCATION);
-            const char* tz = location_get_timezone(LOCATION);
+            wifi_config_t config;
+            flash_memory_read_with_defaults(&config);
+
+            float lat = location_get_latitude(config.location);
+            float lon = location_get_longitude(config.location);
+            const char* tz = location_get_timezone(config.location);
 
             char path[256];
             snprintf(path, sizeof(path),
@@ -361,7 +365,6 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
             {
                 debug(ERROR, "HTTP request failed with RC %d", rc);
             }
-            wifi_disconnect();
         }
     }
 
@@ -413,7 +416,6 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
 
 void weather_cleanup(void)
 {
-    wifi_disconnect();
     g_last_displayed_temp = -999.0f;
     g_last_displayed_code = -1;
 }

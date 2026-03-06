@@ -1,7 +1,7 @@
 #include <config_mode.h>
 
 #include <const.h>
-#include <flash_config.h>
+#include <flash_memory.h>
 #include <glyphs.h>
 #include <http_server.h>
 #include <macro.h>
@@ -10,11 +10,29 @@
 
 #include <stdio.h>
 
+#include <hardware/watchdog.h>
+#include <pico/cyw43_arch.h>
+
 static bool server_started = false;
 static int scroll_offset = 0;
 
 void config_display(Matrix* mtrx)
 {
+    // Check if config was saved and reboot is needed
+    if (http_server_config_saved())
+    {
+        debug(INFO, "Config saved, rebooting...");
+
+        matrix_clear(mtrx);
+        matrix_display_word_icon_pair("REBOOT", &ORANGE, NULL, 0);
+        matrix_show(mtrx);
+
+        sleep_ms(2000);
+
+        watchdog_enable(1, 1);
+        while(1);
+    }
+
     if (!server_started)
     {
         // Ensure WiFi is connected before starting HTTP server
@@ -23,7 +41,7 @@ void config_display(Matrix* mtrx)
             debug(INFO, "WiFi not connected, reconnecting for CONFIG mode...");
 
             wifi_config_t config;
-            if (!flash_config_read(&config))
+            if (!flash_memory_read(&config))
             {
                 debug(ERROR, "Failed to read WiFi config from flash");
                 matrix_clear(mtrx);
@@ -41,6 +59,9 @@ void config_display(Matrix* mtrx)
                 return;
             }
         }
+
+        // Start mDNS so photon.local works
+        wifi_start_mdns();
 
         http_server_start();
         server_started = true;
@@ -72,6 +93,8 @@ void config_display(Matrix* mtrx)
     {
         scroll_offset = 0;
     }
+
+    cyw43_arch_poll();
 }
 
 void config_cleanup(void)

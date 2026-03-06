@@ -1,7 +1,7 @@
 #include <matrix.h>
 
-#include <config.h>
 #include <const.h>
+#include <flash_memory.h>
 #include <global.h>
 #include <macro.h>
 
@@ -18,6 +18,8 @@
 // ======
 
 static uint32_t g_pixels[NUM_PIXELS];
+static float g_cached_brightness = 0.0f;
+static bool g_brightness_cached = false;
 
 static PixelState g_pixel_states[NUM_PIXELS];
 
@@ -41,9 +43,17 @@ static int matrix_xy_to_index(int input_x, int input_y)
 
 static void matrix_set_brightness(RGB* col)
 {
-    col->r *= BRIGHTNESS;
-    col->g *= BRIGHTNESS;
-    col->b *= BRIGHTNESS;
+    if (!g_brightness_cached)
+    {
+        wifi_config_t config;
+        flash_memory_read_with_defaults(&config);
+        g_cached_brightness = config.brightness / 100.0f;
+        g_brightness_cached = true;
+    }
+
+    col->r *= g_cached_brightness;
+    col->g *= g_cached_brightness;
+    col->b *= g_cached_brightness;
 }
 
 static uint32_t matrix_rgb_to_grb(RGB* col) { return (col->g << 16) | (col->r << 8) | col->b; }
@@ -203,6 +213,11 @@ void matrix_clear(Matrix* mtrx)
         g_pixels[i] = 0;
         g_pixel_states[i].is_set = false;
     }
+}
+
+void matrix_invalidate_brightness_cache(void)
+{
+    g_brightness_cached = false;
 }
 
 // Only writes letter to state, not matrix

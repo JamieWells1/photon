@@ -1,8 +1,9 @@
 #include <http_server.h>
 
 #include <const.h>
-#include <flash_config.h>
+#include <flash_memory.h>
 #include <macro.h>
+#include <matrix.h>
 
 #include <ctype.h>
 #include <stdio.h>
@@ -11,10 +12,12 @@
 
 #include <hardware/watchdog.h>
 #include <lwip/tcp.h>
+#include <pico/cyw43_arch.h>
 #include <pico/stdlib.h>
 
 static struct tcp_pcb* http_pcb = NULL;
 static bool credentials_saved = false;
+static bool config_saved = false;
 
 typedef struct
 {
@@ -32,7 +35,7 @@ static const char* html_form =
     "<meta charset=\"UTF-8\"><title>Photon Setup</title>"
     "<style>"
     "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe "
-    "UI',Roboto,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 "
+    "UI',Roboto,sans-serif;background:linear-gradient(135deg,#4A90E2 0%,#357ABD "
     "100%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:"
     "center}"
     ".container{background:white;border-radius:12px;box-shadow:0 8px 24px "
@@ -42,11 +45,11 @@ static const char* html_form =
     "input{width:100%;padding:12px;border:2px solid "
     "#e0e0e0;border-radius:8px;font-size:16px;box-sizing:border-box;transition:border-color "
     "0.3s;margin-bottom:20px}"
-    "input:focus{outline:none;border-color:#667eea}"
-    "button{width:100%;background:linear-gradient(135deg,#667eea 0%,#764ba2 "
+    "input:focus{outline:none;border-color:#4A90E2}"
+    "button{width:100%;background:linear-gradient(135deg,#4A90E2 0%,#357ABD "
     "100%);color:white;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;"
     "cursor:pointer;transition:transform 0.2s,box-shadow 0.2s}"
-    "button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(102,126,234,0.4)}"
+    "button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(74,144,226,0.4)}"
     "button:active{transform:translateY(0)}"
     ".subtitle{color:#888;font-size:14px;text-align:center;margin-bottom:24px}"
     "</style></head><body>"
@@ -67,7 +70,7 @@ static const char* html_success =
     "<meta charset=\"UTF-8\"><title>Success</title>"
     "<style>"
     "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe "
-    "UI',Roboto,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 "
+    "UI',Roboto,sans-serif;background:linear-gradient(135deg,#4A90E2 0%,#357ABD "
     "100%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:"
     "center}"
     ".container{background:white;border-radius:12px;box-shadow:0 8px 24px "
@@ -88,34 +91,56 @@ static const char* html_config =
     "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width\">"
     "<meta charset=\"UTF-8\"><title>Photon Config</title>"
     "<style>"
-    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:center}"
+    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#4A90E2 0%,#357ABD 100%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:center}"
     ".container{background:white;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.15);padding:32px;max-width:400px;width:100%}"
     "h1{color:#333;margin:0 0 24px;font-size:28px;font-weight:600;text-align:center}"
     "label{display:block;color:#555;font-size:14px;font-weight:500;margin-bottom:8px;margin-top:16px}"
     "input,select{width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:8px;font-size:16px;box-sizing:border-box;transition:border-color 0.3s}"
-    "input:focus,select:focus{outline:none;border-color:#667eea}"
-    "button{width:100%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;margin-top:20px}"
-    "button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(102,126,234,0.4)}"
+    "input:focus,select:focus{outline:none;border-color:#4A90E2}"
+    "button{width:100%;background:linear-gradient(135deg,#4A90E2 0%,#357ABD 100%);color:white;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;margin-top:20px}"
+    "button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(74,144,226,0.4)}"
     "button:active{transform:translateY(0)}"
     ".subtitle{color:#888;font-size:14px;text-align:center;margin-bottom:24px}"
-    ".range-value{display:inline-block;color:#667eea;font-weight:600;margin-left:8px}"
+    ".range-value{display:inline-block;color:#4A90E2;font-weight:600;margin-left:8px}"
+    ".warning{display:none;color:#f59e0b;font-size:13px;margin-top:4px;font-weight:500}"
+    ".warning.show{display:block}"
     "</style></head><body>"
     "<div class=\"container\"><h1>Device Settings</h1>"
     "<p class=\"subtitle\">Configure your Photon display</p>"
     "<form method=\"POST\" action=\"/save-config\" enctype=\"application/x-www-form-urlencoded\">"
     "<label>Brightness <span class=\"range-value\" id=\"brightnessValue\">2%</span></label>"
-    "<input type=\"range\" name=\"brightness\" id=\"brightness\" min=\"0\" max=\"30\" value=\"2\" step=\"1\" oninput=\"document.getElementById('brightnessValue').textContent=this.value+'%'\">"
+    "<input type=\"range\" name=\"brightness\" id=\"brightness\" min=\"1\" max=\"25\" value=\"2\" step=\"1\" oninput=\"updateBrightness(this.value)\">"
+    "<p class=\"warning\" id=\"powerWarning\">⚠️ External power supply highly recommended to avoid overload</p>"
     "<label>Location</label>"
     "<select name=\"location\">"
     "<option value=\"0\">London</option>"
+    "<option value=\"1\">Miami</option>"
+    "<option value=\"2\">Los Angeles</option>"
+    "<option value=\"3\">Chicago</option>"
+    "<option value=\"4\">Tokyo</option>"
+    "<option value=\"5\">Sydney</option>"
+    "<option value=\"6\">Stockholm</option>"
+    "<option value=\"7\">Rio de Janeiro</option>"
+    "<option value=\"8\">Cape Town</option>"
+    "<option value=\"9\">Athens</option>"
     "</select>"
     "<label>Currency</label>"
     "<select name=\"currency\">"
     "<option value=\"0\">USD</option>"
     "<option value=\"1\">GBP</option>"
+    "<option value=\"2\">EUR</option>"
+    "<option value=\"3\">JPY</option>"
     "</select>"
     "<button type=\"submit\">Save & Reboot</button>"
-    "</form></div></body></html>";
+    "</form></div>"
+    "<script>"
+    "function updateBrightness(val){"
+    "document.getElementById('brightnessValue').textContent=val+'%';"
+    "var warning=document.getElementById('powerWarning');"
+    "if(val>10){warning.classList.add('show');}else{warning.classList.remove('show');}"
+    "}"
+    "</script>"
+    "</body></html>";
 
 static int hex_to_int(char c)
 {
@@ -209,6 +234,17 @@ static err_t http_close_conn(struct tcp_pcb* pcb)
     return tcp_close(pcb);
 }
 
+static err_t http_sent_callback(void* arg, struct tcp_pcb* pcb, u16_t len)
+{
+    if (arg)
+    {
+        free(arg);
+    }
+
+    http_close_conn(pcb);
+    return ERR_OK;
+}
+
 static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, err_t err)
 {
     if (!p)
@@ -298,7 +334,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             debug(DEBUG, "Config POST body: %s", body);
 
             wifi_config_t config;
-            flash_config_read(&config);
+            flash_memory_read(&config);
 
             sscanf(body, "brightness=%hhu&location=%hhu&currency=%hhu",
                    &config.brightness, &config.location, &config.currency);
@@ -306,14 +342,15 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             debug(INFO, "Parsed config - Brightness: %d%%, Location: %d, Currency: %d",
                   config.brightness, config.location, config.currency);
 
-            flash_config_write(&config);
+            flash_memory_write(&config);
+            matrix_invalidate_brightness_cache();
+            config_saved = true;
 
-            tcp_write(pcb, html_success, strlen(html_success), TCP_WRITE_FLAG_COPY);
+            tcp_write(pcb, html_success, strlen(html_success), 0);
             tcp_output(pcb);
-            sleep_ms(2000);
+            tcp_sent(pcb, http_sent_callback);
 
-            watchdog_enable(1, 1);
-            while(1);
+            return ERR_OK;
         }
     }
     else if (strncmp(request, "POST /save", 10) == 0)
@@ -328,10 +365,9 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             wifi_config_t config;
             parse_post_data(body, &config);
 
-            // Set default values for display settings
-            config.brightness = 2;
-            config.location = 0;
-            config.currency = 0;
+            config.brightness = DEFAULT_BRIGHTNESS;
+            config.location = DEFAULT_LOCATION;
+            config.currency = DEFAULT_CURRENCY;
 
             debug(DEBUG, "Parsed - SSID: '%s', Password: '%s'", config.ssid, config.password);
             debug(DEBUG, "Set defaults - Brightness: %d, Location: %d, Currency: %d",
@@ -339,35 +375,37 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
             if (strlen(config.ssid) > 0)
             {
-                flash_config_write(&config);
+                flash_memory_write(&config);
                 credentials_saved = true;
 
-                tcp_write(pcb, html_success, strlen(html_success), TCP_WRITE_FLAG_COPY);
+                tcp_write(pcb, html_success, strlen(html_success), 0);
                 tcp_output(pcb);
-                sleep_ms(100);
+                sleep_ms(500);
             }
             else
             {
                 debug(WARN, "Empty SSID received");
-                tcp_write(pcb, html_form, strlen(html_form), TCP_WRITE_FLAG_COPY);
+                tcp_write(pcb, html_form, strlen(html_form), 0);
                 tcp_output(pcb);
-                sleep_ms(100);
+                sleep_ms(500);
             }
         }
     }
     else if (strncmp(request, "GET /config", 11) == 0 || strncmp(request, "GET / ", 6) == 0)
     {
-        debug(DEBUG, "Serving config page");
-        tcp_write(pcb, html_config, strlen(html_config), TCP_WRITE_FLAG_COPY);
+        tcp_write(pcb, html_config, strlen(html_config), 0);
         tcp_output(pcb);
-        sleep_ms(100);
+        tcp_sent(pcb, http_sent_callback);
+
+        return ERR_OK;
     }
     else
     {
-        debug(DEBUG, "Serving HTML form (length: %zu)", strlen(html_form));
-        tcp_write(pcb, html_form, strlen(html_form), TCP_WRITE_FLAG_COPY);
+        tcp_write(pcb, html_form, strlen(html_form), 0);
         tcp_output(pcb);
-        sleep_ms(100);
+        tcp_sent(pcb, http_sent_callback);
+
+        return ERR_OK;
     }
 
     if (state)
@@ -402,6 +440,7 @@ void http_server_start(void)
     if (http_pcb) return;
 
     credentials_saved = false;
+    config_saved = false;
 
     http_pcb = tcp_new();
     if (!http_pcb)
@@ -436,3 +475,5 @@ void http_server_stop(void)
 }
 
 bool http_server_credentials_saved(void) { return credentials_saved; }
+
+bool http_server_config_saved(void) { return config_saved; }

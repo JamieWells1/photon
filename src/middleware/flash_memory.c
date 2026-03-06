@@ -1,4 +1,4 @@
-#include <flash_config.h>
+#include <flash_memory.h>
 
 #include <const.h>
 #include <macro.h>
@@ -26,13 +26,13 @@ static uint32_t crc32(const uint8_t* data, size_t length)
     return ~crc;
 }
 
-bool flash_config_exists(void)
+bool flash_memory_exists(void)
 {
     const uint8_t* flash_ptr = (const uint8_t*)(XIP_BASE + FLASH_TARGET_OFFSET);
     wifi_config_t config;
     memcpy(&config, flash_ptr, sizeof(wifi_config_t));
 
-    if (config.magic != FLASH_CONFIG_MAGIC)
+    if (config.magic != FLASH_MEMORY_MAGIC)
     {
         return false;
     }
@@ -44,16 +44,15 @@ bool flash_config_exists(void)
     return stored_crc == calculated_crc;
 }
 
-bool flash_config_read(wifi_config_t* config)
+bool flash_memory_read(wifi_config_t* config)
 {
     if (!config) return false;
 
     const uint8_t* flash_ptr = (const uint8_t*)(XIP_BASE + FLASH_TARGET_OFFSET);
     memcpy(config, flash_ptr, sizeof(wifi_config_t));
 
-    if (config->magic != FLASH_CONFIG_MAGIC)
+    if (config->magic != FLASH_MEMORY_MAGIC)
     {
-        debug(WARN, "Flash config magic mismatch");
         return false;
     }
 
@@ -64,21 +63,31 @@ bool flash_config_read(wifi_config_t* config)
 
     if (stored_crc != calculated_crc)
     {
-        debug(WARN, "Flash config CRC mismatch");
         return false;
     }
-
-    debug(INFO, "Flash config read successfully");
     return true;
 }
 
-bool flash_config_write(const wifi_config_t* config)
+void flash_memory_read_with_defaults(wifi_config_t* config)
+{
+    if (!config) return;
+
+    if (!flash_memory_read(config))
+    {
+        memset(config, 0, sizeof(wifi_config_t));
+        config->brightness = DEFAULT_BRIGHTNESS;
+        config->location = DEFAULT_LOCATION;
+        config->currency = DEFAULT_CURRENCY;
+    }
+}
+
+bool flash_memory_write(const wifi_config_t* config)
 {
     if (!config) return false;
 
     wifi_config_t temp_config;
     memcpy(&temp_config, config, sizeof(wifi_config_t));
-    temp_config.magic = FLASH_CONFIG_MAGIC;
+    temp_config.magic = FLASH_MEMORY_MAGIC;
     temp_config.crc32 = 0;
     temp_config.crc32 = crc32((const uint8_t*)&temp_config, sizeof(wifi_config_t));
 
@@ -95,7 +104,7 @@ bool flash_config_write(const wifi_config_t* config)
     return true;
 }
 
-void flash_config_erase(void)
+void flash_memory_erase(void)
 {
     uint32_t ints = save_and_disable_interrupts();
     flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE);

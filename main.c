@@ -1,6 +1,6 @@
 #include <const.h>
 #include <dns_server.h>
-#include <flash_config.h>
+#include <flash_memory.h>
 #include <global.h>
 #include <graphics.h>
 #include <http_server.h>
@@ -153,9 +153,9 @@ int main(void)
     bool wifi_ready = false;
 
     // Check if flash config exists and is valid
-    if (flash_config_exists())
+    if (flash_memory_exists())
     {
-        if (flash_config_read(&config))
+        if (flash_memory_read(&config))
         {
             debug(INFO, "Flash config found, attempting to connect to WiFi");
             if (wifi_connect(config.ssid, config.password, mtrx) == 0)
@@ -174,14 +174,14 @@ int main(void)
                 matrix_display_word_icon_pair("FAIL", &RED, NULL, 0);
                 matrix_show(mtrx);
                 sleep_ms(2000);
-                flash_config_erase();
+                flash_memory_erase();
             }
         }
         else
         {
             // Flash data exists but CRC failed - likely old format, erase it
             debug(WARN, "Flash config CRC failed (possibly old format), erasing");
-            flash_config_erase();
+            flash_memory_erase();
         }
     }
     else

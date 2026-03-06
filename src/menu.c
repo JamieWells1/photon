@@ -1,9 +1,8 @@
 #include <menu.h>
 
-#include <config.h>
 #include <config_mode.h>
 #include <const.h>
-#include <flash_config.h>
+#include <flash_memory.h>
 #include <game.h>
 #include <global.h>
 #include <graphics.h>
@@ -326,7 +325,7 @@ static void menu_sub_menu_reset_detect_inputs(Button* btns, Rotator* rtr, Matrix
         if (g_reset_selection == 0)
         {
             debug(INFO, "Executing flash reset");
-            flash_config_erase();
+            flash_memory_erase();
 
             matrix_clear(mtrx);
             matrix_display_word_icon_pair("DONE", &GREEN, NULL, 0);

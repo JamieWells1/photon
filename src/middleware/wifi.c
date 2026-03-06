@@ -1,7 +1,7 @@
 #include <wifi.h>
 
 #include <const.h>
-#include <flash_config.h>
+#include <flash_memory.h>
 #include <glyphs.h>
 #include <graphics.h>
 #include <macro.h>
@@ -11,6 +11,7 @@
 
 #include <dhcpserver.h>
 #include <lwip/apps/mdns.h>
+#include <lwip/err.h>
 #include <lwip/ip4_addr.h>
 #include <lwip/netif.h>
 #include <pico/cyw43_arch.h>
@@ -19,6 +20,7 @@
 static bool initialized = false;
 static bool connected = false;
 static bool ap_mode = false;
+static bool mdns_initialized = false;
 static dhcp_server_t dhcp_server;
 
 static int wifi_init(void)
@@ -102,11 +104,7 @@ int wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
             debug(INFO, "IP Address: %s", ip4addr_ntoa(ip));
             debug(INFO, "Gateway: %s", ip4addr_ntoa(netif_ip4_gw(&cyw43_state.netif[CYW43_ITF_STA])));
             debug(INFO, "Netmask: %s", ip4addr_ntoa(netif_ip4_netmask(&cyw43_state.netif[CYW43_ITF_STA])));
-
-            mdns_resp_init();
-            mdns_resp_add_netif(&cyw43_state.netif[CYW43_ITF_STA], "photon");
-            debug(INFO, "mDNS responder started: photon.local resolves to %s", ip4addr_ntoa(ip));
-            debug(INFO, "To access config page, navigate to CONFIG menu on device");
+            debug(INFO, "To access web interface, navigate to CONFIG menu on device");
 
             return 0;
         }
@@ -150,6 +148,7 @@ void wifi_disconnect(void)
     cyw43_arch_deinit();
     connected = false;
     initialized = false;
+    mdns_initialized = false;  // Reset mDNS state since we deinit the network stack
     debug(INFO, "WiFi disconnected");
 }
 
@@ -184,3 +183,41 @@ int wifi_init_ap(const char* ssid, const char* password, Matrix* mtrx)
 }
 
 bool wifi_is_connected(void) { return connected; }
+
+void wifi_start_mdns(void)
+{
+    if (!connected)
+    {
+        debug(WARN, "Cannot start mDNS: WiFi not connected");
+        return;
+    }
+
+    if (mdns_initialized)
+    {
+        debug(DEBUG, "mDNS already initialized");
+        return;
+    }
+
+    debug(INFO, "Starting mDNS responder...");
+
+    // Give network stack extra time to settle
+    sleep_ms(1000);
+
+    // Initialize mDNS
+    mdns_resp_init();
+    mdns_initialized = true;
+
+    // Add this interface to mDNS
+    err_t err = mdns_resp_add_netif(&cyw43_state.netif[CYW43_ITF_STA], "photon");
+
+    const ip4_addr_t* ip = netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_STA]);
+
+    if (err == ERR_OK)
+    {
+        debug(INFO, "mDNS responder started: photon.local resolves to %s", ip4addr_ntoa(ip));
+    }
+    else
+    {
+        debug(WARN, "mDNS failed to bind (error: %d). Use IP address: %s", err, ip4addr_ntoa(ip));
+    }
+}
