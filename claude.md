@@ -30,7 +30,7 @@ src/
 ├── modes/
 │   ├── ticker.c          # Crypto prices from Kraken API
 │   ├── weather.c         # Weather from Open-Meteo API
-│   ├── config_mode.c     # Web config server at photon.local
+│   ├── config.c          # Web config server at photon.local
 │   └── game.c            # Game mode (stub)
 ├── server/
 │   ├── http_server.c     # Captive portal + config web interface

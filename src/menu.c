@@ -1,6 +1,6 @@
 #include <menu.h>
 
-#include <.h>
+#include <config.h>
 #include <const.h>
 #include <flash_memory.h>
 #include <game.h>
