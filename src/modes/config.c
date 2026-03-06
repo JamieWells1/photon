@@ -19,7 +19,6 @@ static int scroll_offset = 0;
 
 void config_display(Matrix* mtrx)
 {
-    // Check if config was saved and reboot is needed
     if (http_server_config_saved())
     {
         debug(INFO, "Config saved, rebooting...");
@@ -36,7 +35,6 @@ void config_display(Matrix* mtrx)
 
     if (!server_started)
     {
-        // Ensure WiFi is connected before starting HTTP server
         if (!wifi_is_connected())
         {
             debug(INFO, "WiFi not connected, reconnecting for CONFIG mode...");
@@ -62,7 +60,6 @@ void config_display(Matrix* mtrx)
             }
         }
 
-        // Start mDNS so photon.local works
         wifi_start_mdns();
 
         http_server_start();
@@ -80,7 +77,6 @@ void config_display(Matrix* mtrx)
 
     matrix_clear(mtrx);
 
-    // Draw the text twice for seamless scrolling loop
     for (int wrap = 0; wrap < 2; wrap++)
     {
         int text_x = (wrap * total_width) - scroll_offset;
