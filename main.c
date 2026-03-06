@@ -152,23 +152,37 @@ int main(void)
     wifi_config_t config;
     bool wifi_ready = false;
 
-    if (flash_config_exists() && flash_config_read(&config))
+    // Check if flash config exists and is valid
+    if (flash_config_exists())
     {
-        debug(INFO, "Flash config found, attempting to connect to WiFi");
-        if (wifi_connect(config.ssid, config.password, mtrx) == 0)
+        if (flash_config_read(&config))
         {
-            debug(INFO, "WiFi connected successfully");
-            wifi_ready = true;
+            debug(INFO, "Flash config found, attempting to connect to WiFi");
+            if (wifi_connect(config.ssid, config.password, mtrx) == 0)
+            {
+                debug(INFO, "WiFi connected successfully");
+                wifi_ready = true;
+            }
+            else
+            {
+                debug(WARN, "WiFi connection failed, erasing config");
+                matrix_clear(mtrx);
+                matrix_display_word_icon_pair("FAIL", &RED, NULL, 0);
+                matrix_show(mtrx);
+                sleep_ms(2000);
+                flash_config_erase();
+            }
         }
         else
         {
-            debug(WARN, "WiFi connection failed, entering setup mode");
-            matrix_clear(mtrx);
-            matrix_display_word_icon_pair("FAIL", &RED, NULL, 0);
-            matrix_show(mtrx);
-            sleep_ms(2000);
+            // Flash data exists but CRC failed - likely old format, erase it
+            debug(WARN, "Flash config CRC failed (possibly old format), erasing");
             flash_config_erase();
         }
+    }
+    else
+    {
+        debug(INFO, "No flash config found");
     }
 
     if (!wifi_ready)
@@ -249,17 +263,35 @@ int main(void)
         {
             graphics_display_start_screen(mtrx);
 
+            // Wait for all buttons to be released (with 5 second timeout)
             bool all_released = false;
-            while (!all_released)
+            int wait_count = 0;
+            int max_wait = 500; // 5 seconds at 10ms per iteration
+
+            while (!all_released && wait_count < max_wait)
             {
                 input_update(buttons, rotator);
                 all_released =
                     (buttons[0].current_state == true && buttons[1].current_state == true &&
                      rotator->current_sw_state == true);
-                sleep_ms(10);
-            }
-            input_update(buttons, rotator);
 
+                if (!all_released && wait_count % 50 == 0)
+                {
+                    debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
+                          buttons[0].current_state, buttons[1].current_state,
+                          rotator->current_sw_state);
+                }
+
+                sleep_ms(10);
+                wait_count++;
+            }
+
+            if (wait_count >= max_wait)
+            {
+                debug(WARN, "Button release timeout, proceeding anyway");
+            }
+
+            input_update(buttons, rotator);
             menu_active = true;
         }
 

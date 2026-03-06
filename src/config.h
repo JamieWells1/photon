@@ -9,7 +9,7 @@
 // ===================
 
 // Brightness to use
-#define BRIGHTNESS 0.02
+#define BRIGHTNESS 0.12
 
 // Location to use
 #define LOCATION LOC_LONDON

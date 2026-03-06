@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include <dhcpserver.h>
+#include <lwip/apps/mdns.h>
 #include <lwip/ip4_addr.h>
 #include <lwip/netif.h>
 #include <pico/cyw43_arch.h>
@@ -94,6 +95,11 @@ int wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
         {
             debug(INFO, "WiFi connected successfully");
             connected = true;
+
+            mdns_resp_init();
+            mdns_resp_add_netif(&cyw43_state.netif[CYW43_ITF_STA], "photon");
+            debug(INFO, "mDNS responder started: photon.local");
+
             return 0;
         }
         else if (link_status == CYW43_LINK_FAIL || link_status == CYW43_LINK_BADAUTH ||

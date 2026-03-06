@@ -1,5 +1,7 @@
 #include <menu.h>
 
+#include <config.h>
+#include <config_mode.h>
 #include <const.h>
 #include <flash_config.h>
 #include <game.h>
@@ -56,6 +58,7 @@ static void menu_reset_states(Matrix* mtrx)
 {
     ticker_cleanup();
     weather_cleanup();
+    config_cleanup();
 
     g_display_initialized = false;
     g_underscore_on = true;
@@ -164,6 +167,10 @@ static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Mat
     {
         target_menu = TEMP_START;
     }
+    else if (menu_state.mode == MENU_CONFIG)
+    {
+        target_menu = CONFIG_START;
+    }
     else if (menu_state.mode == MENU_RESET)
     {
         target_menu = RESET_START;
@@ -201,6 +208,10 @@ static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Mat
     else if (g_current_mode == TEMP_START)
     {
         weather_display(mtrx, &g_weather_hour_offset);
+    }
+    else if (g_current_mode == CONFIG_START)
+    {
+        config_display(mtrx);
     }
     else if (g_current_mode == RESET_START)
     {

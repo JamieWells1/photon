@@ -83,6 +83,10 @@ static const Glyph* matrix_char_in_pxls(char ch)
             return &PUNCTUATION[6];
         case '+':
             return &PUNCTUATION[7];
+        case ':':
+            return &PUNCTUATION[8];
+        case '/':
+            return &PUNCTUATION[9];
         default:
             return NULL;
     }

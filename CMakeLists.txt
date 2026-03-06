@@ -88,6 +88,13 @@ set(MIDDLEWARE_SOURCES
         src/middleware/dhcpserver/dhcpserver.c
 )
 
+# mDNS sources from lwIP
+set(MDNS_SOURCES
+        ${PICO_LWIP_PATH}/src/apps/mdns/mdns.c
+        ${PICO_LWIP_PATH}/src/apps/mdns/mdns_out.c
+        ${PICO_LWIP_PATH}/src/apps/mdns/mdns_domain.c
+)
+
 # Games
 set(GAME_SOURCES
         src/modes/games/tetris.c
@@ -98,6 +105,7 @@ set(MODE_SOURCES
         src/modes/ticker.c
         src/modes/game.c
         src/modes/weather.c
+        src/modes/config_mode.c
 )
 
 add_executable(photon
@@ -110,6 +118,7 @@ add_executable(photon
         ${UTILS_SOURCES}
         ${CONFIG_SOURCES}
         ${MIDDLEWARE_SOURCES}
+        ${MDNS_SOURCES}
         ${GAME_SOURCES}
         ${MODE_SOURCES}
 )

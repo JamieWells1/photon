@@ -305,6 +305,19 @@ static const Pixel PUNCT_PLUS[] = {
     {1, 3, DEFAULT_COLOUR},
     {2, 2, DEFAULT_COLOUR}};
 
+static const Pixel PUNCT_COLON[] = {
+    // 1x5
+    {0, 1, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR}};
+
+static const Pixel PUNCT_SLASH[] = {
+    // 3x5
+    {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR},
+    {1, 2, DEFAULT_COLOUR},
+    {0, 3, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}};
+
 // =======
 // NUMBERS
 // =======
@@ -407,7 +420,7 @@ static const Glyph ALPHABET[26] = {
     {LETTER_Z, ARRAY_SIZE(LETTER_Z), 3, 5},  // Z
 };
 
-static const Glyph PUNCTUATION[8] = {
+static const Glyph PUNCTUATION[10] = {
     {PUNCT_EXCLAIM, ARRAY_SIZE(PUNCT_EXCLAIM), 1, 5},    // !
     {PUNCT_QUESTION, ARRAY_SIZE(PUNCT_QUESTION), 3, 5},  // ?
     {PUNCT_PERIOD, ARRAY_SIZE(PUNCT_PERIOD), 1, 5},      // .
@@ -416,6 +429,8 @@ static const Glyph PUNCTUATION[8] = {
     {PUNCT_DEGREE, ARRAY_SIZE(PUNCT_DEGREE), 1, 5},      // °
     {PUNCT_PERCENT, ARRAY_SIZE(PUNCT_PERCENT), 3, 5},    // %
     {PUNCT_PLUS, ARRAY_SIZE(PUNCT_PLUS), 3, 5},          // +
+    {PUNCT_COLON, ARRAY_SIZE(PUNCT_COLON), 1, 5},        // :
+    {PUNCT_SLASH, ARRAY_SIZE(PUNCT_SLASH), 3, 5},        // /
 };
 
 static const Glyph NUMBERS[10] = {

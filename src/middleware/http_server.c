@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <hardware/watchdog.h>
 #include <lwip/tcp.h>
 #include <pico/stdlib.h>
 
@@ -78,7 +79,43 @@ static const char* html_success =
     "center;font-size:40px;color:white}"
     "</style></head><body>"
     "<div class=\"container\"><div class=\"checkmark\">✓</div><h1>Success!</h1>"
-    "<p>WiFi credentials saved.<br>Device will reboot in a moment...</p></div></body></html>";
+    "<p>Device is rebooting...<br>Do not close this page</p></div></body></html>";
+
+static const char* html_config =
+    "HTTP/1.1 200 OK\r\n"
+    "Content-Type: text/html\r\n"
+    "Connection: close\r\n\r\n"
+    "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width\">"
+    "<meta charset=\"UTF-8\"><title>Photon Config</title>"
+    "<style>"
+    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:center}"
+    ".container{background:white;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.15);padding:32px;max-width:400px;width:100%}"
+    "h1{color:#333;margin:0 0 24px;font-size:28px;font-weight:600;text-align:center}"
+    "label{display:block;color:#555;font-size:14px;font-weight:500;margin-bottom:8px;margin-top:16px}"
+    "input,select{width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:8px;font-size:16px;box-sizing:border-box;transition:border-color 0.3s}"
+    "input:focus,select:focus{outline:none;border-color:#667eea}"
+    "button{width:100%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;margin-top:20px}"
+    "button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(102,126,234,0.4)}"
+    "button:active{transform:translateY(0)}"
+    ".subtitle{color:#888;font-size:14px;text-align:center;margin-bottom:24px}"
+    ".range-value{display:inline-block;color:#667eea;font-weight:600;margin-left:8px}"
+    "</style></head><body>"
+    "<div class=\"container\"><h1>Device Settings</h1>"
+    "<p class=\"subtitle\">Configure your Photon display</p>"
+    "<form method=\"POST\" action=\"/save-config\" enctype=\"application/x-www-form-urlencoded\">"
+    "<label>Brightness <span class=\"range-value\" id=\"brightnessValue\">2%</span></label>"
+    "<input type=\"range\" name=\"brightness\" id=\"brightness\" min=\"0\" max=\"30\" value=\"2\" step=\"1\" oninput=\"document.getElementById('brightnessValue').textContent=this.value+'%'\">"
+    "<label>Location</label>"
+    "<select name=\"location\">"
+    "<option value=\"0\">London</option>"
+    "</select>"
+    "<label>Currency</label>"
+    "<select name=\"currency\">"
+    "<option value=\"0\">USD</option>"
+    "<option value=\"1\">GBP</option>"
+    "</select>"
+    "<button type=\"submit\">Save & Reboot</button>"
+    "</form></div></body></html>";
 
 static int hex_to_int(char c)
 {
@@ -251,7 +288,35 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
     debug(TRACE, "HTTP request complete, length: %zu", state->received);
     debug(DEBUG, "Request first line: %.100s", request);
 
-    if (strncmp(request, "POST /save", 10) == 0)
+    if (strncmp(request, "POST /save-config", 17) == 0)
+    {
+        const char* body = strstr(request, "\r\n\r\n");
+        if (body)
+        {
+            body += 4;
+
+            debug(DEBUG, "Config POST body: %s", body);
+
+            wifi_config_t config;
+            flash_config_read(&config);
+
+            sscanf(body, "brightness=%hhu&location=%hhu&currency=%hhu",
+                   &config.brightness, &config.location, &config.currency);
+
+            debug(INFO, "Parsed config - Brightness: %d%%, Location: %d, Currency: %d",
+                  config.brightness, config.location, config.currency);
+
+            flash_config_write(&config);
+
+            tcp_write(pcb, html_success, strlen(html_success), TCP_WRITE_FLAG_COPY);
+            tcp_output(pcb);
+            sleep_ms(2000);
+
+            watchdog_enable(1, 1);
+            while(1);
+        }
+    }
+    else if (strncmp(request, "POST /save", 10) == 0)
     {
         const char* body = strstr(request, "\r\n\r\n");
         if (body)
@@ -263,7 +328,14 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             wifi_config_t config;
             parse_post_data(body, &config);
 
+            // Set default values for display settings
+            config.brightness = 2;
+            config.location = 0;
+            config.currency = 0;
+
             debug(DEBUG, "Parsed - SSID: '%s', Password: '%s'", config.ssid, config.password);
+            debug(DEBUG, "Set defaults - Brightness: %d, Location: %d, Currency: %d",
+                  config.brightness, config.location, config.currency);
 
             if (strlen(config.ssid) > 0)
             {
@@ -282,6 +354,13 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                 sleep_ms(100);
             }
         }
+    }
+    else if (strncmp(request, "GET /config", 11) == 0 || strncmp(request, "GET / ", 6) == 0)
+    {
+        debug(DEBUG, "Serving config page");
+        tcp_write(pcb, html_config, strlen(html_config), TCP_WRITE_FLAG_COPY);
+        tcp_output(pcb);
+        sleep_ms(100);
     }
     else
     {
