@@ -179,11 +179,13 @@ void ticker_display(Matrix* mtrx, int* offset)
             float current = tkr->current_price;
             float open = tkr->open_price;
 
+            float change_perc = (open > 0.0f) ? ((current - open) / open) * 100 : 0.0f;
+
             char price_str[16];
             snprintf(price_str, sizeof(price_str), "%.2f", current);
 
             char change_perc_str[16];
-            snprintf(change_perc_str, sizeof(change_perc_str), "+%.1f%%", open);
+            snprintf(change_perc_str, sizeof(change_perc_str), "%+.1f%%", change_perc);
 
             int width = matrix_calculate_word_width_with_space(tkr->to_str) + 3 +
                         matrix_calculate_word_width_with_space(price_str) +
