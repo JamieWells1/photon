@@ -1,6 +1,7 @@
 #include <wifi.h>
 
 #include <const.h>
+#include <flash_config.h>
 #include <glyphs.h>
 #include <graphics.h>
 #include <macro.h>
@@ -96,9 +97,16 @@ int wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
             debug(INFO, "WiFi connected successfully");
             connected = true;
 
+            // Get and log IP address
+            const ip4_addr_t* ip = netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_STA]);
+            debug(INFO, "IP Address: %s", ip4addr_ntoa(ip));
+            debug(INFO, "Gateway: %s", ip4addr_ntoa(netif_ip4_gw(&cyw43_state.netif[CYW43_ITF_STA])));
+            debug(INFO, "Netmask: %s", ip4addr_ntoa(netif_ip4_netmask(&cyw43_state.netif[CYW43_ITF_STA])));
+
             mdns_resp_init();
             mdns_resp_add_netif(&cyw43_state.netif[CYW43_ITF_STA], "photon");
-            debug(INFO, "mDNS responder started: photon.local");
+            debug(INFO, "mDNS responder started: photon.local resolves to %s", ip4addr_ntoa(ip));
+            debug(INFO, "To access config page, navigate to CONFIG menu on device");
 
             return 0;
         }
@@ -175,4 +183,4 @@ int wifi_init_ap(const char* ssid, const char* password, Matrix* mtrx)
     return 0;
 }
 
-bool wifi_is_ap_mode(void) { return ap_mode; }
+bool wifi_is_connected(void) { return connected; }

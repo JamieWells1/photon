@@ -78,14 +78,18 @@ set(CONFIG_SOURCES
         src/config.c
 )
 
-# Middleware
+# Middleware (client-side networking & storage)
 set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
         src/middleware/http.c
         src/middleware/flash_config.c
-        src/middleware/dns_server.c
-        src/middleware/http_server.c
-        src/middleware/dhcpserver/dhcpserver.c
+)
+
+# Server (captive portal & config server)
+set(SERVER_SOURCES
+        src/server/dns_server.c
+        src/server/http_server.c
+        src/server/dhcpserver/dhcpserver.c
 )
 
 # mDNS sources from lwIP
@@ -118,6 +122,7 @@ add_executable(photon
         ${UTILS_SOURCES}
         ${CONFIG_SOURCES}
         ${MIDDLEWARE_SOURCES}
+        ${SERVER_SOURCES}
         ${MDNS_SOURCES}
         ${GAME_SOURCES}
         ${MODE_SOURCES}
@@ -149,7 +154,8 @@ target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/display
         ${CMAKE_CURRENT_LIST_DIR}/src/input
         ${CMAKE_CURRENT_LIST_DIR}/src/middleware
-        ${CMAKE_CURRENT_LIST_DIR}/src/middleware/dhcpserver
+        ${CMAKE_CURRENT_LIST_DIR}/src/server
+        ${CMAKE_CURRENT_LIST_DIR}/src/server/dhcpserver
         ${CMAKE_CURRENT_LIST_DIR}/src/modes
         ${CMAKE_CURRENT_LIST_DIR}/src/modes/games
         ${CMAKE_CURRENT_BINARY_DIR}

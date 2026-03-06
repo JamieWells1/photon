@@ -161,6 +161,10 @@ int main(void)
             if (wifi_connect(config.ssid, config.password, mtrx) == 0)
             {
                 debug(INFO, "WiFi connected successfully");
+                debug(INFO, "To access web interface:");
+                debug(INFO, "  1. Use rotary encoder to navigate to CONFIG menu");
+                debug(INFO, "  2. Press button to enter CONFIG mode");
+                debug(INFO, "  3. Access http://photon.local in browser");
                 wifi_ready = true;
             }
             else

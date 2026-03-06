@@ -384,8 +384,12 @@ static err_t http_accept_callback(void* arg, struct tcp_pcb* newpcb, err_t err)
 {
     if (err != ERR_OK || !newpcb)
     {
+        debug(WARN, "HTTP accept failed: err=%d", err);
         return ERR_VAL;
     }
+
+    debug(INFO, "HTTP connection accepted from %s:%d",
+          ipaddr_ntoa(&newpcb->remote_ip), newpcb->remote_port);
 
     tcp_recv(newpcb, http_recv_callback);
     tcp_err(newpcb, http_err_callback);

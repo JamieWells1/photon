@@ -97,13 +97,3 @@ void dns_server_start(void)
 
     debug(INFO, "DNS server started on port 53");
 }
-
-void dns_server_stop(void)
-{
-    if (dns_pcb)
-    {
-        udp_remove(dns_pcb);
-        dns_pcb = NULL;
-        debug(INFO, "DNS server stopped");
-    }
-}

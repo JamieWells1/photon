@@ -1,10 +1,12 @@
 #include <config_mode.h>
 
 #include <const.h>
+#include <flash_config.h>
 #include <glyphs.h>
 #include <http_server.h>
 #include <macro.h>
 #include <matrix.h>
+#include <wifi.h>
 
 #include <stdio.h>
 
@@ -15,9 +17,39 @@ void config_display(Matrix* mtrx)
 {
     if (!server_started)
     {
+        // Ensure WiFi is connected before starting HTTP server
+        if (!wifi_is_connected())
+        {
+            debug(INFO, "WiFi not connected, reconnecting for CONFIG mode...");
+
+            wifi_config_t config;
+            if (!flash_config_read(&config))
+            {
+                debug(ERROR, "Failed to read WiFi config from flash");
+                matrix_clear(mtrx);
+                matrix_display_word_icon_pair("NO WIFI", &RED, &ICONS_ARR[WIFI], 0);
+                matrix_show(mtrx);
+                return;
+            }
+
+            if (wifi_connect(config.ssid, config.password, mtrx) != 0)
+            {
+                debug(ERROR, "Failed to reconnect WiFi for CONFIG mode");
+                matrix_clear(mtrx);
+                matrix_display_word_icon_pair("NO WIFI", &RED, &ICONS_ARR[WIFI], 0);
+                matrix_show(mtrx);
+                return;
+            }
+        }
+
         http_server_start();
         server_started = true;
-        debug(INFO, "Config server started. Access at: http://photon.local");
+        debug(INFO, "======================================");
+        debug(INFO, "CONFIG MODE ACTIVE");
+        debug(INFO, "Web interface available at:");
+        debug(INFO, "  http://photon.local");
+        debug(INFO, "  (or use IP address shown above)");
+        debug(INFO, "======================================");
     }
 
     const char* url_text = "  http://photon.local";
@@ -44,6 +76,11 @@ void config_display(Matrix* mtrx)
 
 void config_cleanup(void)
 {
+    if (server_started)
+    {
+        http_server_stop();
+        debug(INFO, "CONFIG MODE EXITED - Web interface no longer accessible");
+    }
     server_started = false;
     scroll_offset = 0;
 }

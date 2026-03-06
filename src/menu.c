@@ -108,6 +108,8 @@ static void menu_main_slide_right(Matrix* mtrx)
     int index_next = (MENU_STATE.mode + 1) % ARRAY_SIZE(MENUS);
     Menu nextMode = MENUS[index_next];
 
+    debug(INFO, "Menu: %s -> %s", MENUS[MENU_STATE.mode].text, nextMode.text);
+
     PixelState current_state[NUM_PIXELS];
     matrix_save_state(current_state);
 
@@ -136,6 +138,8 @@ static void menu_main_slide_left(Matrix* mtrx)
         index_previous = (MENU_STATE.mode - 1);
     }
     Menu nextMode = MENUS[index_previous];
+
+    debug(INFO, "Menu: %s -> %s", MENUS[MENU_STATE.mode].text, nextMode.text);
 
     PixelState current_state[NUM_PIXELS];
     matrix_save_state(current_state);
