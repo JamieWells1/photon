@@ -102,7 +102,8 @@ set(GAME_SOURCES
 
 # Display modes
 set(MODE_SOURCES
-        src/modes/ticker.c
+        src/modes/stock.c
+        src/modes/crypto.c
         src/modes/game.c
         src/modes/weather.c
         src/modes/config.c

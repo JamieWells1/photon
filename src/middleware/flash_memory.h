@@ -16,6 +16,9 @@ typedef struct
     uint8_t location;
     uint8_t currency;
 
+    uint16_t crypto;
+    uint16_t stocks;
+
     uint32_t crc32;
 } device_config_t;
 

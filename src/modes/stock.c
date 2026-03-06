@@ -1,7 +1,6 @@
-#include <ticker.h>
+#include <stock.h>
 
 #include <const.h>
-#include <currency.h>
 #include <error.h>
 #include <flash_memory.h>
 #include <glyphs.h>
@@ -18,37 +17,39 @@
 
 #include <pico/time.h>
 
-Ticker TKR_ARR[TKR_COUNT] = {
-    {XBT, TKR_XBT, 0.0f, 0.0f}, {ETH, TKR_ETH, 0.0f, 0.0f}, {SOL, TKR_SOL, 0.0f, 0.0f}};
+Stock STK_ARR[STK_COUNT] = {
+    {AAPL, STK_AAPL, 0.0f, 0.0f},
+    {MSFT, STK_MSFT, 0.0f, 0.0f},
+    {GOOGL, STK_GOOGL, 0.0f, 0.0f},
+    {AMZN, STK_AMZN, 0.0f, 0.0f},
+    {TSLA, STK_TSLA, 0.0f, 0.0f},
+    {NVDA, STK_NVDA, 0.0f, 0.0f},
+    {META, STK_META, 0.0f, 0.0f},
+    {JPM, STK_JPM, 0.0f, 0.0f},
+    {V, STK_V, 0.0f, 0.0f},
+    {DIS, STK_DIS, 0.0f, 0.0f},
+};
 
 static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
-static unsigned int g_tkr_to_fetch_index = 0;
+static unsigned int g_stk_to_fetch_index = 0;
 static int g_scroll_offset = 0;
+static uint16_t g_enabled_mask = DEFAULT_STOCKS;
 
-static const char* currency_to_string(Currency ccy)
+bool stock_is_enabled(StockIndex idx)
 {
-    switch (ccy)
-    {
-        case GBP: return CCY_GBP;
-        case USD: return CCY_USD;
-        case EUR: return CCY_EUR;
-        case JPY: return CCY_JPY;
-        case CAD: return CCY_CAD;
-        case AUD: return CCY_AUD;
-        case CHF: return CCY_CHF;
-        case CNY: return CCY_CNY;
-        case INR: return CCY_INR;
-        case KRW: return CCY_KRW;
-        case BRL: return CCY_BRL;
-        case SGD: return CCY_SGD;
-        default: return CCY_GBP;
-    }
+    return (g_enabled_mask & (1 << idx)) != 0;
+}
+
+void stock_set_enabled_mask(uint16_t mask)
+{
+    if (mask == 0) mask = DEFAULT_STOCKS;
+    g_enabled_mask = mask;
 }
 
 // Parsing
 
-static float ticker_parse_price_from_array(const char* json, const char* key)
+static float stock_parse_price_from_array(const char* json, const char* key)
 {
     const char* pos = strstr(json, key);
     if (!pos) return 0.0f;
@@ -64,7 +65,7 @@ static float ticker_parse_price_from_array(const char* json, const char* key)
     return atof(pos);
 }
 
-static float ticker_parse_price_from_string(const char* json, const char* key)
+static float stock_parse_price_from_string(const char* json, const char* key)
 {
     const char* pos = strstr(json, key);
     if (!pos) return 0.0f;
@@ -80,32 +81,32 @@ static float ticker_parse_price_from_string(const char* json, const char* key)
 
 // Display logic
 
-static void ticker_response_callback(const char* body, size_t len, bool complete)
+static void stock_response_callback(const char* body, size_t len, bool complete)
 {
-    debug(TRACE, "ticker_response_callback: len=%d, complete=%d", len, complete);
+    debug(TRACE, "stock_response_callback: len=%d, complete=%d", len, complete);
 
     if (!complete) return;
 
     if (!body || len == 0)
     {
-        debug(ERROR, "Empty response for ticker index %u", g_tkr_to_fetch_index);
+        debug(ERROR, "Empty response for stock index %u", g_stk_to_fetch_index);
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
         return;
     }
 
-    debug(DEBUG, "Received ticker response: %.*s", (int)len, body);
+    debug(DEBUG, "Received stock response: %.*s", (int)len, body);
 
-    float current_price = ticker_parse_price_from_array(body, "\"c\":");
-    float open_price = ticker_parse_price_from_string(body, "\"o\":");
+    float current_price = stock_parse_price_from_array(body, "\"c\":");
+    float open_price = stock_parse_price_from_string(body, "\"o\":");
 
     if (!current_price) current_price = 0.0f;
     if (!open_price) open_price = 0.0f;
 
     if (current_price > 0.0f && open_price > 0.0f)
     {
-        TKR_ARR[g_tkr_to_fetch_index].current_price = current_price;
-        TKR_ARR[g_tkr_to_fetch_index].open_price = open_price;
+        STK_ARR[g_stk_to_fetch_index].current_price = current_price;
+        STK_ARR[g_stk_to_fetch_index].open_price = open_price;
         g_data_fetched = true;
 
         uint64_t ms_until_next_fetch = 15 * 60 * 1000;
@@ -116,11 +117,13 @@ static void ticker_response_callback(const char* body, size_t len, bool complete
     }
     else
     {
-        debug(ERROR, "Failed to parse ticker data for index %u", g_tkr_to_fetch_index);
+        debug(ERROR, "Failed to parse stock data for index %u", g_stk_to_fetch_index);
+        uint64_t ms_until_retry = 60 * 1000;
+        g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
     }
 }
 
-void ticker_display(Matrix* mtrx, int* offset)
+void stock_display(Matrix* mtrx, int* offset)
 {
     ASSERT_NOT_NULL(mtrx);
     ASSERT_NOT_NULL(offset);
@@ -130,37 +133,42 @@ void ticker_display(Matrix* mtrx, int* offset)
 
     if (should_fetch)
     {
-        debug(INFO, "Starting ticker data fetch");
+        debug(INFO, "Starting stock data fetch");
 
         if (wifi_is_connected())
         {
             device_config_t config;
             flash_memory_read(&config);
-            const char* currency = currency_to_string(config.currency);
+            stock_set_enabled_mask(config.stocks);
 
-            while (g_tkr_to_fetch_index < TKR_COUNT)
+            while (g_stk_to_fetch_index < STK_COUNT)
             {
-                const char* tkr_to_fetch = TKR_ARR[g_tkr_to_fetch_index].to_str;
+                if (!stock_is_enabled(g_stk_to_fetch_index))
+                {
+                    g_stk_to_fetch_index++;
+                    continue;
+                }
+
+                const char* stk_to_fetch = STK_ARR[g_stk_to_fetch_index].to_str;
 
                 char path[256];
-                snprintf(path, sizeof(path), "/proxy/%s/0/public/Ticker?pair=%s%s", HOST_URL_CRYPTO,
-                         tkr_to_fetch, currency);
+                snprintf(path, sizeof(path), "/stocks/%s", stk_to_fetch);
 
-                debug(INFO, "Fetching %s via proxy: %s:%s%s", tkr_to_fetch, PROXY_HOST, PROXY_PORT,
+                debug(INFO, "Fetching %s via proxy: %s:%s%s", stk_to_fetch, PROXY_HOST, PROXY_PORT,
                       path);
 
                 uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-                ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, ticker_response_callback, mtrx);
+                ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, stock_response_callback, mtrx);
                 if (RC_FAILED(rc))
                 {
-                    debug(ERROR, "HTTP request failed for %s: %s", tkr_to_fetch, rc_to_string(rc));
+                    debug(ERROR, "HTTP request failed for %s: %s", stk_to_fetch, rc_to_string(rc));
                 }
 
-                g_tkr_to_fetch_index++;
+                g_stk_to_fetch_index++;
             }
 
-            g_tkr_to_fetch_index = 0;
-            debug(INFO, "Ticker fetch complete");
+            g_stk_to_fetch_index = 0;
+            debug(INFO, "Stock fetch complete");
         }
         else
         {
@@ -171,13 +179,19 @@ void ticker_display(Matrix* mtrx, int* offset)
     if (g_data_fetched)
     {
         int total_width = 0;
-        int ticker_widths[TKR_COUNT];
+        int stock_widths[STK_COUNT];
+        memset(stock_widths, 0, sizeof(stock_widths));
 
-        for (unsigned int i = 0; i < TKR_COUNT; i++)
+        for (unsigned int i = 0; i < STK_COUNT; i++)
         {
-            const Ticker* tkr = &TKR_ARR[i];
-            float current = tkr->current_price;
-            float open = tkr->open_price;
+            if (!stock_is_enabled(i))
+            {
+                continue;
+            }
+
+            const Stock* stk = &STK_ARR[i];
+            float current = stk->current_price;
+            float open = stk->open_price;
 
             float change_perc = (open > 0.0f) ? ((current - open) / open) * 100 : 0.0f;
 
@@ -187,24 +201,29 @@ void ticker_display(Matrix* mtrx, int* offset)
             char change_perc_str[16];
             snprintf(change_perc_str, sizeof(change_perc_str), "%+.1f%%", change_perc);
 
-            int width = matrix_calculate_word_width_with_space(tkr->to_str) + 3 +
+            int width = matrix_calculate_word_width_with_space(stk->to_str) + 3 +
                         matrix_calculate_word_width_with_space(price_str) +
                         ICONS_ARR[TKR_UP].width +
-                        matrix_calculate_word_width_with_space(change_perc_str) + 2;
+                        matrix_calculate_word_width_with_space(change_perc_str) + 12;
 
-            ticker_widths[i] = width;
+            stock_widths[i] = width;
             total_width += width;
         }
 
         matrix_clear(mtrx);
 
         int current_x = 0;
-        for (unsigned int i = 0; i < TKR_COUNT; i++)
+        for (unsigned int i = 0; i < STK_COUNT; i++)
         {
-            const Ticker* tkr = &TKR_ARR[i];
+            if (!stock_is_enabled(i))
+            {
+                continue;
+            }
 
-            float current = tkr->current_price;
-            float open = tkr->open_price;
+            const Stock* stk = &STK_ARR[i];
+
+            float current = stk->current_price;
+            float open = stk->open_price;
 
             float change_perc = ((current - open) / open) * 100;
             bool is_up = (change_perc >= 0.0f);
@@ -222,25 +241,25 @@ void ticker_display(Matrix* mtrx, int* offset)
 
             for (int wrap = 0; wrap < 2; wrap++)
             {
-                int tkr_x = base_x + (wrap * total_width) + 2;
-                int price_x = tkr_x + matrix_calculate_word_width_with_space(tkr->to_str) + 3;
+                int stk_x = base_x + (wrap * total_width) + 2;
+                int price_x = stk_x + matrix_calculate_word_width_with_space(stk->to_str) + 3;
                 int icon_x = price_x + matrix_calculate_word_width_with_space(price_str);
                 int perc_diff_x = icon_x + icon->width + 4;
 
                 const unsigned int y = 1;
 
-                matrix_display_word(tkr->to_str, tkr_x, y, &DEFAULT_COLOUR);
+                matrix_display_word(stk->to_str, stk_x, y, &DEFAULT_COLOUR);
                 matrix_display_word(price_str, price_x, y, colour);
                 matrix_display_icon(icon, icon_x, y, colour);
                 matrix_display_word(change_perc_str, perc_diff_x, y, colour);
             }
 
-            current_x += ticker_widths[i];
+            current_x += stock_widths[i];
         }
 
         matrix_show(mtrx);
 
-        (*offset)++;
+        (*offset) += 2;
         if (*offset >= total_width)
         {
             *offset = 0;
@@ -248,10 +267,10 @@ void ticker_display(Matrix* mtrx, int* offset)
     }
 }
 
-void ticker_cleanup(void)
+void stock_cleanup(void)
 {
     g_data_fetched = false;
     g_next_fetch_time_ms = 0;
-    g_tkr_to_fetch_index = 0;
+    g_stk_to_fetch_index = 0;
     g_scroll_offset = 0;
 }

@@ -84,79 +84,128 @@ static const char* html_success =
     "<div class=\"container\"><div class=\"checkmark\">✓</div><h1>Success!</h1>"
     "<p>Device is rebooting...<br>Do not close this page</p></div></body></html>";
 
-static const char* html_config =
-    "HTTP/1.1 200 OK\r\n"
-    "Content-Type: text/html\r\n"
-    "Connection: close\r\n\r\n"
-    "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width\">"
-    "<meta charset=\"UTF-8\"><title>Photon Config</title>"
-    "<style>"
-    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#4A90E2 0%,#357ABD 100%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:center}"
-    ".container{background:white;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.15);padding:32px;max-width:400px;width:100%}"
-    "h1{color:#333;margin:0 0 24px;font-size:28px;font-weight:600;text-align:center}"
-    "label{display:block;color:#555;font-size:14px;font-weight:500;margin-bottom:8px;margin-top:16px}"
-    "input,select{width:100%;padding:12px;border:2px solid #e0e0e0;border-radius:8px;font-size:16px;box-sizing:border-box;transition:border-color 0.3s}"
-    "input:focus,select:focus{outline:none;border-color:#4A90E2}"
-    "button{width:100%;background:linear-gradient(135deg,#4A90E2 0%,#357ABD 100%);color:white;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;margin-top:20px}"
-    "button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(74,144,226,0.4)}"
-    "button:active{transform:translateY(0)}"
-    ".subtitle{color:#888;font-size:14px;text-align:center;margin-bottom:24px}"
-    ".range-value{display:inline-block;color:#4A90E2;font-weight:600;margin-left:8px}"
-    ".warning{display:none;color:#f59e0b;font-size:13px;margin-top:4px;font-weight:500}"
-    ".warning.show{display:block}"
-    "</style></head><body>"
-    "<div class=\"container\"><h1>Device Settings</h1>"
-    "<p class=\"subtitle\">Configure your Photon display</p>"
-    "<form method=\"POST\" action=\"/save-config\" enctype=\"application/x-www-form-urlencoded\">"
-    "<label>Brightness <span class=\"range-value\" id=\"brightnessValue\">2%</span></label>"
-    "<input type=\"range\" name=\"brightness\" id=\"brightness\" min=\"1\" max=\"25\" value=\"2\" step=\"1\" oninput=\"updateBrightness(this.value)\">"
-    "<p class=\"warning\" id=\"powerWarning\">⚠️ External power supply highly recommended to avoid overload</p>"
-    "<label>Location</label>"
-    "<select name=\"location\">"
-    "<option value=\"0\">London</option>"
-    "<option value=\"1\">New York</option>"
-    "<option value=\"2\">Los Angeles</option>"
-    "<option value=\"3\">Chicago</option>"
-    "<option value=\"4\">Miami</option>"
-    "<option value=\"5\">San Francisco</option>"
-    "<option value=\"6\">Seattle</option>"
-    "<option value=\"7\">Toronto</option>"
-    "<option value=\"8\">Paris</option>"
-    "<option value=\"9\">Berlin</option>"
-    "<option value=\"10\">Stockholm</option>"
-    "<option value=\"11\">Athens</option>"
-    "<option value=\"12\">Dubai</option>"
-    "<option value=\"13\">Singapore</option>"
-    "<option value=\"14\">Tokyo</option>"
-    "<option value=\"15\">Sydney</option>"
-    "<option value=\"16\">Rio de Janeiro</option>"
-    "<option value=\"17\">Cape Town</option>"
-    "</select>"
-    "<label>Currency</label>"
-    "<select name=\"currency\">"
-    "<option value=\"0\">GBP (£)</option>"
-    "<option value=\"1\">USD ($)</option>"
-    "<option value=\"2\">EUR (€)</option>"
-    "<option value=\"3\">JPY (¥)</option>"
-    "<option value=\"4\">CAD ($)</option>"
-    "<option value=\"5\">AUD ($)</option>"
-    "<option value=\"6\">CHF (Fr)</option>"
-    "<option value=\"7\">CNY (¥)</option>"
-    "<option value=\"8\">INR (₹)</option>"
-    "<option value=\"9\">KRW (₩)</option>"
-    "<option value=\"10\">BRL (R$)</option>"
-    "<option value=\"11\">SGD ($)</option>"
-    "</select>"
-    "<button type=\"submit\">Save & Reboot</button>"
-    "</form></div>"
-    "<script>"
-    "function updateBrightness(val){"
-    "document.getElementById('brightnessValue').textContent=val+'%';"
-    "var warning=document.getElementById('powerWarning');"
-    "if(val>10){warning.classList.add('show');}else{warning.classList.remove('show');}"
-    "}"
-    "</script>"
-    "</body></html>";
+static const char* location_names[] = {
+    "London", "New York", "Los Angeles", "Chicago", "Miami", "San Francisco",
+    "Seattle", "Toronto", "Paris", "Berlin", "Stockholm", "Athens",
+    "Dubai", "Singapore", "Tokyo", "Sydney", "Rio de Janeiro", "Cape Town"
+};
+#define NUM_LOCATIONS 18
+
+static const char* currency_names[] = {
+    "GBP", "USD", "EUR", "JPY", "CAD", "AUD", "CHF", "CNY", "INR", "KRW", "BRL", "SGD"
+};
+static const char* currency_symbols[] = {
+    "&#163;", "$", "&#8364;", "&#165;", "$", "$", "Fr", "&#165;",
+    "&#8377;", "&#8361;", "R$", "$"
+};
+#define NUM_CURRENCIES 12
+
+static const char* crypto_names[] = {
+    "XBT", "ETH", "SOL", "ADA", "DOT", "LINK", "AVAX", "DOGE", "XRP", "LTC"
+};
+static const char* stock_names[] = {
+    "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "JPM", "V", "DIS"
+};
+
+static char config_html_buf[8192];
+
+static const char* build_config_html(void)
+{
+    device_config_t config;
+    flash_memory_read(&config);
+
+    int pos = 0;
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+        "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n"
+        "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width\">"
+        "<meta charset=\"UTF-8\"><title>Photon Config</title>"
+        "<style>"
+        "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#4A90E2 0%%,#357ABD 100%%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:center}"
+        ".container{background:white;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.15);padding:32px;max-width:400px;width:100%%}"
+        "h1{color:#333;margin:0 0 24px;font-size:28px;font-weight:600;text-align:center}"
+        "label{display:block;color:#555;font-size:14px;font-weight:500;margin-bottom:8px;margin-top:16px}"
+        "input,select{width:100%%;padding:12px;border:2px solid #e0e0e0;border-radius:8px;font-size:16px;box-sizing:border-box;transition:border-color 0.3s}"
+        "input:focus,select:focus{outline:none;border-color:#4A90E2}"
+        "button{width:100%%;background:linear-gradient(135deg,#4A90E2 0%%,#357ABD 100%%);color:white;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;margin-top:20px}"
+        "button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(74,144,226,0.4)}"
+        "button:active{transform:translateY(0)}"
+        ".subtitle{color:#888;font-size:14px;text-align:center;margin-bottom:24px}"
+        ".range-value{display:inline-block;color:#4A90E2;font-weight:600;margin-left:8px}"
+        ".warning{display:none;color:#f59e0b;font-size:13px;margin-top:4px;font-weight:500}"
+        ".warning.show{display:block}"
+        ".ticker-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}"
+        ".ticker-grid label{display:flex;align-items:center;gap:8px;margin:0;cursor:pointer}"
+        ".ticker-grid input[type=checkbox]{width:auto;margin:0;padding:0}"
+        "</style></head><body>"
+        "<div class=\"container\"><h1>Device Settings</h1>"
+        "<p class=\"subtitle\">Configure your Photon display</p>"
+        "<form method=\"POST\" action=\"/save-config\" enctype=\"application/x-www-form-urlencoded\">"
+        "<label>Brightness <span class=\"range-value\" id=\"brightnessValue\">%d%%</span></label>"
+        "<input type=\"range\" name=\"brightness\" id=\"brightness\" min=\"1\" max=\"25\" value=\"%d\" step=\"1\" oninput=\"updateBrightness(this.value)\">"
+        "<p class=\"warning\" id=\"powerWarning\"%s>External power supply highly recommended to avoid overload</p>",
+        config.brightness, config.brightness,
+        config.brightness > 10 ? " class=\"warning show\"" : "");
+
+    // Location select
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+        "<label>Location</label><select name=\"location\">");
+    for (int i = 0; i < NUM_LOCATIONS; i++)
+    {
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+            "<option value=\"%d\"%s>%s</option>",
+            i, config.location == i ? " selected" : "", location_names[i]);
+    }
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</select>");
+
+    // Currency select
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+        "<label>Currency</label><select name=\"currency\">");
+    for (int i = 0; i < NUM_CURRENCIES; i++)
+    {
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+            "<option value=\"%d\"%s>%s (%s)</option>",
+            i, config.currency == i ? " selected" : "",
+            currency_names[i], currency_symbols[i]);
+    }
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</select>");
+
+    // Crypto checkboxes
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+        "<label>Crypto</label><div class=\"ticker-grid\">");
+    for (int i = 0; i < 10; i++)
+    {
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+            "<label><input type=\"checkbox\" name=\"crypto_%d\" value=\"1\"%s>%s</label>",
+            i, (config.crypto & (1 << i)) ? " checked" : "", crypto_names[i]);
+    }
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div>");
+
+    // Stock checkboxes
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+        "<label>Stocks</label><div class=\"ticker-grid\">");
+    for (int i = 0; i < 10; i++)
+    {
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+            "<label><input type=\"checkbox\" name=\"stk_%d\" value=\"1\"%s>%s</label>",
+            i, (config.stocks & (1 << i)) ? " checked" : "", stock_names[i]);
+    }
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div>");
+
+    // Submit and script
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+        "<button type=\"submit\">Save & Reboot</button>"
+        "</form></div>"
+        "<script>"
+        "function updateBrightness(val){"
+        "document.getElementById('brightnessValue').textContent=val+'%%';"
+        "var warning=document.getElementById('powerWarning');"
+        "if(val>10){warning.classList.add('show');}else{warning.classList.remove('show');}"
+        "}"
+        "</script>"
+        "</body></html>");
+
+    return config_html_buf;
+}
 
 static int hex_to_int(char c)
 {
@@ -352,11 +401,34 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             device_config_t config;
             flash_memory_read(&config);
 
-            sscanf(body, "brightness=%hhu&location=%hhu&currency=%hhu",
-                   &config.brightness, &config.location, &config.currency);
+            const char* val;
+            val = strstr(body, "brightness=");
+            if (val) config.brightness = (uint8_t)atoi(val + 11);
+            val = strstr(body, "location=");
+            if (val) config.location = (uint8_t)atoi(val + 9);
+            val = strstr(body, "currency=");
+            if (val) config.currency = (uint8_t)atoi(val + 9);
 
-            debug(INFO, "Parsed config - Brightness: %d%%, Location: %d, Currency: %d",
-                  config.brightness, config.location, config.currency);
+            uint16_t crypto = 0;
+            for (int i = 0; i < 10; i++)
+            {
+                char key[12];
+                snprintf(key, sizeof(key), "crypto_%d=", i);
+                if (strstr(body, key)) crypto |= (1 << i);
+            }
+            config.crypto = crypto ? crypto : DEFAULT_CRYPTO;
+
+            uint16_t stocks = 0;
+            for (int i = 0; i < 10; i++)
+            {
+                char key[8];
+                snprintf(key, sizeof(key), "stk_%d=", i);
+                if (strstr(body, key)) stocks |= (1 << i);
+            }
+            config.stocks = stocks ? stocks : DEFAULT_STOCKS;
+
+            debug(INFO, "Parsed config - Brightness: %d%%, Location: %d, Currency: %d, Crypto: 0x%04X, Stocks: 0x%04X",
+                  config.brightness, config.location, config.currency, config.crypto, config.stocks);
 
             flash_memory_write(&config);
             matrix_set_brightness(config.brightness);
@@ -409,7 +481,8 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
     }
     else if (strncmp(request, "GET /config", 11) == 0 || strncmp(request, "GET / ", 6) == 0)
     {
-        tcp_write(pcb, html_config, strlen(html_config), 0);
+        const char* config_page = build_config_html();
+        tcp_write(pcb, config_page, strlen(config_page), TCP_WRITE_FLAG_COPY);
         tcp_output(pcb);
         tcp_sent(pcb, http_sent_callback);
 
