@@ -561,8 +561,9 @@ static const Pixel ICON_POWER[15] = {
 };
 
 static const Pixel ICON_CRYPTO[16] = {
-    {1, 0, YELLOW}, {2, 0, YELLOW}, {3, 0, YELLOW}, {0, 1, YELLOW}, {0, 2, YELLOW},
-    {0, 3, YELLOW}, {4, 1, YELLOW}, {4, 2, YELLOW}, {4, 3, YELLOW}, {1, 4, YELLOW}, {2, 4, YELLOW}, {3, 4, YELLOW}, {2, 1, YELLOW},{1, 2, YELLOW},{3, 2, YELLOW},{2, 3, YELLOW},
+    {1, 0, YELLOW}, {2, 0, YELLOW}, {3, 0, YELLOW}, {0, 1, YELLOW}, {0, 2, YELLOW}, {0, 3, YELLOW},
+    {4, 1, YELLOW}, {4, 2, YELLOW}, {4, 3, YELLOW}, {1, 4, YELLOW}, {2, 4, YELLOW}, {3, 4, YELLOW},
+    {2, 1, YELLOW}, {1, 2, YELLOW}, {3, 2, YELLOW}, {2, 3, YELLOW},
 };
 
 // =================
@@ -587,7 +588,7 @@ static const Glyph ICONS_ARR[ICON_COUNT] = {
     {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                  // 14: WIFI
     {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                  // 15: DATA
     {ICON_POWER, ARRAY_SIZE(ICON_POWER), 5, 5},                // 16: POWER
-    {ICON_CRYPTO, ARRAY_SIZE(ICON_CRYPTO), 5, 5},                   // 17: CRYPTO
+    {ICON_CRYPTO, ARRAY_SIZE(ICON_CRYPTO), 5, 5},              // 17: CRYPTO
 };
 
 #endif  // DISPLAYS_H

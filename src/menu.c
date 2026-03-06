@@ -2,8 +2,8 @@
 
 #include <config.h>
 #include <const.h>
+#include <crypto.h>
 #include <flash_memory.h>
-#include <game.h>
 #include <global.h>
 #include <graphics.h>
 #include <input.h>
@@ -11,7 +11,6 @@
 #include <matrix.h>
 #include <stdio.h>
 #include <stock.h>
-#include <crypto.h>
 #include <weather.h>
 
 #include <glyphs.h>
@@ -170,10 +169,6 @@ static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Mat
     {
         target_menu = CRYPTO_START;
     }
-    else if (menu_state.mode == MENU_GAMES)
-    {
-        target_menu = GAME_START;
-    }
     else if (menu_state.mode == MENU_WEATHER)
     {
         target_menu = TEMP_START;
@@ -216,10 +211,6 @@ static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Mat
     {
         crypto_display(mtrx, &g_crypto_offset);
     }
-    else if (g_current_mode == GAME_START)
-    {
-        game_display(mtrx);
-    }
     else if (g_current_mode == TEMP_START)
     {
         weather_display(mtrx, &g_weather_hour_offset);
@@ -261,16 +252,28 @@ static void menu_sub_menu_crypto_detect_inputs(Button* btns, Rotator* rtr, Matri
     }
 }
 
-static void menu_sub_menu_games_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
-{
-    // TODO
-}
-
 static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (input_rtr_long_pressed(rtr))
     {
         menu_reset_states(mtrx);
+    }
+
+    // Short press resets to current hour
+    if (input_rtr_pressed(rtr) && g_weather_hour_offset != 0)
+    {
+        // Save current display state
+        PixelState current_state[NUM_PIXELS];
+        matrix_save_state(current_state);
+
+        g_weather_hour_offset = 0;
+
+        weather_display(mtrx, &g_weather_hour_offset);
+        PixelState next_state[NUM_PIXELS];
+        matrix_save_state(next_state);
+
+        // Slide left to indicate going back
+        matrix_slide_left(mtrx, current_state, next_state);
     }
 
     int max_offset = weather_hours_fetched() - weather_current_hour_index() - 1;
@@ -419,10 +422,6 @@ static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
         if (g_current_mode == CRYPTO_START)
         {
             menu_sub_menu_crypto_detect_inputs(btns, rtr, mtrx);
-        }
-        if (g_current_mode == GAME_START)
-        {
-            menu_sub_menu_games_detect_inputs(btns, rtr, mtrx);
         }
         if (g_current_mode == TEMP_START)
         {

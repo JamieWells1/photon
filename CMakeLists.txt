@@ -100,16 +100,10 @@ set(MDNS_SOURCES
         ${PICO_LWIP_PATH}/src/apps/mdns/mdns_domain.c
 )
 
-# Games
-set(GAME_SOURCES
-        src/modes/games/tetris.c
-)
-
 # Display modes
 set(MODE_SOURCES
         src/modes/stock.c
         src/modes/crypto.c
-        src/modes/game.c
         src/modes/weather.c
         src/modes/config.c
 )
@@ -126,7 +120,6 @@ add_executable(photon
         ${MIDDLEWARE_SOURCES}
         ${SERVER_SOURCES}
         ${MDNS_SOURCES}
-        ${GAME_SOURCES}
         ${MODE_SOURCES}
 )
 
@@ -159,7 +152,6 @@ target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/middleware
         ${CMAKE_CURRENT_LIST_DIR}/src/server
         ${CMAKE_CURRENT_LIST_DIR}/src/modes
-        ${CMAKE_CURRENT_LIST_DIR}/src/modes/games
         ${CMAKE_CURRENT_BINARY_DIR}
 )
 

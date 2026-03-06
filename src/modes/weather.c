@@ -39,6 +39,7 @@ static volatile uint64_t g_last_hour_advance_ms = 0;
 
 static float g_last_displayed_temp = -999.0f;
 static int g_last_displayed_code = -1;
+static int g_last_displayed_hour = -1;
 
 // Getters
 
@@ -391,7 +392,8 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
 
     const Glyph* weather_icon = weather_code_to_icon(current_code, hour);
 
-    if (current_temp != g_last_displayed_temp || current_code != g_last_displayed_code)
+    if (current_temp != g_last_displayed_temp || current_code != g_last_displayed_code ||
+        hour != g_last_displayed_hour)
     {
         char temp_str[16];
         snprintf(temp_str, sizeof(temp_str), "%.0f°C", current_temp);
@@ -414,6 +416,7 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
 
         g_last_displayed_temp = current_temp;
         g_last_displayed_code = current_code;
+        g_last_displayed_hour = hour;
     }
 }
 
@@ -421,4 +424,5 @@ void weather_cleanup(void)
 {
     g_last_displayed_temp = -999.0f;
     g_last_displayed_code = -1;
+    g_last_displayed_hour = -1;
 }

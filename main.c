@@ -1,4 +1,5 @@
 #include <const.h>
+#include <crypto.h>
 #include <dns_server.h>
 #include <error.h>
 #include <flash_memory.h>
@@ -10,7 +11,6 @@
 #include <matrix.h>
 #include <menu.h>
 #include <power.h>
-#include <crypto.h>
 #include <wifi.h>
 
 #include <stdint.h>
@@ -153,7 +153,8 @@ int main(void)
     bool usb_host = stdio_usb_connected();
     uint8_t max_brightness = usb_host ? MAX_BRIGHTNESS_USB : MAX_BRIGHTNESS_MAINS;
     matrix_set_max_brightness(max_brightness);
-    debug(INFO, "Power source: %s (max brightness: %u%%)", usb_host ? "USB" : "mains", max_brightness);
+    debug(INFO, "Power source: %s (max brightness: %u%%)", usb_host ? "USB" : "mains",
+          max_brightness);
 
     debug(INFO, "✓✓✓ Main init complete. Starting main execution loop.");
 

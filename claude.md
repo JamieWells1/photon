@@ -31,7 +31,6 @@ src/
 │   ├── crypto.c          # Crypto prices from Kraken API
 │   ├── weather.c         # Weather from Open-Meteo API
 │   ├── config.c          # Web config server at photon.local
-│   └── game.c            # Game mode (stub)
 ├── server/
 │   ├── http_server.c     # Captive portal + config web interface
 │   ├── dns_server.c      # DNS server for captive portal
@@ -76,4 +75,4 @@ All rendering is buffered. Call `matrix_show()` to push to hardware.
 
 ## Modes
 
-5 menu modes: CRYPTO, GAMES, TEMP, CONFIG, RESET. Each mode implements a `_display()` function called each frame and a `_cleanup()` function called on exit. Reset mode is handled directly in menu.c.
+5 menu modes: STOCKS, CRYPTO, TEMP, CONFIG, RESET. Each mode implements a `_display()` function called each frame and a `_cleanup()` function called on exit. Reset mode is handled directly in menu.c.

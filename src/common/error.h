@@ -40,14 +40,14 @@ typedef enum
     // =========================================================================
     // WIFI MODULE ERRORS (-2xx)
     // =========================================================================
-    RC_WIFI_INIT_FAILED = -200,       // WiFi hardware init failed
-    RC_WIFI_CONNECT_FAILED = -201,    // Generic connection failure
-    RC_WIFI_BAD_AUTH = -202,          // Authentication failed (wrong password)
-    RC_WIFI_NO_NETWORK = -203,        // Network not found (wrong SSID)
-    RC_WIFI_TIMEOUT = -204,           // Connection timeout
-    RC_WIFI_ALREADY_CONNECTED = -205, // Already connected (not an error, informational)
-    RC_WIFI_DISCONNECTED = -206,      // Unexpected disconnection
-    RC_WIFI_AP_FAILED = -207,         // Access point mode failed
+    RC_WIFI_INIT_FAILED = -200,        // WiFi hardware init failed
+    RC_WIFI_CONNECT_FAILED = -201,     // Generic connection failure
+    RC_WIFI_BAD_AUTH = -202,           // Authentication failed (wrong password)
+    RC_WIFI_NO_NETWORK = -203,         // Network not found (wrong SSID)
+    RC_WIFI_TIMEOUT = -204,            // Connection timeout
+    RC_WIFI_ALREADY_CONNECTED = -205,  // Already connected (not an error, informational)
+    RC_WIFI_DISCONNECTED = -206,       // Unexpected disconnection
+    RC_WIFI_AP_FAILED = -207,          // Access point mode failed
 
     // =========================================================================
     // HTTP MODULE ERRORS (-3xx)
@@ -75,10 +75,10 @@ typedef enum
     // =========================================================================
     // SERVER ERRORS (-5xx)
     // =========================================================================
-    RC_SERVER_BIND_FAILED = -500,   // Failed to bind to port
-    RC_SERVER_LISTEN_FAILED = -501, // Failed to listen
-    RC_SERVER_ACCEPT_FAILED = -502, // Failed to accept connection
-    RC_SERVER_SEND_FAILED = -503,   // Failed to send response
+    RC_SERVER_BIND_FAILED = -500,    // Failed to bind to port
+    RC_SERVER_LISTEN_FAILED = -501,  // Failed to listen
+    RC_SERVER_ACCEPT_FAILED = -502,  // Failed to accept connection
+    RC_SERVER_SEND_FAILED = -503,    // Failed to send response
 
 } ReturnCode;
 

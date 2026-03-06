@@ -6,4 +6,4 @@
 // Public API - logs power consumption stats at TRACE level
 void power_log_stats(uint8_t brightness_pct);
 
-#endif // POWER_H
+#endif  // POWER_H

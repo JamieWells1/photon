@@ -14,39 +14,6 @@
 #define LED_CURRENT_MA_PER_CHANNEL 18  // mA per color channel at 100% brightness
 #define LED_IDLE_CURRENT_MA 1          // mA per LED when off (controller chip)
 #define PICO_IDLE_CURRENT_MA 100       // Pico + WiFi baseline current
-#define VSYS_ADC_INPUT 3               // ADC input for VSYS
-#define VSYS_VOLTAGE_DIVIDER 3.0f      // VSYS has /3 voltage divider
-
-static bool g_adc_initialized = false;
-
-static void power_init_monitoring(void)
-{
-    if (!g_adc_initialized)
-    {
-        adc_init();
-        g_adc_initialized = true;
-        debug(TRACE, "Power monitoring initialized");
-    }
-}
-
-static float power_read_vsys_voltage(void)
-{
-    if (!g_adc_initialized)
-    {
-        power_init_monitoring();
-    }
-
-    adc_select_input(VSYS_ADC_INPUT);
-    sleep_us(10);  // Allow ADC to settle after channel switch
-    uint16_t raw = adc_read();
-
-    // ADC is 12-bit (0-4095), ref is 3.3V, VSYS has /3 divider
-    float voltage = (raw * 3.3f / 4095.0f) * VSYS_VOLTAGE_DIVIDER;
-
-    debug(TRACE, "ADC raw value: %u, calculated voltage: %.2fV", raw, voltage);
-
-    return voltage;
-}
 
 static uint16_t power_estimate_current_draw_ma(uint8_t brightness_pct)
 {

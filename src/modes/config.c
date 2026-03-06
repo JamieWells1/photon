@@ -30,7 +30,7 @@ void config_display(Matrix* mtrx)
         sleep_ms(2000);
 
         watchdog_enable(1, 1);
-        while(1);
+        while (1);
     }
 
     if (!server_started)

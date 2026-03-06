@@ -104,8 +104,10 @@ ReturnCode wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
             // Get and log IP address
             const ip4_addr_t* ip = netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_STA]);
             debug(INFO, "IP Address: %s", ip4addr_ntoa(ip));
-            debug(INFO, "Gateway: %s", ip4addr_ntoa(netif_ip4_gw(&cyw43_state.netif[CYW43_ITF_STA])));
-            debug(INFO, "Netmask: %s", ip4addr_ntoa(netif_ip4_netmask(&cyw43_state.netif[CYW43_ITF_STA])));
+            debug(INFO, "Gateway: %s",
+                  ip4addr_ntoa(netif_ip4_gw(&cyw43_state.netif[CYW43_ITF_STA])));
+            debug(INFO, "Netmask: %s",
+                  ip4addr_ntoa(netif_ip4_netmask(&cyw43_state.netif[CYW43_ITF_STA])));
             debug(INFO, "To access web interface, navigate to CONFIG menu on device");
 
             return RC_OK;

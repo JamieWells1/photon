@@ -19,16 +19,11 @@
 #include <pico/time.h>
 
 Crypto CRYPTO_ARR[CRYPTO_COUNT] = {
-    {XBT, CRYPTO_XBT, 0.0f, 0.0f},
-    {ETH, CRYPTO_ETH, 0.0f, 0.0f},
-    {SOL, CRYPTO_SOL, 0.0f, 0.0f},
-    {ADA, CRYPTO_ADA, 0.0f, 0.0f},
-    {DOT, CRYPTO_DOT, 0.0f, 0.0f},
-    {LINK, CRYPTO_LINK, 0.0f, 0.0f},
-    {AVAX, CRYPTO_AVAX, 0.0f, 0.0f},
-    {DOGE, CRYPTO_DOGE, 0.0f, 0.0f},
-    {XRP, CRYPTO_XRP, 0.0f, 0.0f},
-    {LTC, CRYPTO_LTC, 0.0f, 0.0f},
+    {XBT, CRYPTO_XBT, 0.0f, 0.0f},   {ETH, CRYPTO_ETH, 0.0f, 0.0f},
+    {SOL, CRYPTO_SOL, 0.0f, 0.0f},   {ADA, CRYPTO_ADA, 0.0f, 0.0f},
+    {DOT, CRYPTO_DOT, 0.0f, 0.0f},   {LINK, CRYPTO_LINK, 0.0f, 0.0f},
+    {AVAX, CRYPTO_AVAX, 0.0f, 0.0f}, {DOGE, CRYPTO_DOGE, 0.0f, 0.0f},
+    {XRP, CRYPTO_XRP, 0.0f, 0.0f},   {LTC, CRYPTO_LTC, 0.0f, 0.0f},
 };
 
 static volatile bool g_data_fetched = false;
@@ -41,26 +36,36 @@ static const char* currency_to_string(Currency ccy)
 {
     switch (ccy)
     {
-        case GBP: return CCY_GBP;
-        case USD: return CCY_USD;
-        case EUR: return CCY_EUR;
-        case JPY: return CCY_JPY;
-        case CAD: return CCY_CAD;
-        case AUD: return CCY_AUD;
-        case CHF: return CCY_CHF;
-        case CNY: return CCY_CNY;
-        case INR: return CCY_INR;
-        case KRW: return CCY_KRW;
-        case BRL: return CCY_BRL;
-        case SGD: return CCY_SGD;
-        default: return CCY_GBP;
+        case GBP:
+            return CCY_GBP;
+        case USD:
+            return CCY_USD;
+        case EUR:
+            return CCY_EUR;
+        case JPY:
+            return CCY_JPY;
+        case CAD:
+            return CCY_CAD;
+        case AUD:
+            return CCY_AUD;
+        case CHF:
+            return CCY_CHF;
+        case CNY:
+            return CCY_CNY;
+        case INR:
+            return CCY_INR;
+        case KRW:
+            return CCY_KRW;
+        case BRL:
+            return CCY_BRL;
+        case SGD:
+            return CCY_SGD;
+        default:
+            return CCY_GBP;
     }
 }
 
-bool crypto_is_enabled(CryptoIndex idx)
-{
-    return (g_enabled_mask & (1 << idx)) != 0;
-}
+bool crypto_is_enabled(CryptoIndex idx) { return (g_enabled_mask & (1 << idx)) != 0; }
 
 void crypto_set_enabled_mask(uint16_t mask)
 {
@@ -177,14 +182,16 @@ void crypto_display(Matrix* mtrx, int* offset)
                 snprintf(path, sizeof(path), "/proxy/%s/0/public/Ticker?pair=%s%s", HOST_URL_CRYPTO,
                          crypto_to_fetch, currency);
 
-                debug(INFO, "Fetching %s via proxy: %s:%s%s", crypto_to_fetch, PROXY_HOST, PROXY_PORT,
-                      path);
+                debug(INFO, "Fetching %s via proxy: %s:%s%s", crypto_to_fetch, PROXY_HOST,
+                      PROXY_PORT, path);
 
                 uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-                ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, crypto_response_callback, mtrx);
+                ReturnCode rc =
+                    http_get(PROXY_HOST, proxy_port, path, crypto_response_callback, mtrx);
                 if (RC_FAILED(rc))
                 {
-                    debug(ERROR, "HTTP request failed for %s: %s", crypto_to_fetch, rc_to_string(rc));
+                    debug(ERROR, "HTTP request failed for %s: %s", crypto_to_fetch,
+                          rc_to_string(rc));
                 }
 
                 g_crypto_to_fetch_index++;
