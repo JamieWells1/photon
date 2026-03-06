@@ -104,6 +104,9 @@ static const char* html_config =
     ".range-value{display:inline-block;color:#4A90E2;font-weight:600;margin-left:8px}"
     ".warning{display:none;color:#f59e0b;font-size:13px;margin-top:4px;font-weight:500}"
     ".warning.show{display:block}"
+    ".ticker-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}"
+    ".ticker-grid label{display:flex;align-items:center;gap:8px;margin:0;cursor:pointer}"
+    ".ticker-grid input[type=checkbox]{width:auto;margin:0;padding:0}"
     "</style></head><body>"
     "<div class=\"container\"><h1>Device Settings</h1>"
     "<p class=\"subtitle\">Configure your Photon display</p>"
@@ -147,6 +150,19 @@ static const char* html_config =
     "<option value=\"10\">BRL (R$)</option>"
     "<option value=\"11\">SGD ($)</option>"
     "</select>"
+    "<label>Tickers</label>"
+    "<div class=\"ticker-grid\">"
+    "<label><input type=\"checkbox\" name=\"tkr_0\" value=\"1\" checked>XBT</label>"
+    "<label><input type=\"checkbox\" name=\"tkr_1\" value=\"1\" checked>ETH</label>"
+    "<label><input type=\"checkbox\" name=\"tkr_2\" value=\"1\" checked>SOL</label>"
+    "<label><input type=\"checkbox\" name=\"tkr_3\" value=\"1\">ADA</label>"
+    "<label><input type=\"checkbox\" name=\"tkr_4\" value=\"1\">DOT</label>"
+    "<label><input type=\"checkbox\" name=\"tkr_5\" value=\"1\">LINK</label>"
+    "<label><input type=\"checkbox\" name=\"tkr_6\" value=\"1\">AVAX</label>"
+    "<label><input type=\"checkbox\" name=\"tkr_7\" value=\"1\">DOGE</label>"
+    "<label><input type=\"checkbox\" name=\"tkr_8\" value=\"1\">XRP</label>"
+    "<label><input type=\"checkbox\" name=\"tkr_9\" value=\"1\">LTC</label>"
+    "</div>"
     "<button type=\"submit\">Save & Reboot</button>"
     "</form></div>"
     "<script>"
@@ -352,11 +368,25 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             device_config_t config;
             flash_memory_read(&config);
 
-            sscanf(body, "brightness=%hhu&location=%hhu&currency=%hhu",
-                   &config.brightness, &config.location, &config.currency);
+            const char* val;
+            val = strstr(body, "brightness=");
+            if (val) config.brightness = (uint8_t)atoi(val + 11);
+            val = strstr(body, "location=");
+            if (val) config.location = (uint8_t)atoi(val + 9);
+            val = strstr(body, "currency=");
+            if (val) config.currency = (uint8_t)atoi(val + 9);
 
-            debug(INFO, "Parsed config - Brightness: %d%%, Location: %d, Currency: %d",
-                  config.brightness, config.location, config.currency);
+            uint16_t tickers = 0;
+            for (int i = 0; i < 10; i++)
+            {
+                char key[8];
+                snprintf(key, sizeof(key), "tkr_%d=", i);
+                if (strstr(body, key)) tickers |= (1 << i);
+            }
+            config.tickers = tickers ? tickers : DEFAULT_TICKERS;
+
+            debug(INFO, "Parsed config - Brightness: %d%%, Location: %d, Currency: %d, Tickers: 0x%04X",
+                  config.brightness, config.location, config.currency, config.tickers);
 
             flash_memory_write(&config);
             matrix_set_brightness(config.brightness);

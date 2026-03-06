@@ -19,12 +19,23 @@
 #include <pico/time.h>
 
 Ticker TKR_ARR[TKR_COUNT] = {
-    {XBT, TKR_XBT, 0.0f, 0.0f}, {ETH, TKR_ETH, 0.0f, 0.0f}, {SOL, TKR_SOL, 0.0f, 0.0f}};
+    {XBT, TKR_XBT, 0.0f, 0.0f},
+    {ETH, TKR_ETH, 0.0f, 0.0f},
+    {SOL, TKR_SOL, 0.0f, 0.0f},
+    {ADA, TKR_ADA, 0.0f, 0.0f},
+    {DOT, TKR_DOT, 0.0f, 0.0f},
+    {LINK, TKR_LINK, 0.0f, 0.0f},
+    {AVAX, TKR_AVAX, 0.0f, 0.0f},
+    {DOGE, TKR_DOGE, 0.0f, 0.0f},
+    {XRP, TKR_XRP, 0.0f, 0.0f},
+    {LTC, TKR_LTC, 0.0f, 0.0f},
+};
 
 static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
 static unsigned int g_tkr_to_fetch_index = 0;
 static int g_scroll_offset = 0;
+static uint16_t g_enabled_mask = DEFAULT_TICKERS;
 
 static const char* currency_to_string(Currency ccy)
 {
@@ -44,6 +55,17 @@ static const char* currency_to_string(Currency ccy)
         case SGD: return CCY_SGD;
         default: return CCY_GBP;
     }
+}
+
+bool ticker_is_enabled(TkrIndex idx)
+{
+    return (g_enabled_mask & (1 << idx)) != 0;
+}
+
+void ticker_set_enabled_mask(uint16_t mask)
+{
+    if (mask == 0) mask = DEFAULT_TICKERS;
+    g_enabled_mask = mask;
 }
 
 // Parsing
@@ -136,10 +158,17 @@ void ticker_display(Matrix* mtrx, int* offset)
         {
             device_config_t config;
             flash_memory_read(&config);
+            ticker_set_enabled_mask(config.tickers);
             const char* currency = currency_to_string(config.currency);
 
             while (g_tkr_to_fetch_index < TKR_COUNT)
             {
+                if (!ticker_is_enabled(g_tkr_to_fetch_index))
+                {
+                    g_tkr_to_fetch_index++;
+                    continue;
+                }
+
                 const char* tkr_to_fetch = TKR_ARR[g_tkr_to_fetch_index].to_str;
 
                 char path[256];
@@ -172,9 +201,15 @@ void ticker_display(Matrix* mtrx, int* offset)
     {
         int total_width = 0;
         int ticker_widths[TKR_COUNT];
+        memset(ticker_widths, 0, sizeof(ticker_widths));
 
         for (unsigned int i = 0; i < TKR_COUNT; i++)
         {
+            if (!ticker_is_enabled(i))
+            {
+                continue;
+            }
+
             const Ticker* tkr = &TKR_ARR[i];
             float current = tkr->current_price;
             float open = tkr->open_price;
@@ -190,7 +225,7 @@ void ticker_display(Matrix* mtrx, int* offset)
             int width = matrix_calculate_word_width_with_space(tkr->to_str) + 3 +
                         matrix_calculate_word_width_with_space(price_str) +
                         ICONS_ARR[TKR_UP].width +
-                        matrix_calculate_word_width_with_space(change_perc_str) + 2;
+                        matrix_calculate_word_width_with_space(change_perc_str) + 10;
 
             ticker_widths[i] = width;
             total_width += width;
@@ -201,6 +236,11 @@ void ticker_display(Matrix* mtrx, int* offset)
         int current_x = 0;
         for (unsigned int i = 0; i < TKR_COUNT; i++)
         {
+            if (!ticker_is_enabled(i))
+            {
+                continue;
+            }
+
             const Ticker* tkr = &TKR_ARR[i];
 
             float current = tkr->current_price;

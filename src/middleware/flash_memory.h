@@ -16,6 +16,8 @@ typedef struct
     uint8_t location;
     uint8_t currency;
 
+    uint16_t tickers;
+
     uint32_t crc32;
 } device_config_t;
 
