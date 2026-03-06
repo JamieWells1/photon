@@ -1,5 +1,6 @@
 #include <const.h>
 #include <dns_server.h>
+#include <error.h>
 #include <flash_memory.h>
 #include <global.h>
 #include <graphics.h>
@@ -8,7 +9,6 @@
 #include <macro.h>
 #include <matrix.h>
 #include <menu.h>
-#include <secrets_config.h>
 #include <wifi.h>
 
 #include <stdint.h>
@@ -152,13 +152,13 @@ int main(void)
     wifi_config_t config;
     bool wifi_ready = false;
 
-    // Check if flash config exists and is valid
     if (flash_memory_exists())
     {
         if (flash_memory_read(&config))
         {
             debug(INFO, "Flash config found, attempting to connect to WiFi");
-            if (wifi_connect(config.ssid, config.password, mtrx) == 0)
+            ReturnCode rc = wifi_connect(config.ssid, config.password, mtrx);
+            if (RC_SUCCESS(rc))
             {
                 debug(INFO, "WiFi connected successfully");
                 debug(INFO, "To access web interface:");
@@ -169,7 +169,7 @@ int main(void)
             }
             else
             {
-                debug(WARN, "WiFi connection failed, erasing config");
+                debug(WARN, "WiFi connection failed: %s", rc_to_string(rc));
                 matrix_clear(mtrx);
                 matrix_display_word_icon_pair("FAIL", &RED, NULL, 0);
                 matrix_show(mtrx);
@@ -179,7 +179,6 @@ int main(void)
         }
         else
         {
-            // Flash data exists but CRC failed - likely old format, erase it
             debug(WARN, "Flash config CRC failed (possibly old format), erasing");
             flash_memory_erase();
         }
@@ -267,10 +266,9 @@ int main(void)
         {
             graphics_display_start_screen(mtrx);
 
-            // Wait for all buttons to be released (with 5 second timeout)
             bool all_released = false;
             int wait_count = 0;
-            int max_wait = 500; // 5 seconds at 10ms per iteration
+            int max_wait = 500;
 
             while (!all_released && wait_count < max_wait)
             {

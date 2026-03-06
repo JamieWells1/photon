@@ -42,9 +42,9 @@ set(CORE_SOURCES
 set(COMMON_SOURCES
         src/common/const.c
         src/common/macro.c
-        src/common/secrets_config.c
         src/common/location.c
         src/common/currency.c
+        src/common/error.c
 )
 
 # Display subsystem

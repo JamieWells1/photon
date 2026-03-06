@@ -1,6 +1,7 @@
 #include <http.h>
 
 #include <const.h>
+#include <error.h>
 #include <glyphs.h>
 #include <graphics.h>
 #include <macro.h>
@@ -253,26 +254,26 @@ static void http_display_status(Matrix* mtrx, int dot_counter)
     matrix_show(mtrx);
 }
 
-int http_get(const char* host_url, uint16_t port, const char* url_sub_path,
-             http_response_callback_t callback, Matrix* mtrx)
+ReturnCode http_get(const char* host_url, uint16_t port, const char* url_sub_path,
+                    http_response_callback_t callback, Matrix* mtrx)
 {
     if (!host_url || !url_sub_path || !callback)
     {
         debug(ERROR, "Invalid parameters to http_get");
-        return -1;
+        return RC_HTTP_INVALID_PARAMS;
     }
 
     if (g_http_state)
     {
         debug(ERROR, "HTTP request already in progress");
-        return -1;
+        return RC_HTTP_ALREADY_ACTIVE;
     }
 
     g_http_state = (http_state_t*)calloc(1, sizeof(http_state_t));
     if (!g_http_state)
     {
         debug(ERROR, "Failed to allocate HTTP state");
-        return -1;
+        return RC_HTTP_ALLOC_FAILED;
     }
 
     g_http_state->host_url = strdup(host_url);
@@ -301,7 +302,7 @@ int http_get(const char* host_url, uint16_t port, const char* url_sub_path,
     {
         debug(ERROR, "DNS lookup failed immediately: %d", err);
         http_cleanup(g_http_state);
-        return -1;
+        return RC_HTTP_DNS_FAILED;
     }
 
     uint64_t start_time = to_ms_since_boot(get_absolute_time());
@@ -328,7 +329,7 @@ int http_get(const char* host_url, uint16_t port, const char* url_sub_path,
             matrix_show(mtrx);
             sleep_ms(1000);
 
-            return -1;
+            return RC_HTTP_TIMEOUT;
         }
 
         cyw43_arch_poll();
@@ -343,16 +344,16 @@ int http_get(const char* host_url, uint16_t port, const char* url_sub_path,
         debug(ERROR, "HTTP request failed");
 
         matrix_clear(mtrx);
-        matrix_display_word_icon_pair("TIMEOUT", &RED, NULL, 0);
+        matrix_display_word_icon_pair("ERROR", &RED, NULL, 0);
         matrix_show(mtrx);
         sleep_ms(1000);
 
-        return -1;
+        return RC_HTTP_ERROR;
     }
 
     debug(INFO, "HTTP request completed successfully");
 
     sleep_ms(300);
 
-    return 0;
+    return RC_OK;
 }

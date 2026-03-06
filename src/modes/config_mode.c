@@ -1,6 +1,7 @@
 #include <config_mode.h>
 
 #include <const.h>
+#include <error.h>
 #include <flash_memory.h>
 #include <glyphs.h>
 #include <http_server.h>
@@ -50,9 +51,10 @@ void config_display(Matrix* mtrx)
                 return;
             }
 
-            if (wifi_connect(config.ssid, config.password, mtrx) != 0)
+            ReturnCode rc = wifi_connect(config.ssid, config.password, mtrx);
+            if (RC_FAILED(rc))
             {
-                debug(ERROR, "Failed to reconnect WiFi for CONFIG mode");
+                debug(ERROR, "Failed to reconnect WiFi for CONFIG mode: %s", rc_to_string(rc));
                 matrix_clear(mtrx);
                 matrix_display_word_icon_pair("NO WIFI", &RED, &ICONS_ARR[WIFI], 0);
                 matrix_show(mtrx);

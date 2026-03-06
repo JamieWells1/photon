@@ -1,16 +1,16 @@
 #include <ticker.h>
 
 #include <const.h>
+#include <currency.h>
+#include <error.h>
 #include <flash_memory.h>
 #include <glyphs.h>
 #include <http.h>
 #include <macro.h>
 #include <matrix.h>
 #include <menu.h>
-#include <secrets_config.h>
 #include <utils.h>
 #include <wifi.h>
-#include <currency.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -132,7 +132,7 @@ void ticker_display(Matrix* mtrx, int* offset)
     {
         debug(INFO, "Starting ticker data fetch");
 
-        if (wifi_connect(WIFI_SSID, WIFI_PASSWORD, mtrx) == 0)
+        if (wifi_is_connected())
         {
             wifi_config_t config;
             flash_memory_read_with_defaults(&config);
@@ -150,10 +150,10 @@ void ticker_display(Matrix* mtrx, int* offset)
                       path);
 
                 uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-                int rc = http_get(PROXY_HOST, proxy_port, path, ticker_response_callback, mtrx);
-                if (rc != 0)
+                ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, ticker_response_callback, mtrx);
+                if (RC_FAILED(rc))
                 {
-                    debug(ERROR, "HTTP request failed for %s with RC %d", tkr_to_fetch, rc);
+                    debug(ERROR, "HTTP request failed for %s: %s", tkr_to_fetch, rc_to_string(rc));
                 }
 
                 g_tkr_to_fetch_index++;

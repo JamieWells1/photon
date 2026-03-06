@@ -1,14 +1,14 @@
 #include <weather.h>
 
 #include <const.h>
+#include <error.h>
 #include <flash_memory.h>
 #include <glyphs.h>
-#include <location.h>
 #include <graphics.h>
 #include <http.h>
+#include <location.h>
 #include <matrix.h>
 #include <menu.h>
-#include <secrets_config.h>
 #include <utils.h>
 #include <wifi.h>
 
@@ -341,7 +341,7 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
 
     if (should_fetch)
     {
-        if (wifi_connect(WIFI_SSID, WIFI_PASSWORD, mtrx) == 0)
+        if (wifi_is_connected())
         {
             wifi_config_t config;
             flash_memory_read_with_defaults(&config);
@@ -360,10 +360,10 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
                      "&timezone=%s",
                      lat, lon, WEATHER_HOURS / 24, tz);
 
-            int rc = http_get(HOST_URL_WEATHER, 80, path, weather_response_callback, mtrx);
-            if (rc != 0)
+            ReturnCode rc = http_get(HOST_URL_WEATHER, 80, path, weather_response_callback, mtrx);
+            if (RC_FAILED(rc))
             {
-                debug(ERROR, "HTTP request failed with RC %d", rc);
+                debug(ERROR, "HTTP request failed: %s", rc_to_string(rc));
             }
         }
     }
