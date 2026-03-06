@@ -306,6 +306,14 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
     }
 }
 
+static void menu_sub_menu_config_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+{
+    if (input_btn_pressed(&btns[0]))
+    {
+        menu_reset_states(mtrx);
+    }
+}
+
 static void menu_sub_menu_reset_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (!g_reset_submenu_ready)
@@ -419,6 +427,10 @@ static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
         if (g_current_mode == TEMP_START)
         {
             menu_sub_menu_weather_detect_inputs(btns, rtr, mtrx);
+        }
+        if (g_current_mode == CONFIG_START)
+        {
+            menu_sub_menu_config_detect_inputs(btns, rtr, mtrx);
         }
         if (g_current_mode == RESET_START)
         {
