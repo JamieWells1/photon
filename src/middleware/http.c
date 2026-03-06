@@ -15,7 +15,7 @@
 #include <pico/cyw43_arch.h>
 #include <pico/time.h>
 
-#define HTTP_RESPONSE_BUFFER_SIZE 4096
+#define HTTP_RESPONSE_BUFFER_SIZE 8192
 #define HTTP_TIMEOUT_MS 30000
 
 typedef struct

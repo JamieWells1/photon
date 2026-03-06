@@ -147,6 +147,12 @@ int main(void)
 
     matrix_clear(mtrx);
     matrix_show(mtrx);
+
+    bool usb_host = stdio_usb_connected();
+    uint8_t max_brightness = usb_host ? MAX_BRIGHTNESS_USB : MAX_BRIGHTNESS_MAINS;
+    matrix_set_max_brightness(max_brightness);
+    debug(INFO, "Power source: %s (max brightness: %u%%)", usb_host ? "USB" : "mains", max_brightness);
+
     debug(INFO, "✓✓✓ Main init complete. Starting main execution loop.");
 
     device_config_t config;

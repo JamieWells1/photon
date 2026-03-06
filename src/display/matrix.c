@@ -17,7 +17,8 @@
 // ======
 
 static uint32_t g_pixels[NUM_PIXELS];
-static float g_brightness = 0.08f;  // 8% default, updated via matrix_set_brightness
+static float g_brightness = 0.08f;
+static uint8_t g_max_brightness_pct = MAX_BRIGHTNESS_MAINS;
 
 static PixelState g_pixel_states[NUM_PIXELS];
 
@@ -205,8 +206,17 @@ void matrix_clear(Matrix* mtrx)
     }
 }
 
+void matrix_set_max_brightness(uint8_t max_pct)
+{
+    g_max_brightness_pct = max_pct;
+}
+
 void matrix_set_brightness(uint8_t brightness_pct)
 {
+    if (brightness_pct > g_max_brightness_pct)
+    {
+        brightness_pct = g_max_brightness_pct;
+    }
     g_brightness = brightness_pct / 100.0f;
 }
 

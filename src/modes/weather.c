@@ -365,6 +365,9 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
             {
                 debug(ERROR, "HTTP request failed: %s", rc_to_string(rc));
             }
+
+            g_last_displayed_temp = -999.0f;
+            g_last_displayed_code = -1;
         }
     }
 
