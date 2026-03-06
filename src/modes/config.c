@@ -72,7 +72,7 @@ void config_display(Matrix* mtrx)
         debug(INFO, "======================================");
     }
 
-    const char* url_text = "  http://photon.local";
+    const char* url_text = "    http://photon.local";
     int total_width = matrix_calculate_word_width_with_space(url_text) + 4;
 
     matrix_clear(mtrx);

@@ -5,6 +5,7 @@
 #include <macro.h>
 
 #include <ctype.h>
+#include <hardware/sync.h>
 #include <pico/time.h>
 #include <stdbool.h>
 #include <string.h>
@@ -190,10 +191,12 @@ void matrix_shift(Matrix* mtrx, int offset_x, int offset_y)
 // Show the matrix current state
 void matrix_show(Matrix* mtrx)
 {
+    uint32_t ints = save_and_disable_interrupts();
     for (int i = 0; i < NUM_PIXELS; i++)
     {
         pio_sm_put_blocking(mtrx->pio, mtrx->sm, g_pixels[i] << 8u);
     }
+    restore_interrupts(ints);
 }
 
 // Clear the matrix of its current state
