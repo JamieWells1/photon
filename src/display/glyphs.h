@@ -4,7 +4,6 @@
 #define DISPLAYS_H
 
 #include <macro.h>
-
 #include <stddef.h>
 #include <stdint.h>
 
@@ -38,7 +37,7 @@ typedef struct
 typedef enum
 {
     PHOTON = 0,
-    TICKERS = 1,
+    STOCKS = 1,
     TKR_UP = 2,
     TKR_DOWN = 3,
     GAMES = 4,
@@ -54,6 +53,7 @@ typedef enum
     WIFI = 14,
     DATA = 15,
     POWER = 16,
+    CRYPTO = 17,
     ICON_COUNT
 } IconType;
 
@@ -139,9 +139,9 @@ static const Pixel LETTER_I[] = {
 
 static const Pixel LETTER_J[] = {
     // 3x5
-    {0, 0, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR}, {0, 4, DEFAULT_COLOUR}, {1, 0, DEFAULT_COLOUR},
+    {1, 0, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR},
     {1, 4, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR},
-};
+    {0, 4, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR}};
 
 static const Pixel LETTER_K[] = {
     // 3x5
@@ -462,7 +462,7 @@ static const Pixel ICON_PHOTON[15] = {
 
 // TICKERS
 
-static const Pixel ICON_TICKERS[7] = {
+static const Pixel ICON_STOCKS[7] = {
     {0, 4, GREEN}, {0, 3, GREEN}, {1, 2, RED},   {2, 3, RED},
     {3, 2, GREEN}, {4, 1, GREEN}, {4, 0, GREEN},
 };
@@ -560,13 +560,18 @@ static const Pixel ICON_POWER[15] = {
     {4, 0, RED}, {4, 1, RED}, {4, 2, RED}, {4, 3, RED}, {4, 4, RED},
 };
 
+static const Pixel ICON_CRYPTO[16] = {
+    {1, 0, YELLOW}, {2, 0, YELLOW}, {3, 0, YELLOW}, {0, 1, YELLOW}, {0, 2, YELLOW},
+    {0, 3, YELLOW}, {4, 1, YELLOW}, {4, 2, YELLOW}, {4, 3, YELLOW}, {1, 4, YELLOW}, {2, 4, YELLOW}, {3, 4, YELLOW}, {2, 1, YELLOW},{1, 2, YELLOW},{3, 2, YELLOW},{2, 3, YELLOW},
+};
+
 // =================
 // ICON LOOKUP TABLE
 // =================
 
 static const Glyph ICONS_ARR[ICON_COUNT] = {
     {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},              // 0: PHOTON
-    {ICON_TICKERS, ARRAY_SIZE(ICON_TICKERS), 5, 5},            // 1: TICKERS
+    {ICON_STOCKS, ARRAY_SIZE(ICON_STOCKS), 5, 5},              // 1: STOCKS
     {ICON_TKR_UP, ARRAY_SIZE(ICON_TKR_UP), 5, 5},              // 2: TKR_UP
     {ICON_TKR_DOWN, ARRAY_SIZE(ICON_TKR_DOWN), 5, 5},          // 3: TKR_DOWN
     {ICON_GAMES, ARRAY_SIZE(ICON_GAMES), 5, 5},                // 4: GAMES
@@ -582,6 +587,7 @@ static const Glyph ICONS_ARR[ICON_COUNT] = {
     {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                  // 14: WIFI
     {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                  // 15: DATA
     {ICON_POWER, ARRAY_SIZE(ICON_POWER), 5, 5},                // 16: POWER
+    {ICON_CRYPTO, ARRAY_SIZE(ICON_CRYPTO), 5, 5},                   // 17: CRYPTO
 };
 
 #endif  // DISPLAYS_H

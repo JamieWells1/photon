@@ -118,6 +118,8 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
     else
     {
         debug(ERROR, "Failed to parse stock data for index %u", g_stk_to_fetch_index);
+        uint64_t ms_until_retry = 60 * 1000;
+        g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
     }
 }
 
@@ -257,7 +259,7 @@ void stock_display(Matrix* mtrx, int* offset)
 
         matrix_show(mtrx);
 
-        (*offset)++;
+        (*offset) += 2;
         if (*offset >= total_width)
         {
             *offset = 0;
