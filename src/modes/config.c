@@ -1,4 +1,4 @@
-#include <config_mode.h>
+#include <config.h>
 
 #include <const.h>
 #include <error.h>
@@ -41,7 +41,7 @@ void config_display(Matrix* mtrx)
         {
             debug(INFO, "WiFi not connected, reconnecting for CONFIG mode...");
 
-            wifi_config_t config;
+            device_config_t config;
             if (!flash_memory_read(&config))
             {
                 debug(ERROR, "Failed to read WiFi config from flash");

@@ -149,37 +149,31 @@ int main(void)
     matrix_show(mtrx);
     debug(INFO, "✓✓✓ Main init complete. Starting main execution loop.");
 
-    wifi_config_t config;
+    device_config_t config;
     bool wifi_ready = false;
+    bool config_found = flash_memory_read(&config);
+    matrix_set_brightness(config.brightness);
 
-    if (flash_memory_exists())
+    if (config_found)
     {
-        if (flash_memory_read(&config))
+        debug(INFO, "Flash config found, attempting to connect to WiFi");
+        ReturnCode rc = wifi_connect(config.ssid, config.password, mtrx);
+        if (RC_SUCCESS(rc))
         {
-            debug(INFO, "Flash config found, attempting to connect to WiFi");
-            ReturnCode rc = wifi_connect(config.ssid, config.password, mtrx);
-            if (RC_SUCCESS(rc))
-            {
-                debug(INFO, "WiFi connected successfully");
-                debug(INFO, "To access web interface:");
-                debug(INFO, "  1. Use rotary encoder to navigate to CONFIG menu");
-                debug(INFO, "  2. Press button to enter CONFIG mode");
-                debug(INFO, "  3. Access http://photon.local in browser");
-                wifi_ready = true;
-            }
-            else
-            {
-                debug(WARN, "WiFi connection failed: %s", rc_to_string(rc));
-                matrix_clear(mtrx);
-                matrix_display_word_icon_pair("FAIL", &RED, NULL, 0);
-                matrix_show(mtrx);
-                sleep_ms(2000);
-                flash_memory_erase();
-            }
+            debug(INFO, "WiFi connected successfully");
+            debug(INFO, "To access web interface:");
+            debug(INFO, "  1. Use rotary encoder to navigate to CONFIG menu");
+            debug(INFO, "  2. Press button to enter CONFIG mode");
+            debug(INFO, "  3. Access http://photon.local in browser");
+            wifi_ready = true;
         }
         else
         {
-            debug(WARN, "Flash config CRC failed (possibly old format), erasing");
+            debug(WARN, "WiFi connection failed: %s", rc_to_string(rc));
+            matrix_clear(mtrx);
+            matrix_display_word_icon_pair("FAIL", &RED, NULL, 0);
+            matrix_show(mtrx);
+            sleep_ms(2000);
             flash_memory_erase();
         }
     }

@@ -1,7 +1,6 @@
 #include <matrix.h>
 
 #include <const.h>
-#include <flash_memory.h>
 #include <global.h>
 #include <macro.h>
 
@@ -18,8 +17,7 @@
 // ======
 
 static uint32_t g_pixels[NUM_PIXELS];
-static float g_cached_brightness = 0.0f;
-static bool g_brightness_cached = false;
+static float g_brightness = 0.08f;  // 8% default, updated via matrix_set_brightness
 
 static PixelState g_pixel_states[NUM_PIXELS];
 
@@ -41,19 +39,11 @@ static int matrix_xy_to_index(int input_x, int input_y)
     }
 }
 
-static void matrix_set_brightness(RGB* col)
+static void matrix_apply_brightness(RGB* col)
 {
-    if (!g_brightness_cached)
-    {
-        wifi_config_t config;
-        flash_memory_read_with_defaults(&config);
-        g_cached_brightness = config.brightness / 100.0f;
-        g_brightness_cached = true;
-    }
-
-    col->r *= g_cached_brightness;
-    col->g *= g_cached_brightness;
-    col->b *= g_cached_brightness;
+    col->r *= g_brightness;
+    col->g *= g_brightness;
+    col->b *= g_brightness;
 }
 
 static uint32_t matrix_rgb_to_grb(RGB* col) { return (col->g << 16) | (col->r << 8) | col->b; }
@@ -113,7 +103,7 @@ void matrix_set_pixel(Pixel* pxl)
     {
         // Copy RGB object to modify when dimming colour values
         RGB dimmed = pxl->col;
-        matrix_set_brightness(&dimmed);
+        matrix_apply_brightness(&dimmed);
 
         int index = 0;
         index = matrix_xy_to_index(pxl->x, pxl->y);
@@ -215,9 +205,9 @@ void matrix_clear(Matrix* mtrx)
     }
 }
 
-void matrix_invalidate_brightness_cache(void)
+void matrix_set_brightness(uint8_t brightness_pct)
 {
-    g_brightness_cached = false;
+    g_brightness = brightness_pct / 100.0f;
 }
 
 // Only writes letter to state, not matrix

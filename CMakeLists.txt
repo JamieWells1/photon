@@ -105,7 +105,7 @@ set(MODE_SOURCES
         src/modes/ticker.c
         src/modes/game.c
         src/modes/weather.c
-        src/modes/config_mode.c
+        src/modes/.c
 )
 
 add_executable(photon

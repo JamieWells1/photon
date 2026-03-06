@@ -26,74 +26,57 @@ static uint32_t crc32(const uint8_t* data, size_t length)
     return ~crc;
 }
 
-bool flash_memory_exists(void)
+static void flash_memory_set_defaults(device_config_t* config)
 {
-    const uint8_t* flash_ptr = (const uint8_t*)(XIP_BASE + FLASH_TARGET_OFFSET);
-    wifi_config_t config;
-    memcpy(&config, flash_ptr, sizeof(wifi_config_t));
+    memset(config, 0, sizeof(device_config_t));
+    config->brightness = DEFAULT_BRIGHTNESS;
+    config->location = DEFAULT_LOCATION;
+    config->currency = DEFAULT_CURRENCY;
+}
 
-    if (config.magic != FLASH_MEMORY_MAGIC)
+bool flash_memory_read(device_config_t* config)
+{
+    if (!config)
     {
         return false;
     }
 
-    uint32_t stored_crc = config.crc32;
-    config.crc32 = 0;
-    uint32_t calculated_crc = crc32((const uint8_t*)&config, sizeof(wifi_config_t));
-
-    return stored_crc == calculated_crc;
-}
-
-bool flash_memory_read(wifi_config_t* config)
-{
-    if (!config) return false;
-
     const uint8_t* flash_ptr = (const uint8_t*)(XIP_BASE + FLASH_TARGET_OFFSET);
-    memcpy(config, flash_ptr, sizeof(wifi_config_t));
+    memcpy(config, flash_ptr, sizeof(device_config_t));
 
     if (config->magic != FLASH_MEMORY_MAGIC)
     {
+        flash_memory_set_defaults(config);
         return false;
     }
 
     uint32_t stored_crc = config->crc32;
     config->crc32 = 0;
-    uint32_t calculated_crc = crc32((const uint8_t*)config, sizeof(wifi_config_t));
+    uint32_t calculated_crc = crc32((const uint8_t*)config, sizeof(device_config_t));
     config->crc32 = stored_crc;
 
     if (stored_crc != calculated_crc)
     {
+        flash_memory_set_defaults(config);
         return false;
     }
+
     return true;
 }
 
-void flash_memory_read_with_defaults(wifi_config_t* config)
-{
-    if (!config) return;
-
-    if (!flash_memory_read(config))
-    {
-        memset(config, 0, sizeof(wifi_config_t));
-        config->brightness = DEFAULT_BRIGHTNESS;
-        config->location = DEFAULT_LOCATION;
-        config->currency = DEFAULT_CURRENCY;
-    }
-}
-
-bool flash_memory_write(const wifi_config_t* config)
+bool flash_memory_write(const device_config_t* config)
 {
     if (!config) return false;
 
-    wifi_config_t temp_config;
-    memcpy(&temp_config, config, sizeof(wifi_config_t));
+    device_config_t temp_config;
+    memcpy(&temp_config, config, sizeof(device_config_t));
     temp_config.magic = FLASH_MEMORY_MAGIC;
     temp_config.crc32 = 0;
-    temp_config.crc32 = crc32((const uint8_t*)&temp_config, sizeof(wifi_config_t));
+    temp_config.crc32 = crc32((const uint8_t*)&temp_config, sizeof(device_config_t));
 
     uint8_t buffer[FLASH_SECTOR_SIZE];
     memset(buffer, 0xFF, FLASH_SECTOR_SIZE);
-    memcpy(buffer, &temp_config, sizeof(wifi_config_t));
+    memcpy(buffer, &temp_config, sizeof(device_config_t));
 
     uint32_t ints = save_and_disable_interrupts();
     flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE);

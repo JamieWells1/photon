@@ -134,8 +134,8 @@ void ticker_display(Matrix* mtrx, int* offset)
 
         if (wifi_is_connected())
         {
-            wifi_config_t config;
-            flash_memory_read_with_defaults(&config);
+            device_config_t config;
+            flash_memory_read(&config);
             const char* currency = currency_to_string(config.currency);
 
             while (g_tkr_to_fetch_index < TKR_COUNT)

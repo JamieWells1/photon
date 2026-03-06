@@ -17,8 +17,9 @@ src/
 ├── common/       # Constants and utilities
 ├── display/      # Matrix control, text, icons
 ├── input/        # Buttons and rotary encoder
-├── middleware/   # WiFi and HTTP
-└── modes/        # Display modes (ticker, weather, games)
+├── middleware/   # WiFi, HTTP, and flash storage
+├── modes/        # Display modes (ticker, weather, games, config)
+└── server/       # Captive portal (DNS, DHCP, HTTP server)
 ```
 
 ## How to Contribute

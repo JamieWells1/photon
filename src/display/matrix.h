@@ -35,7 +35,7 @@ void matrix_slide_right(Matrix* mtrx, PixelState* current_state, PixelState* nex
 
 void matrix_show(Matrix* mtrx);
 void matrix_clear(Matrix* mtrx);
-void matrix_invalidate_brightness_cache(void);
+void matrix_set_brightness(uint8_t brightness_pct);
 
 void matrix_display_char(const char c, int x, int y, const RGB* col);
 void matrix_display_icon(const Glyph* icon_type, int x, int y, const RGB* col);

@@ -343,8 +343,8 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
     {
         if (wifi_is_connected())
         {
-            wifi_config_t config;
-            flash_memory_read_with_defaults(&config);
+            device_config_t config;
+            flash_memory_read(&config);
 
             float lat = location_get_latitude(config.location);
             float lon = location_get_longitude(config.location);

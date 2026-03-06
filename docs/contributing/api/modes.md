@@ -15,27 +15,9 @@ typedef enum {
     MENU_TICKERS = 0,
     MENU_GAMES = 1,
     MENU_WEATHER = 2,
+    MENU_CONFIG = 3,
+    MENU_RESET = 4,
 } Mode;
-```
-
-#### SubMode
-
-Specific items within each main mode.
-
-```c
-typedef enum {
-    // Ticker submodes (0-2)
-    TKR_XBT = 0,
-    TKR_ETH,
-    TKR_SOL,
-
-    // Game submodes (3)
-    GAME_TETRIS,
-
-    // Weather submodes (4-5)
-    TEMP_CURRENT,
-    TEMP_HOURLY,
-} SubMode;
 ```
 
 ---
@@ -48,7 +30,7 @@ Represents a main menu item.
 
 ```c
 typedef struct {
-    const Mode mode;  // Mode identifier
+    const Mode mode;      // Mode identifier
     const char* text;     // Display text
     const Glyph* icon;    // Icon graphic
 } Menu;
@@ -57,37 +39,12 @@ typedef struct {
 **Example:**
 
 ```c
-static const Menu MENUS[3] = {
+static const Menu MENUS[] = {
     {MENU_TICKERS, "STOCKS", &ICONS_ARR[TICKERS]},
     {MENU_GAMES, "GAMES", &ICONS_ARR[GAMES]},
     {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},
-};
-```
-
----
-
-#### SubMenu
-
-Represents a submenu item.
-
-```c
-typedef struct {
-    const SubMode mode;  // Submode identifier
-    const char* text;    // Display text
-    const Glyph* icon;   // Optional icon (can be NULL)
-} SubMenu;
-```
-
-**Example:**
-
-```c
-static const SubMenu SUB_MENUS[6] = {
-    {TKR_XBT, "XBT", NULL},
-    {TKR_ETH, "ETH", NULL},
-    {TKR_SOL, "SOL", NULL},
-    {GAME_TETRIS, "TETRIS", &ICONS_ARR[TETRIS]},
-    {TEMP_CURRENT, "NOW", NULL},
-    {TEMP_HOURLY, "00", NULL},
+    {MENU_CONFIG, "CONFIG", &ICONS_ARR[DATA]},
+    {MENU_RESET, "RESET", &ICONS_ARR[POWER]},
 };
 ```
 
@@ -99,8 +56,7 @@ Tracks current menu selection.
 
 ```c
 typedef struct {
-    Mode main_mode;  // Currently selected main mode
-    SubMode sub_mode;    // Currently selected submode
+    Mode mode;  // Currently selected mode
 } MenuState;
 ```
 
@@ -124,80 +80,97 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx);
 
 **Behavior:**
 
-- Infinite loop handling menu navigation and mode display
-- Never returns (this is your application main loop)
-
-**Typical usage:**
-
-```c
-int main() {
-    // Initialize hardware...
-    Button btns[2] = {/* ... */};
-    Rotator rtr = {/* ... */};
-    Matrix mtrx = {/* ... */};
-
-    // Start menu (never returns)
-    menu_start(btns, &rtr, &mtrx);
-}
-```
+- Called each iteration of the main loop
+- Handles menu navigation, mode display, and input detection
+- Rotary encoder scrolls between modes with slide animations
+- Button press enters the selected mode
 
 ---
 
-## Mode Implementation
+## Mode Implementations
 
-Each display mode must implement a display function matching this signature:
+Each display mode implements a display function and optionally a cleanup function.
 
 ### Ticker Mode
 
 ```c
-void ticker_display(SubMenu sub_mode, Matrix* mtrx);
+void ticker_display(Matrix* mtrx, int* offset);
+void ticker_cleanup(void);
 ```
 
-**Purpose:** Display cryptocurrency ticker information
-
-**Current Implementation:**
-
-- XBT (Bitcoin), ETH (Ethereum), SOL (Solana)
-- Fetches live prices from Kraken API every 15 minutes
-- Displays current price and 24-hour percentage change
+**Purpose:** Display live cryptocurrency prices (Bitcoin, Ethereum, Solana) with 24-hour change percentage. Fetches from Kraken API every 15 minutes. Scrolls continuously across the display.
 
 ---
 
 ### Game Mode
 
 ```c
-void game_display(SubMenu sub_mode, Matrix* mtrx);
+void game_display(Matrix* mtrx);
 ```
 
-**Purpose:** Dispatch to specific game implementations
-
-**Current Implementation:**
-
-- Tetris game
+**Purpose:** Game implementations (currently a stub/TODO).
 
 ---
 
 ### Weather Mode
 
 ```c
-void weather_display(SubMode sub_mode, Matrix* mtrx, int* hour_to_display);
+void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display);
+void weather_cleanup(void);
 ```
 
-**Purpose:** Display weather information
-
-**Parameters:**
-
-- `sub_mode` - `TEMP_CURRENT` or `TEMP_HOURLY`
-- `mtrx` - LED matrix
-- `hour_to_display` - Pointer to hour index (for hourly mode)
+**Purpose:** Display weather information from Open-Meteo API. Shows temperature with dynamic color (blue for cold, green for moderate, red for hot), weather icons (sunny, cloudy, rain, snow, lightning, moon), and hour label. Rotary encoder scrolls through 48-hour forecast.
 
 **Additional Functions:**
 
 ```c
 int weather_current_hour_index();  // Get current hour offset
 int weather_hours_fetched();       // Get number of hours available
-void weather_cleanup(void);        // Free weather data
 ```
+
+---
+
+### Config Mode
+
+```c
+void config_display(Matrix* mtrx);
+void config_cleanup(void);
+```
+
+**Purpose:** Start a web server at `http://photon.local` for device configuration. The matrix scrolls the URL to guide the user. The web interface allows changing:
+
+- **Brightness** (1-25%)
+- **Location** (18 cities worldwide)
+- **Currency** (12 currencies)
+
+Saves settings to flash and reboots the device.
+
+**Behavior:**
+
+- Reconnects WiFi if disconnected
+- Starts mDNS so `photon.local` resolves
+- Starts HTTP server on port 80
+- Displays scrolling URL on the matrix
+- On save, writes config to flash and reboots
+
+---
+
+### Reset Mode
+
+```c
+// Handled internally by menu.c (no separate module)
+```
+
+**Purpose:** Factory reset the device by erasing all saved configuration from flash memory. Displays a YES/NO confirmation prompt.
+
+**Behavior:**
+
+- Waits for all buttons to be released before accepting input (prevents accidental triggers)
+- Displays "YES" (green) and "NO" (red) with an underline on the current selection
+- Rotary encoder switches between YES and NO
+- Button press confirms selection:
+    - **YES**: Erases flash, displays "DONE", reboots device
+    - **NO**: Returns to main menu
 
 ---
 
@@ -211,6 +184,7 @@ See [Building a Mode](../building-a-mode.md) for step-by-step guide.
 
 - Keep logic under 50ms per frame
 - Use `static` variables for persistent state
+- Implement a `cleanup()` function to reset state when exiting your mode
 - See existing modes in `src/modes/` for examples
 
 ---

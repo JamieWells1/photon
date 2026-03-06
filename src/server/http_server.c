@@ -191,9 +191,9 @@ static void url_decode(char* dst, const char* src, size_t max_len)
     dst[j] = '\0';
 }
 
-static void parse_post_data(const char* body, wifi_config_t* config)
+static void parse_post_data(const char* body, device_config_t* config)
 {
-    memset(config, 0, sizeof(wifi_config_t));
+    memset(config, 0, sizeof(device_config_t));
 
     char temp_ssid[128] = {0};
     char temp_password[128] = {0};
@@ -349,7 +349,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
             debug(DEBUG, "Config POST body: %s", body);
 
-            wifi_config_t config;
+            device_config_t config;
             flash_memory_read(&config);
 
             sscanf(body, "brightness=%hhu&location=%hhu&currency=%hhu",
@@ -359,7 +359,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                   config.brightness, config.location, config.currency);
 
             flash_memory_write(&config);
-            matrix_invalidate_brightness_cache();
+            matrix_set_brightness(config.brightness);
             config_saved = true;
 
             tcp_write(pcb, html_success, strlen(html_success), 0);
@@ -378,7 +378,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
             debug(DEBUG, "POST body: %s", body);
 
-            wifi_config_t config;
+            device_config_t config;
             parse_post_data(body, &config);
 
             config.brightness = DEFAULT_BRIGHTNESS;

@@ -6,11 +6,6 @@
 
 #define FLASH_MEMORY_MAGIC 0x50484F54
 
-// Default configuration values
-#define DEFAULT_BRIGHTNESS 8      // 8%
-#define DEFAULT_LOCATION 0        // London
-#define DEFAULT_CURRENCY 0        // GBP
-
 typedef struct
 {
     uint32_t magic;
@@ -24,12 +19,9 @@ typedef struct
     uint32_t crc32;
 } device_config_t;
 
-typedef device_config_t wifi_config_t;
+bool flash_memory_read(device_config_t* config);
 
-bool flash_memory_read(wifi_config_t* config);
-void flash_memory_read_with_defaults(wifi_config_t* config);
-bool flash_memory_write(const wifi_config_t* config);
-bool flash_memory_exists(void);
+bool flash_memory_write(const device_config_t* config);
 void flash_memory_erase(void);
 
 #endif  // FLASH_MEMORY_H
