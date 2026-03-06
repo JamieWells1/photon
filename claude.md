@@ -76,4 +76,4 @@ All rendering is buffered. Call `matrix_show()` to push to hardware.
 
 ## Modes
 
-5 menu modes: STOCKS, GAMES, TEMP, CONFIG, RESET. Each mode implements a `_display()` function called each frame and a `_cleanup()` function called on exit. Reset mode is handled directly in menu.c.
+5 menu modes: CRYPTO, GAMES, TEMP, CONFIG, RESET. Each mode implements a `_display()` function called each frame and a `_cleanup()` function called on exit. Reset mode is handled directly in menu.c.

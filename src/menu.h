@@ -8,7 +8,7 @@
 // Main modes
 typedef enum
 {
-    MENU_TICKERS = 0,
+    MENU_CRYPTO = 0,
     MENU_GAMES = 1,
     MENU_WEATHER = 2,
     MENU_CONFIG = 3,
@@ -35,7 +35,7 @@ typedef struct
 } Menu;
 
 static const Menu MENUS[] = {
-    {MENU_TICKERS, "STOCKS", &ICONS_ARR[TICKERS]},
+    {MENU_CRYPTO, "CRYPTO", &ICONS_ARR[TICKERS]},
     {MENU_GAMES, "GAMES", &ICONS_ARR[GAMES]},
     {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},
     {MENU_CONFIG, "CONFIG", &ICONS_ARR[DATA]},

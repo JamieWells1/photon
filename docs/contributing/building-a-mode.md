@@ -8,7 +8,7 @@ Edit [`src/menu.h`](https://github.com/JamieWells1/photon/blob/main/src/menu.h):
 
 ```c
 typedef enum {
-    MENU_TICKERS = 0,
+    MENU_CRYPTO = 0,
     MENU_GAMES = 1,
     MENU_WEATHER = 2,
     MENU_CONFIG = 3,
