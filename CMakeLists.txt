@@ -89,7 +89,7 @@ set(MIDDLEWARE_SOURCES
 set(SERVER_SOURCES
         src/server/dns_server.c
         src/server/http_server.c
-        src/server/dhcpserver/dhcpserver.c
+        src/server/dhcpserver.c
 )
 
 # mDNS sources from lwIP
@@ -155,7 +155,6 @@ target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/input
         ${CMAKE_CURRENT_LIST_DIR}/src/middleware
         ${CMAKE_CURRENT_LIST_DIR}/src/server
-        ${CMAKE_CURRENT_LIST_DIR}/src/server/dhcpserver
         ${CMAKE_CURRENT_LIST_DIR}/src/modes
         ${CMAKE_CURRENT_LIST_DIR}/src/modes/games
         ${CMAKE_CURRENT_BINARY_DIR}
