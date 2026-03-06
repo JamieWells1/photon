@@ -9,6 +9,7 @@
 #include <macro.h>
 #include <matrix.h>
 #include <menu.h>
+#include <power.h>
 #include <crypto.h>
 #include <wifi.h>
 
@@ -256,6 +257,7 @@ int main(void)
     }
 
     bool menu_active = false;
+    static uint32_t power_log_tick = 0;
     while (true)
     {
         input_update(buttons, rotator);
@@ -303,6 +305,13 @@ int main(void)
         {
             menu_start(buttons, rotator, mtrx);
         }
+
+        // Log power stats every 5 seconds (500 ticks * 10ms)
+        if (power_log_tick % 500 == 0)
+        {
+            power_log_stats(config.brightness);
+        }
+        power_log_tick++;
 
         sleep_ms(10);
     }

@@ -237,7 +237,7 @@ static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Mat
 
 static void menu_sub_menu_stocks_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    if (input_btn_pressed(&btns[0]))
+    if (input_rtr_long_pressed(rtr))
     {
         menu_reset_states(mtrx);
     }
@@ -250,7 +250,7 @@ static void menu_sub_menu_stocks_detect_inputs(Button* btns, Rotator* rtr, Matri
 
 static void menu_sub_menu_crypto_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    if (input_btn_pressed(&btns[0]))
+    if (input_rtr_long_pressed(rtr))
     {
         menu_reset_states(mtrx);
     }
@@ -268,7 +268,7 @@ static void menu_sub_menu_games_detect_inputs(Button* btns, Rotator* rtr, Matrix
 
 static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    if (input_btn_pressed(&btns[0]))
+    if (input_rtr_long_pressed(rtr))
     {
         menu_reset_states(mtrx);
     }
@@ -308,7 +308,7 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
 
 static void menu_sub_menu_config_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    if (input_btn_pressed(&btns[0]))
+    if (input_rtr_long_pressed(rtr))
     {
         menu_reset_states(mtrx);
     }

@@ -131,7 +131,7 @@ static const char* build_config_html(void)
         "button:active{transform:translateY(0)}"
         ".subtitle{color:#888;font-size:14px;text-align:center;margin-bottom:24px}"
         ".range-value{display:inline-block;color:#4A90E2;font-weight:600;margin-left:8px}"
-        ".warning{display:none;color:#f59e0b;font-size:13px;margin-top:4px;font-weight:500}"
+        ".warning{display:none;color:#dc2626;font-size:13px;margin-top:4px;font-weight:500}"
         ".warning.show{display:block}"
         ".ticker-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}"
         ".ticker-grid label{display:flex;align-items:center;gap:8px;margin:0;cursor:pointer}"
@@ -141,10 +141,10 @@ static const char* build_config_html(void)
         "<p class=\"subtitle\">Configure your Photon display</p>"
         "<form method=\"POST\" action=\"/save-config\" enctype=\"application/x-www-form-urlencoded\">"
         "<label>Brightness <span class=\"range-value\" id=\"brightnessValue\">%d%%</span></label>"
-        "<input type=\"range\" name=\"brightness\" id=\"brightness\" min=\"1\" max=\"25\" value=\"%d\" step=\"1\" oninput=\"updateBrightness(this.value)\">"
-        "<p class=\"warning\" id=\"powerWarning\"%s>External power supply highly recommended to avoid overload</p>",
+        "<input type=\"range\" name=\"brightness\" id=\"brightness\" min=\"1\" max=\"20\" value=\"%d\" step=\"1\" oninput=\"updateBrightness(this.value)\">"
+        "<p class=\"warning\" id=\"powerWarning\"%s>⚠️ External power supply highly recommended to avoid overload</p>",
         config.brightness, config.brightness,
-        config.brightness > 10 ? " class=\"warning show\"" : "");
+        config.brightness >= 10 ? " class=\"warning show\"" : "");
 
     // Location select
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,

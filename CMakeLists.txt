@@ -74,6 +74,11 @@ set(UTILS_SOURCES
         src/utils.c
 )
 
+# Power
+set(POWER_SOURCES
+        src/power.c
+)
+
 # Middleware (client-side networking & storage)
 set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
@@ -117,6 +122,7 @@ add_executable(photon
         ${MENU_SOURCES}
         ${GLOBAL_SOURCES}
         ${UTILS_SOURCES}
+        ${POWER_SOURCES}
         ${MIDDLEWARE_SOURCES}
         ${SERVER_SOURCES}
         ${MDNS_SOURCES}
@@ -138,6 +144,7 @@ target_compile_options(photon PRIVATE
         -Wextra
         -Werror=return-type
         -Wno-unused-parameter
+        -Wno-type-limits
 )
 
 target_link_libraries(photon
@@ -160,6 +167,7 @@ target_link_libraries(photon
         hardware_pio
         hardware_flash
         hardware_sync
+        hardware_adc
         pico_cyw43_arch_lwip_threadsafe_background
         )
 
