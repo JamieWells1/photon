@@ -8,7 +8,6 @@
 #include <http.h>
 #include <macro.h>
 #include <matrix.h>
-#include <menu.h>
 #include <utils.h>
 #include <wifi.h>
 

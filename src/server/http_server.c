@@ -2,6 +2,7 @@
 
 #include <const.h>
 #include <flash_memory.h>
+#include <html.h>
 #include <macro.h>
 #include <matrix.h>
 
@@ -27,194 +28,6 @@ typedef struct
     bool headers_complete;
 } http_request_state_t;
 
-static const char* html_form =
-    "HTTP/1.1 200 OK\r\n"
-    "Content-Type: text/html\r\n"
-    "Connection: close\r\n\r\n"
-    "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width\">"
-    "<meta charset=\"UTF-8\"><title>Photon Setup</title>"
-    "<style>"
-    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe "
-    "UI',Roboto,sans-serif;background:linear-gradient(135deg,#4A90E2 0%,#357ABD "
-    "100%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:"
-    "center}"
-    ".container{background:white;border-radius:12px;box-shadow:0 8px 24px "
-    "rgba(0,0,0,0.15);padding:32px;max-width:400px;width:100%}"
-    "h1{color:#333;margin:0 0 24px;font-size:28px;font-weight:600;text-align:center}"
-    "label{display:block;color:#555;font-size:14px;font-weight:500;margin-bottom:8px}"
-    "input{width:100%;padding:12px;border:2px solid "
-    "#e0e0e0;border-radius:8px;font-size:16px;box-sizing:border-box;transition:border-color "
-    "0.3s;margin-bottom:20px}"
-    "input:focus{outline:none;border-color:#4A90E2}"
-    "button{width:100%;background:linear-gradient(135deg,#4A90E2 0%,#357ABD "
-    "100%);color:white;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;"
-    "cursor:pointer;transition:transform 0.2s,box-shadow 0.2s}"
-    "button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(74,144,226,0.4)}"
-    "button:active{transform:translateY(0)}"
-    ".subtitle{color:#888;font-size:14px;text-align:center;margin-bottom:24px}"
-    "</style></head><body>"
-    "<div class=\"container\"><h1>Photon Setup</h1>"
-    "<p class=\"subtitle\">Connect your device to WiFi</p>"
-    "<form method=\"POST\" action=\"/save\" enctype=\"application/x-www-form-urlencoded\">"
-    "<label>Network Name (SSID)</label><input type=\"text\" name=\"ssid\" placeholder=\"Enter WiFi "
-    "network name\" required>"
-    "<label>Password</label><input type=\"password\" name=\"password\" placeholder=\"Enter WiFi "
-    "password\">"
-    "<button type=\"submit\">Connect to WiFi</button></form></div></body></html>";
-
-static const char* html_success =
-    "HTTP/1.1 200 OK\r\n"
-    "Content-Type: text/html\r\n"
-    "Connection: close\r\n\r\n"
-    "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width\">"
-    "<meta charset=\"UTF-8\"><title>Success</title>"
-    "<style>"
-    "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe "
-    "UI',Roboto,sans-serif;background:linear-gradient(135deg,#4A90E2 0%,#357ABD "
-    "100%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-content:"
-    "center}"
-    ".container{background:white;border-radius:12px;box-shadow:0 8px 24px "
-    "rgba(0,0,0,0.15);padding:32px;max-width:400px;width:100%;text-align:center}"
-    "h1{color:#10b981;margin:0 0 16px;font-size:32px;font-weight:600}"
-    "p{color:#555;font-size:16px;line-height:1.6;margin:0}"
-    ".checkmark{width:64px;height:64px;margin:0 auto "
-    "24px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:"
-    "center;font-size:40px;color:white}"
-    "</style></head><body>"
-    "<div class=\"container\"><div class=\"checkmark\">✓</div><h1>Success!</h1>"
-    "<p>Device is rebooting...<br>Do not close this page</p></div></body></html>";
-
-static const char* location_names[] = {
-    "London",  "New York",  "Los Angeles", "Chicago", "Miami",          "San Francisco",
-    "Seattle", "Toronto",   "Paris",       "Berlin",  "Stockholm",      "Athens",
-    "Dubai",   "Singapore", "Tokyo",       "Sydney",  "Rio de Janeiro", "Cape Town"};
-#define NUM_LOCATIONS 18
-
-static const char* currency_names[] = {"GBP", "USD", "EUR", "JPY", "CAD", "AUD",
-                                       "CHF", "CNY", "INR", "KRW", "BRL", "SGD"};
-static const char* currency_symbols[] = {"&#163;", "$",      "&#8364;", "&#165;",  "$",  "$",
-                                         "Fr",     "&#165;", "&#8377;", "&#8361;", "R$", "$"};
-#define NUM_CURRENCIES 12
-
-static const char* crypto_names[] = {"XBT",  "ETH",  "SOL",  "ADA", "DOT",
-                                     "LINK", "AVAX", "DOGE", "XRP", "LTC"};
-static const char* stock_names[] = {"AAPL", "MSFT", "GOOGL", "AMZN", "TSLA",
-                                    "NVDA", "META", "JPM",   "V",    "DIS"};
-
-static char config_html_buf[8192];
-
-static const char* build_config_html(void)
-{
-    device_config_t config;
-    flash_memory_read(&config);
-
-    int pos = 0;
-    pos += snprintf(
-        config_html_buf + pos, sizeof(config_html_buf) - pos,
-        "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n"
-        "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width\">"
-        "<meta charset=\"UTF-8\"><title>Photon Config</title>"
-        "<style>"
-        "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe "
-        "UI',Roboto,sans-serif;background:linear-gradient(135deg,#4A90E2 0%%,#357ABD "
-        "100%%);margin:0;padding:20px;min-height:100vh;display:flex;align-items:center;justify-"
-        "content:center}"
-        ".container{background:white;border-radius:12px;box-shadow:0 8px 24px "
-        "rgba(0,0,0,0.15);padding:32px;max-width:400px;width:100%%}"
-        "h1{color:#333;margin:0 0 24px;font-size:28px;font-weight:600;text-align:center}"
-        "label{display:block;color:#555;font-size:14px;font-weight:500;margin-bottom:8px;margin-"
-        "top:16px}"
-        "input,select{width:100%%;padding:12px;border:2px solid "
-        "#e0e0e0;border-radius:8px;font-size:16px;box-sizing:border-box;transition:border-color "
-        "0.3s}"
-        "input:focus,select:focus{outline:none;border-color:#4A90E2}"
-        "button{width:100%%;background:linear-gradient(135deg,#4A90E2 0%%,#357ABD "
-        "100%%);color:white;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:"
-        "600;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;margin-top:20px}"
-        "button:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(74,144,226,0.4)}"
-        "button:active{transform:translateY(0)}"
-        ".subtitle{color:#888;font-size:14px;text-align:center;margin-bottom:24px}"
-        ".range-value{display:inline-block;color:#4A90E2;font-weight:600;margin-left:8px}"
-        ".warning{display:none;color:#dc2626;font-size:13px;margin-top:4px;font-weight:500}"
-        ".warning.show{display:block}"
-        ".ticker-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}"
-        ".ticker-grid label{display:flex;align-items:center;gap:8px;margin:0;cursor:pointer}"
-        ".ticker-grid input[type=checkbox]{width:auto;margin:0;padding:0}"
-        "</style></head><body>"
-        "<div class=\"container\"><h1>Device Settings</h1>"
-        "<p class=\"subtitle\">Configure your Photon display</p>"
-        "<form method=\"POST\" action=\"/save-config\" "
-        "enctype=\"application/x-www-form-urlencoded\">"
-        "<label>Brightness <span class=\"range-value\" id=\"brightnessValue\">%d%%</span></label>"
-        "<input type=\"range\" name=\"brightness\" id=\"brightness\" min=\"1\" max=\"20\" "
-        "value=\"%d\" step=\"1\" oninput=\"updateBrightness(this.value)\">"
-        "<p class=\"warning\" id=\"powerWarning\"%s>⚠️ External power supply highly recommended to "
-        "avoid overload</p>",
-        config.brightness, config.brightness,
-        config.brightness >= 10 ? " class=\"warning show\"" : "");
-
-    // Location select
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                    "<label>Location</label><select name=\"location\">");
-    for (int i = 0; i < NUM_LOCATIONS; i++)
-    {
-        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<option value=\"%d\"%s>%s</option>", i,
-                        config.location == i ? " selected" : "", location_names[i]);
-    }
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</select>");
-
-    // Currency select
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                    "<label>Currency</label><select name=\"currency\">");
-    for (int i = 0; i < NUM_CURRENCIES; i++)
-    {
-        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<option value=\"%d\"%s>%s (%s)</option>", i,
-                        config.currency == i ? " selected" : "", currency_names[i],
-                        currency_symbols[i]);
-    }
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</select>");
-
-    // Crypto checkboxes
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                    "<label>Crypto</label><div class=\"ticker-grid\">");
-    for (int i = 0; i < 10; i++)
-    {
-        pos +=
-            snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                     "<label><input type=\"checkbox\" name=\"crypto_%d\" value=\"1\"%s>%s</label>",
-                     i, (config.crypto & (1 << i)) ? " checked" : "", crypto_names[i]);
-    }
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div>");
-
-    // Stock checkboxes
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                    "<label>Stocks</label><div class=\"ticker-grid\">");
-    for (int i = 0; i < 10; i++)
-    {
-        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<label><input type=\"checkbox\" name=\"stk_%d\" value=\"1\"%s>%s</label>",
-                        i, (config.stocks & (1 << i)) ? " checked" : "", stock_names[i]);
-    }
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div>");
-
-    // Submit and script
-    pos +=
-        snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                 "<button type=\"submit\">Save & Reboot</button>"
-                 "</form></div>"
-                 "<script>"
-                 "function updateBrightness(val){"
-                 "document.getElementById('brightnessValue').textContent=val+'%%';"
-                 "var warning=document.getElementById('powerWarning');"
-                 "if(val>10){warning.classList.add('show');}else{warning.classList.remove('show');}"
-                 "}"
-                 "</script>"
-                 "</body></html>");
-
-    return config_html_buf;
-}
 
 static int hex_to_int(char c)
 {
@@ -247,6 +60,63 @@ static void url_decode(char* dst, const char* src, size_t max_len)
         }
     }
     dst[j] = '\0';
+}
+
+static bool parse_csv_portfolio(const char* csv_data, device_config_t* config)
+{
+    const char* line_start = csv_data;
+    const char* line_end;
+    int line_num = 0;
+    config->portfolio_count = 0;
+
+    while (*line_start && config->portfolio_count < 30)
+    {
+        line_end = strchr(line_start, '\n');
+        if (!line_end) line_end = line_start + strlen(line_start);
+
+        // Skip header line and empty lines
+        if (line_num > 0 && (line_end - line_start) > 0)
+        {
+            // Extract first column (ticker) - handle quoted CSV
+            const char* ticker_start = line_start;
+            const char* ticker_end = NULL;
+
+            if (*ticker_start == '"')
+            {
+                ticker_start++;
+                ticker_end = strchr(ticker_start, '"');
+            }
+            else
+            {
+                ticker_end = strchr(ticker_start, ',');
+            }
+
+            if (!ticker_end || ticker_end > line_end)
+            {
+                ticker_end = line_end;
+            }
+
+            size_t ticker_len = ticker_end - ticker_start;
+
+            // Skip "Total" row and empty tickers
+            if (ticker_len > 0 && ticker_len < 10 && strncmp(ticker_start, "Total", 5) != 0)
+            {
+                strncpy(config->portfolio_tickers[config->portfolio_count], ticker_start, ticker_len);
+                config->portfolio_tickers[config->portfolio_count][ticker_len] = '\0';
+
+                debug(DEBUG, "Parsed ticker %d: %s", config->portfolio_count,
+                      config->portfolio_tickers[config->portfolio_count]);
+
+                config->portfolio_count++;
+            }
+        }
+
+        line_num++;
+        line_start = (*line_end == '\n') ? line_end + 1 : line_end;
+    }
+
+    debug(INFO, "Parsed %d tickers from CSV", config->portfolio_count);
+    return config->portfolio_count > 0;
 }
 
 static void parse_post_data(const char* body, device_config_t* config)
@@ -398,7 +268,86 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
     debug(TRACE, "HTTP request complete, length: %zu", state->received);
     debug(DEBUG, "Request first line: %.100s", request);
 
-    if (strncmp(request, "POST /save-config", 17) == 0)
+    if (strncmp(request, "POST /upload-portfolio", 22) == 0)
+    {
+        const char* body = strstr(request, "\r\n\r\n");
+        if (body)
+        {
+            body += 4;
+
+            // Extract boundary from Content-Type header
+            char boundary[128] = {0};
+            const char* ct_header = strstr(request, "Content-Type:");
+            if (ct_header)
+            {
+                const char* boundary_start = strstr(ct_header, "boundary=");
+                if (boundary_start)
+                {
+                    boundary_start += 9;
+                    const char* boundary_end = strstr(boundary_start, "\r\n");
+                    size_t boundary_len =
+                        boundary_end ? (size_t)(boundary_end - boundary_start) : strlen(boundary_start);
+                    if (boundary_len < sizeof(boundary))
+                    {
+                        strncpy(boundary, boundary_start, boundary_len);
+                        boundary[boundary_len] = '\0';
+                    }
+                }
+            }
+
+            if (strlen(boundary) > 0)
+            {
+                // Find the CSV file content
+                const char* file_start = strstr(body, "\r\n\r\n");
+                if (file_start)
+                {
+                    file_start += 4;
+                    char end_marker[140];
+                    snprintf(end_marker, sizeof(end_marker), "\r\n--%s", boundary);
+                    const char* file_end = strstr(file_start, end_marker);
+
+                    if (file_end)
+                    {
+                        size_t csv_len = file_end - file_start;
+
+                        // Allocate temporary buffer for CSV content
+                        char* csv_data = (char*)malloc(csv_len + 1);
+                        if (csv_data)
+                        {
+                            memcpy(csv_data, file_start, csv_len);
+                            csv_data[csv_len] = '\0';
+
+                            debug(DEBUG, "CSV data length: %zu bytes", csv_len);
+
+                            device_config_t config;
+                            flash_memory_read(&config);
+
+                            if (parse_csv_portfolio(csv_data, &config))
+                            {
+                                flash_memory_write(&config);
+
+                                const char* response = html_get_portfolio_success();
+                                tcp_write(pcb, response, strlen(response), 0);
+                                tcp_output(pcb);
+                            }
+                            else
+                            {
+                                const char* response = html_get_portfolio_error();
+                                tcp_write(pcb, response, strlen(response), 0);
+                                tcp_output(pcb);
+                            }
+
+                            free(csv_data);
+                        }
+                    }
+                }
+            }
+
+            tcp_sent(pcb, http_sent_callback);
+            return ERR_OK;
+        }
+    }
+    else if (strncmp(request, "POST /save-config", 17) == 0)
     {
         const char* body = strstr(request, "\r\n\r\n");
         if (body)
@@ -419,7 +368,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             if (val) config.currency = (uint8_t)atoi(val + 9);
 
             uint16_t crypto = 0;
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < NUM_CRYPTO_TICKERS; i++)
             {
                 char key[12];
                 snprintf(key, sizeof(key), "crypto_%d=", i);
@@ -428,7 +377,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             config.crypto = crypto ? crypto : DEFAULT_CRYPTO;
 
             uint16_t stocks = 0;
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < NUM_STOCK_TICKERS; i++)
             {
                 char key[8];
                 snprintf(key, sizeof(key), "stk_%d=", i);
@@ -446,7 +395,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             matrix_set_brightness(config.brightness);
             config_saved = true;
 
-            tcp_write(pcb, html_success, strlen(html_success), 0);
+            tcp_write(pcb, html_get_success_page(), strlen(html_get_success_page()), 0);
             tcp_output(pcb);
             tcp_sent(pcb, http_sent_callback);
 
@@ -478,14 +427,14 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                 flash_memory_write(&config);
                 credentials_saved = true;
 
-                tcp_write(pcb, html_success, strlen(html_success), 0);
+                tcp_write(pcb, html_get_success_page(), strlen(html_get_success_page()), 0);
                 tcp_output(pcb);
                 sleep_ms(500);
             }
             else
             {
                 debug(WARN, "Empty SSID received");
-                tcp_write(pcb, html_form, strlen(html_form), 0);
+                tcp_write(pcb, html_get_wifi_form(), strlen(html_get_wifi_form()), 0);
                 tcp_output(pcb);
                 sleep_ms(500);
             }
@@ -493,7 +442,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
     }
     else if (strncmp(request, "GET /config", 11) == 0 || strncmp(request, "GET / ", 6) == 0)
     {
-        const char* config_page = build_config_html();
+        device_config_t config; flash_memory_read(&config); const char* config_page = html_build_config_page(&config);
         tcp_write(pcb, config_page, strlen(config_page), TCP_WRITE_FLAG_COPY);
         tcp_output(pcb);
         tcp_sent(pcb, http_sent_callback);
@@ -502,7 +451,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
     }
     else
     {
-        tcp_write(pcb, html_form, strlen(html_form), 0);
+        tcp_write(pcb, html_get_wifi_form(), strlen(html_get_wifi_form()), 0);
         tcp_output(pcb);
         tcp_sent(pcb, http_sent_callback);
 

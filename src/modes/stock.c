@@ -7,7 +7,6 @@
 #include <http.h>
 #include <macro.h>
 #include <matrix.h>
-#include <menu.h>
 #include <utils.h>
 #include <wifi.h>
 
@@ -38,38 +37,6 @@ void stock_set_enabled_mask(uint16_t mask)
     g_enabled_mask = mask;
 }
 
-// Parsing
-
-static float stock_parse_price_from_array(const char* json, const char* key)
-{
-    const char* pos = strstr(json, key);
-    if (!pos) return 0.0f;
-
-    pos += strlen(key);
-
-    while (*pos && *pos != '[') pos++;
-    if (*pos != '[') return 0.0f;
-    pos++;
-
-    while (*pos == ' ' || *pos == '"') pos++;
-
-    return atof(pos);
-}
-
-static float stock_parse_price_from_string(const char* json, const char* key)
-{
-    const char* pos = strstr(json, key);
-    if (!pos) return 0.0f;
-
-    pos += strlen(key);
-
-    while (*pos && *pos != '"') pos++;
-    if (*pos != '"') return 0.0f;
-    pos++;
-
-    return atof(pos);
-}
-
 // Display logic
 
 static void stock_response_callback(const char* body, size_t len, bool complete)
@@ -88,8 +55,8 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
 
     debug(DEBUG, "Received stock response: %.*s", (int)len, body);
 
-    float current_price = stock_parse_price_from_array(body, "\"c\":");
-    float open_price = stock_parse_price_from_string(body, "\"o\":");
+    float current_price = parse_price_from_json_array(body, "\"c\":");
+    float open_price = parse_price_from_json_string(body, "\"o\":");
 
     if (!current_price) current_price = 0.0f;
     if (!open_price) open_price = 0.0f;

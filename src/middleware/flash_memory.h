@@ -19,6 +19,9 @@ typedef struct
     uint16_t crypto;
     uint16_t stocks;
 
+    uint8_t portfolio_count;
+    char portfolio_tickers[30][10];
+
     uint32_t crc32;
 } device_config_t;
 

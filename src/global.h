@@ -3,7 +3,7 @@
 
 // For global state
 
-#include <menu.h>
+#include <menu_common.h>
 
 typedef enum
 {

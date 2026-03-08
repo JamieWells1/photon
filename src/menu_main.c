@@ -1,16 +1,16 @@
-#include <menu.h>
+#include <menu_main.h>
 
 #include <config.h>
 #include <const.h>
-#include <crypto.h>
 #include <flash_memory.h>
 #include <global.h>
 #include <graphics.h>
 #include <input.h>
 #include <macro.h>
 #include <matrix.h>
+#include <menu_common.h>
+#include <menu_markets.h>
 #include <stdio.h>
-#include <stock.h>
 #include <weather.h>
 
 #include <glyphs.h>
@@ -18,19 +18,37 @@
 #include <pico/time.h>
 #include <stdlib.h>
 
+// Mode defines for main menu
+#define TEMP_START \
+    4  // After markets modes (INVEST_END + STK_END + CRYPTO_END = 1+1+3 = 5, but we start at 0 so
+       // 4)
+#define TEMP_END 2
+#define CONFIG_START (TEMP_START + TEMP_END)
+#define CONFIG_END 1
+#define RESET_START (CONFIG_START + CONFIG_END)
+#define RESET_END 1
+
+// Main menus array
+static const Menu MENUS[] = {
+    {MENU_MARKETS, "MARKET", &ICONS_ARR[STOCKS]},
+    {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},
+    {MENU_CONFIG, "CONFIG", &ICONS_ARR[DATA]},
+    {MENU_RESET, "RESET", &ICONS_ARR[POWER]},
+};
+
+// Main menu state
 static bool g_display_initialized = false;
 static int g_tick = 0;
 static bool g_underscore_on = true;
 static bool g_in_submenu = false;
-static Mode g_current_mode = MENU_CRYPTO;
+static Mode g_current_mode = TEMP_START;
 
+// Submenu-specific state
 static int g_weather_hour_offset = 0;
-static int g_crypto_offset = 0;
-static int g_stock_offset = 0;
 static int g_reset_selection = 0;
 static bool g_reset_submenu_ready = false;
 
-static void menu_set_underscore(bool underscore_on)
+static void menu_main_set_underscore(bool underscore_on)
 {
     int uscr_starting_x = 1;
     int uscr_starting_y = 7;
@@ -45,39 +63,35 @@ static void menu_set_underscore(bool underscore_on)
         matrix_clear_horiz_line(uscr_starting_x, uscr_starting_y, uscr_length);
     }
 }
-static void menu_set_initial_display(void)
-{
-    // MenuState already initialised in global.c
-    Menu currentMode = MENUS[MENU_STATE.mode];
 
+static void menu_main_set_initial_display(void)
+{
+    Menu currentMode = MENUS[MENU_STATE.mode];
     matrix_display_word_icon_pair(currentMode.text, &DEFAULT_COLOUR, currentMode.icon, 0);
     g_display_initialized = true;
 }
 
-static void menu_reset_states(Matrix* mtrx)
+void menu_main_reset_states(Matrix* mtrx)
 {
-    stock_cleanup();
-    crypto_cleanup();
     weather_cleanup();
     config_cleanup();
+    menu_markets_cleanup();
 
     g_display_initialized = false;
     g_underscore_on = true;
     g_tick = 0;
     g_in_submenu = false;
     g_weather_hour_offset = 0;
-    g_crypto_offset = 0;
-    g_stock_offset = 0;
     g_reset_selection = 0;
     g_reset_submenu_ready = false;
 
     matrix_clear(mtrx);
-    menu_set_initial_display();
-    menu_set_underscore(true);
+    menu_main_set_initial_display();
+    menu_main_set_underscore(true);
     matrix_show(mtrx);
 }
 
-static void menu_reset_display(Matrix* mtrx)
+static void menu_main_reset_display(Matrix* mtrx)
 {
     matrix_clear(mtrx);
 
@@ -105,7 +119,7 @@ static void menu_reset_display(Matrix* mtrx)
 
 static void menu_main_slide_right(Matrix* mtrx)
 {
-    menu_set_underscore(true);
+    menu_main_set_underscore(true);
 
     int index_next = (MENU_STATE.mode + 1) % ARRAY_SIZE(MENUS);
     Menu nextMode = MENUS[index_next];
@@ -123,12 +137,12 @@ static void menu_main_slide_right(Matrix* mtrx)
     matrix_slide_right(mtrx, current_state, next_state);
 
     MENU_STATE.mode = index_next;
-    menu_reset_states(mtrx);
+    menu_main_reset_states(mtrx);
 }
 
 static void menu_main_slide_left(Matrix* mtrx)
 {
-    menu_set_underscore(true);
+    menu_main_set_underscore(true);
 
     int index_previous;
     if (MENU_STATE.mode == 0)
@@ -154,115 +168,68 @@ static void menu_main_slide_left(Matrix* mtrx)
     matrix_slide_left(mtrx, current_state, next_state);
 
     MENU_STATE.mode = index_previous;
-    menu_reset_states(mtrx);
+    menu_main_reset_states(mtrx);
 }
 
-static void menu_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Matrix* mtrx)
+static void menu_main_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr, Matrix* mtrx)
 {
-    Mode target_menu;
-
-    if (menu_state.mode == MENU_STOCKS)
+    if (menu_state.mode == MENU_MARKETS)
     {
-        target_menu = STK_START;
-    }
-    else if (menu_state.mode == MENU_CRYPTO)
-    {
-        target_menu = CRYPTO_START;
+        g_in_submenu = true;
+        menu_markets_start(btns, rtr, mtrx);
     }
     else if (menu_state.mode == MENU_WEATHER)
     {
-        target_menu = TEMP_START;
+        Mode target_menu = TEMP_START;
+        if (!g_in_submenu || g_current_mode != target_menu)
+        {
+            debug(TRACE, "Entering weather mode");
+            g_in_submenu = true;
+            g_current_mode = target_menu;
+            g_display_initialized = false;
+            g_display_initialized = true;
+        }
+        weather_display(mtrx, &g_weather_hour_offset);
     }
     else if (menu_state.mode == MENU_CONFIG)
     {
-        target_menu = CONFIG_START;
+        Mode target_menu = CONFIG_START;
+        if (!g_in_submenu || g_current_mode != target_menu)
+        {
+            debug(TRACE, "Entering config mode");
+            g_in_submenu = true;
+            g_current_mode = target_menu;
+            g_display_initialized = false;
+            g_display_initialized = true;
+        }
+        config_display(mtrx);
     }
     else if (menu_state.mode == MENU_RESET)
     {
-        target_menu = RESET_START;
-    }
-    else
-    {
-        return;
-    }
-
-    // Only initialise if entering a new submenu or first time
-    if (!g_in_submenu || g_current_mode != target_menu)
-    {
-        debug(TRACE, "Entering submenu: target_menu=%d", target_menu);
-        g_in_submenu = true;
-        g_current_mode = target_menu;
-        g_display_initialized = false;
-
-        if (target_menu == RESET_START)
+        Mode target_menu = RESET_START;
+        if (!g_in_submenu || g_current_mode != target_menu)
         {
+            debug(TRACE, "Entering reset mode");
+            g_in_submenu = true;
+            g_current_mode = target_menu;
+            g_display_initialized = false;
             g_reset_submenu_ready = false;
             debug(DEBUG, "Reset submenu entered, waiting for button release");
+            g_display_initialized = true;
         }
-
-        g_display_initialized = true;
-    }
-
-    if (g_current_mode == STK_START)
-    {
-        stock_display(mtrx, &g_stock_offset);
-    }
-    else if (g_current_mode == CRYPTO_START)
-    {
-        crypto_display(mtrx, &g_crypto_offset);
-    }
-    else if (g_current_mode == TEMP_START)
-    {
-        weather_display(mtrx, &g_weather_hour_offset);
-    }
-    else if (g_current_mode == CONFIG_START)
-    {
-        config_display(mtrx);
-    }
-    else if (g_current_mode == RESET_START)
-    {
-        debug(TRACE, "Displaying reset menu, ready=%d", g_reset_submenu_ready);
-        menu_reset_display(mtrx);
+        menu_main_reset_display(mtrx);
     }
 }
 
-static void menu_sub_menu_stocks_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+static void menu_main_weather_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (input_rtr_long_pressed(rtr))
     {
-        menu_reset_states(mtrx);
+        menu_main_reset_states(mtrx);
     }
 
-    if (input_rtr_cw(rtr))
-    {
-        g_stock_offset += 1;
-    }
-}
-
-static void menu_sub_menu_crypto_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
-{
-    if (input_rtr_long_pressed(rtr))
-    {
-        menu_reset_states(mtrx);
-    }
-
-    if (input_rtr_cw(rtr))
-    {
-        g_crypto_offset += 1;
-    }
-}
-
-static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
-{
-    if (input_rtr_long_pressed(rtr))
-    {
-        menu_reset_states(mtrx);
-    }
-
-    // Short press resets to current hour
     if (input_rtr_pressed(rtr) && g_weather_hour_offset != 0)
     {
-        // Save current display state
         PixelState current_state[NUM_PIXELS];
         matrix_save_state(current_state);
 
@@ -272,14 +239,12 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
         PixelState next_state[NUM_PIXELS];
         matrix_save_state(next_state);
 
-        // Slide left to indicate going back
         matrix_slide_left(mtrx, current_state, next_state);
     }
 
     int max_offset = weather_hours_fetched() - weather_current_hour_index() - 1;
     if (input_rtr_cw(rtr) && g_weather_hour_offset < max_offset)
     {
-        // Save current display state
         PixelState current_state[NUM_PIXELS];
         matrix_save_state(current_state);
 
@@ -294,7 +259,6 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
 
     if (input_rtr_anti_cw(rtr) && g_weather_hour_offset > 0)
     {
-        // Save current display state
         PixelState current_state[NUM_PIXELS];
         matrix_save_state(current_state);
 
@@ -309,15 +273,15 @@ static void menu_sub_menu_weather_detect_inputs(Button* btns, Rotator* rtr, Matr
     }
 }
 
-static void menu_sub_menu_config_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+static void menu_main_config_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (input_rtr_long_pressed(rtr))
     {
-        menu_reset_states(mtrx);
+        menu_main_reset_states(mtrx);
     }
 }
 
-static void menu_sub_menu_reset_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+static void menu_main_reset_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (!g_reset_submenu_ready)
     {
@@ -342,7 +306,7 @@ static void menu_sub_menu_reset_detect_inputs(Button* btns, Rotator* rtr, Matrix
         debug(DEBUG, "Reset menu: encoder CW, selection %d -> %d", g_reset_selection,
               (g_reset_selection + 1) % 2);
         g_reset_selection = (g_reset_selection + 1) % 2;
-        menu_reset_display(mtrx);
+        menu_main_reset_display(mtrx);
     }
 
     if (input_rtr_anti_cw(rtr))
@@ -350,7 +314,7 @@ static void menu_sub_menu_reset_detect_inputs(Button* btns, Rotator* rtr, Matrix
         debug(DEBUG, "Reset menu: encoder CCW, selection %d -> %d", g_reset_selection,
               (g_reset_selection - 1 + 2) % 2);
         g_reset_selection = (g_reset_selection - 1 + 2) % 2;
-        menu_reset_display(mtrx);
+        menu_main_reset_display(mtrx);
     }
 
     if (input_any_btn_pressed(btns, rtr))
@@ -377,11 +341,11 @@ static void menu_sub_menu_reset_detect_inputs(Button* btns, Rotator* rtr, Matrix
             debug(INFO, "Reset cancelled by user");
         }
 
-        menu_reset_states(mtrx);
+        menu_main_reset_states(mtrx);
     }
 }
 
-static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+static void menu_main_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (!g_in_submenu)
     {
@@ -390,8 +354,8 @@ static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 
         if (cw || acw)
         {
-            debug(TRACE, "menu_detect_inputs: g_in_submenu=%d, cw=%d, acw=%d\n", g_in_submenu, cw,
-                  acw);
+            debug(TRACE, "menu_main_detect_inputs: g_in_submenu=%d, cw=%d, acw=%d\n", g_in_submenu,
+                  cw, acw);
         }
 
         if (cw)
@@ -410,35 +374,31 @@ static void menu_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
     if (input_any_btn_pressed(btns, rtr) && !g_in_submenu)
     {
         debug(DEBUG, "Button pressed on main menu, entering submenu for mode=%d", MENU_STATE.mode);
-        menu_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
+        menu_main_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
     }
 
     if (g_in_submenu)
     {
-        if (g_current_mode == STK_START)
+        if (MENU_STATE.mode == MENU_MARKETS)
         {
-            menu_sub_menu_stocks_detect_inputs(btns, rtr, mtrx);
+            menu_markets_detect_inputs(btns, rtr, mtrx);
         }
-        if (g_current_mode == CRYPTO_START)
+        else if (g_current_mode == TEMP_START)
         {
-            menu_sub_menu_crypto_detect_inputs(btns, rtr, mtrx);
+            menu_main_weather_detect_inputs(btns, rtr, mtrx);
         }
-        if (g_current_mode == TEMP_START)
+        else if (g_current_mode == CONFIG_START)
         {
-            menu_sub_menu_weather_detect_inputs(btns, rtr, mtrx);
+            menu_main_config_detect_inputs(btns, rtr, mtrx);
         }
-        if (g_current_mode == CONFIG_START)
+        else if (g_current_mode == RESET_START)
         {
-            menu_sub_menu_config_detect_inputs(btns, rtr, mtrx);
-        }
-        if (g_current_mode == RESET_START)
-        {
-            menu_sub_menu_reset_detect_inputs(btns, rtr, mtrx);
+            menu_main_reset_detect_inputs(btns, rtr, mtrx);
         }
     }
 }
 
-void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
+void menu_main_start(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     // Reset to avoid integer overflow for long running idle programs
     if (g_tick >= 100000) g_tick = 0;
@@ -446,22 +406,26 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx)
 
     if (!g_display_initialized)
     {
-        menu_set_initial_display();
+        menu_main_set_initial_display();
         matrix_show(mtrx);
     }
 
     if (g_tick % 50 == 0 && !g_in_submenu)
     {
-        menu_set_underscore(g_underscore_on);
+        menu_main_set_underscore(g_underscore_on);
         g_underscore_on = !g_underscore_on;
         matrix_show(mtrx);
     }
 
     if (g_in_submenu && g_tick % DISPLAY_UPDATE_INTERVAL_TICKS_MS == 0 &&
-        g_current_mode != RESET_START)
+        g_current_mode != RESET_START && MENU_STATE.mode != MENU_MARKETS)
     {
-        menu_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
+        menu_main_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
     }
 
-    menu_detect_inputs(btns, rtr, mtrx);
+    menu_main_detect_inputs(btns, rtr, mtrx);
 }
+
+bool menu_main_in_submenu(void) { return g_in_submenu; }
+
+void menu_main_exit_submenu(Matrix* mtrx) { menu_main_reset_states(mtrx); }

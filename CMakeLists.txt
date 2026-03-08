@@ -61,7 +61,9 @@ set(INPUT_SOURCES
 
 # Menu system
 set(MENU_SOURCES
-        src/menu.c
+        src/menu_common.c
+        src/menu_main.c
+        src/menu_markets.c
 )
 
 # Global state
@@ -90,6 +92,7 @@ set(MIDDLEWARE_SOURCES
 set(SERVER_SOURCES
         src/server/dns_server.c
         src/server/http_server.c
+        src/server/html.c
         src/server/dhcpserver.c
 )
 
@@ -102,6 +105,7 @@ set(MDNS_SOURCES
 
 # Display modes
 set(MODE_SOURCES
+        src/modes/portfolio.c
         src/modes/stock.c
         src/modes/crypto.c
         src/modes/weather.c

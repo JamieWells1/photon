@@ -57,4 +57,21 @@ extern const LogLevel LOG_LEVEL;
 // Weather
 #define WEATHER_HOURS 48
 
+// Location data
+#define NUM_LOCATIONS 18
+extern const char* const LOCATION_NAMES[NUM_LOCATIONS];
+
+// Currency data
+#define NUM_CURRENCIES 12
+extern const char* const CURRENCY_NAMES[NUM_CURRENCIES];
+extern const char* const CURRENCY_SYMBOLS[NUM_CURRENCIES];
+
+// Stock data
+#define NUM_STOCK_TICKERS 10
+extern const char* const STOCK_TICKER_NAMES[NUM_STOCK_TICKERS];
+
+// Crypto data
+#define NUM_CRYPTO_TICKERS 10
+extern const char* const CRYPTO_TICKER_NAMES[NUM_CRYPTO_TICKERS];
+
 #endif  // CONST_H

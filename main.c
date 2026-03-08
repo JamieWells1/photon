@@ -9,7 +9,7 @@
 #include <input.h>
 #include <macro.h>
 #include <matrix.h>
-#include <menu.h>
+#include <menu_main.h>
 #include <power.h>
 #include <wifi.h>
 
@@ -304,13 +304,13 @@ int main(void)
 
         if (menu_active)
         {
-            menu_start(buttons, rotator, mtrx);
+            menu_main_start(buttons, rotator, mtrx);
         }
 
-        // Log power stats every 5 seconds (500 ticks * 10ms)
-        if (power_log_tick % 500 == 0)
+        // Log power stats every 30 seconds
+        if (power_log_tick % 3000 == 0)
         {
-            power_log_stats(config.brightness);
+            power_log_stats(TRACE, config.brightness);
         }
         power_log_tick++;
 

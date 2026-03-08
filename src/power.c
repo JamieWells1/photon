@@ -15,7 +15,7 @@
 #define LED_IDLE_CURRENT_MA 1          // mA per LED when off (controller chip)
 #define PICO_IDLE_CURRENT_MA 100       // Pico + WiFi baseline current
 
-static uint16_t power_estimate_current_draw_ma(uint8_t brightness_pct)
+static uint16_t power_estimate_current_draw_ma(LogLevel log_level, uint8_t brightness_pct)
 {
     uint32_t total_brightness = 0;
     uint16_t active_pixels = 0;
@@ -40,23 +40,23 @@ static uint16_t power_estimate_current_draw_ma(uint8_t brightness_pct)
     // Add 1mA per LED for controller chip overhead (even when off)
     uint32_t led_idle_current = NUM_PIXELS * LED_IDLE_CURRENT_MA;
 
-    debug(TRACE, "Active pixels: %d/%d (%.1f%%)", active_pixels, NUM_PIXELS,
+    debug(log_level, "Active pixels: %d/%d (%.1f%%)", active_pixels, NUM_PIXELS,
           (active_pixels * 100.0f) / NUM_PIXELS);
-    debug(TRACE, "Total brightness sum: %u", total_brightness);
+    debug(log_level, "Total brightness sum: %u", total_brightness);
 
     return (uint16_t)(PICO_IDLE_CURRENT_MA + led_active_current + led_idle_current);
 }
 
-void power_log_stats(uint8_t brightness_pct)
+void power_log_stats(LogLevel log_level, uint8_t brightness_pct)
 {
     // Note: VSYS voltage reading disabled - conflicts with WiFi on Pico W/Pico 2 W
     // Assume nominal 5V for power calculation
     const float nominal_voltage = 5.0f;
 
-    uint16_t estimated_ma = power_estimate_current_draw_ma(brightness_pct);
+    uint16_t estimated_ma = power_estimate_current_draw_ma(log_level, brightness_pct);
     float power_watts = (estimated_ma * nominal_voltage) / 1000.0f;
 
-    debug(TRACE, "Draw: %dmA | Power: %.2fW @ 5V", estimated_ma, power_watts);
+    debug(log_level, "Draw: %dmA | Power: %.2fW @ 5V", estimated_ma, power_watts);
 
     if (estimated_ma > 2000)
     {
