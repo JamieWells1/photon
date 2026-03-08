@@ -18,8 +18,8 @@ src/
 ├── display/      # Matrix control, text, icons
 ├── input/        # Buttons and rotary encoder
 ├── middleware/   # WiFi, HTTP, and flash storage
-├── modes/        # Display modes (ticker, weather, games, config)
-└── server/       # Captive portal (DNS, DHCP, HTTP server)
+├── modes/        # Display modes
+└── server/       # Captive portal
 ```
 
 ## How to Contribute
@@ -28,38 +28,6 @@ src/
 2. Make your changes
 3. Test on hardware
 4. Submit a pull request
-
-## What to Contribute
-
-### New Display Modes
-
-The most common contribution! Add new modes like:
-
-- Games (Snake, Pong, Conway's Game of Life)
-- Utilities (Pomodoro timer, countdown)
-- Data displays (Crypto prices, sports scores)
-- Visualizations (Music reactive, animations)
-
-**Start here**: [Building a Mode Tutorial](building-a-mode.md) →
-
-### Graphics & Fonts
-
-- New icon designs
-- Extended character sets (lowercase, symbols)
-- Animation helpers
-
-### Core Improvements
-
-- Performance optimizations
-- Bug fixes
-- API enhancements
-- Documentation improvements
-
-### Network Features
-
-- New API integrations
-- MQTT support
-- WebSocket connections
 
 ## API Reference
 

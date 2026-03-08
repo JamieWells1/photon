@@ -1,4 +1,5 @@
 #include <const.h>
+#include <crypto.h>
 #include <dns_server.h>
 #include <error.h>
 #include <flash_memory.h>
@@ -9,7 +10,7 @@
 #include <macro.h>
 #include <matrix.h>
 #include <menu.h>
-#include <crypto.h>
+#include <power.h>
 #include <wifi.h>
 
 #include <stdint.h>
@@ -152,7 +153,8 @@ int main(void)
     bool usb_host = stdio_usb_connected();
     uint8_t max_brightness = usb_host ? MAX_BRIGHTNESS_USB : MAX_BRIGHTNESS_MAINS;
     matrix_set_max_brightness(max_brightness);
-    debug(INFO, "Power source: %s (max brightness: %u%%)", usb_host ? "USB" : "mains", max_brightness);
+    debug(INFO, "Power source: %s (max brightness: %u%%)", usb_host ? "USB" : "mains",
+          max_brightness);
 
     debug(INFO, "✓✓✓ Main init complete. Starting main execution loop.");
 
@@ -256,6 +258,7 @@ int main(void)
     }
 
     bool menu_active = false;
+    static uint32_t power_log_tick = 0;
     while (true)
     {
         input_update(buttons, rotator);
@@ -303,6 +306,13 @@ int main(void)
         {
             menu_start(buttons, rotator, mtrx);
         }
+
+        // Log power stats every 5 seconds (500 ticks * 10ms)
+        if (power_log_tick % 500 == 0)
+        {
+            power_log_stats(config.brightness);
+        }
+        power_log_tick++;
 
         sleep_ms(10);
     }

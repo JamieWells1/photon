@@ -18,15 +18,9 @@
 #include <pico/time.h>
 
 Stock STK_ARR[STK_COUNT] = {
-    {AAPL, STK_AAPL, 0.0f, 0.0f},
-    {MSFT, STK_MSFT, 0.0f, 0.0f},
-    {GOOGL, STK_GOOGL, 0.0f, 0.0f},
-    {AMZN, STK_AMZN, 0.0f, 0.0f},
-    {TSLA, STK_TSLA, 0.0f, 0.0f},
-    {NVDA, STK_NVDA, 0.0f, 0.0f},
-    {META, STK_META, 0.0f, 0.0f},
-    {JPM, STK_JPM, 0.0f, 0.0f},
-    {V, STK_V, 0.0f, 0.0f},
+    {AAPL, STK_AAPL, 0.0f, 0.0f}, {MSFT, STK_MSFT, 0.0f, 0.0f}, {GOOGL, STK_GOOGL, 0.0f, 0.0f},
+    {AMZN, STK_AMZN, 0.0f, 0.0f}, {TSLA, STK_TSLA, 0.0f, 0.0f}, {NVDA, STK_NVDA, 0.0f, 0.0f},
+    {META, STK_META, 0.0f, 0.0f}, {JPM, STK_JPM, 0.0f, 0.0f},   {V, STK_V, 0.0f, 0.0f},
     {DIS, STK_DIS, 0.0f, 0.0f},
 };
 
@@ -36,10 +30,7 @@ static unsigned int g_stk_to_fetch_index = 0;
 static int g_scroll_offset = 0;
 static uint16_t g_enabled_mask = DEFAULT_STOCKS;
 
-bool stock_is_enabled(StockIndex idx)
-{
-    return (g_enabled_mask & (1 << idx)) != 0;
-}
+bool stock_is_enabled(StockIndex idx) { return (g_enabled_mask & (1 << idx)) != 0; }
 
 void stock_set_enabled_mask(uint16_t mask)
 {
@@ -158,7 +149,8 @@ void stock_display(Matrix* mtrx, int* offset)
                       path);
 
                 uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-                ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, stock_response_callback, mtrx);
+                ReturnCode rc =
+                    http_get(PROXY_HOST, proxy_port, path, stock_response_callback, mtrx);
                 if (RC_FAILED(rc))
                 {
                     debug(ERROR, "HTTP request failed for %s: %s", stk_to_fetch, rc_to_string(rc));

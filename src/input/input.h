@@ -24,6 +24,8 @@ typedef struct
     uint8_t state;              // Current quadrature state (0-3)
     int8_t direction;           // Last detected direction: 1=CW, -1=CCW, 0=none
     uint32_t last_change_time;  // For debouncing
+    uint32_t press_start_time;  // Track when button was pressed (for long press)
+    bool long_press_triggered;  // Prevent multiple long press triggers
 } Rotator;
 
 void input_update(Button* btns, Rotator* rtr);
@@ -38,6 +40,7 @@ bool input_rtr_cw(Rotator* rtr);
 bool input_rtr_anti_cw(Rotator* rtr);
 bool input_rtr_pressed(Rotator* rtr);
 bool input_rtr_released(Rotator* rtr);
+bool input_rtr_long_pressed(Rotator* rtr);
 
 bool input_any_btn_pressed(Button* btns, Rotator* rtr);
 

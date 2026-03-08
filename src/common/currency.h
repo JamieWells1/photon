@@ -31,4 +31,4 @@ typedef enum
     CCY_COUNT
 } Currency;
 
-#endif // CURRENCY_H
+#endif  // CURRENCY_H

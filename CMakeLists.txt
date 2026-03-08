@@ -74,6 +74,11 @@ set(UTILS_SOURCES
         src/utils.c
 )
 
+# Power
+set(POWER_SOURCES
+        src/power.c
+)
+
 # Middleware (client-side networking & storage)
 set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
@@ -95,16 +100,10 @@ set(MDNS_SOURCES
         ${PICO_LWIP_PATH}/src/apps/mdns/mdns_domain.c
 )
 
-# Games
-set(GAME_SOURCES
-        src/modes/games/tetris.c
-)
-
 # Display modes
 set(MODE_SOURCES
         src/modes/stock.c
         src/modes/crypto.c
-        src/modes/game.c
         src/modes/weather.c
         src/modes/config.c
 )
@@ -117,10 +116,10 @@ add_executable(photon
         ${MENU_SOURCES}
         ${GLOBAL_SOURCES}
         ${UTILS_SOURCES}
+        ${POWER_SOURCES}
         ${MIDDLEWARE_SOURCES}
         ${SERVER_SOURCES}
         ${MDNS_SOURCES}
-        ${GAME_SOURCES}
         ${MODE_SOURCES}
 )
 
@@ -138,6 +137,7 @@ target_compile_options(photon PRIVATE
         -Wextra
         -Werror=return-type
         -Wno-unused-parameter
+        -Wno-type-limits
 )
 
 target_link_libraries(photon
@@ -152,7 +152,6 @@ target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/middleware
         ${CMAKE_CURRENT_LIST_DIR}/src/server
         ${CMAKE_CURRENT_LIST_DIR}/src/modes
-        ${CMAKE_CURRENT_LIST_DIR}/src/modes/games
         ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -160,6 +159,7 @@ target_link_libraries(photon
         hardware_pio
         hardware_flash
         hardware_sync
+        hardware_adc
         pico_cyw43_arch_lwip_threadsafe_background
         )
 

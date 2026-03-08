@@ -165,10 +165,10 @@ static const Pixel LETTER_M[] = {
 };
 
 static const Pixel LETTER_N[] = {
-    // 4x5
+    // 3x5
     {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR},
-    {0, 4, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {3, 0, DEFAULT_COLOUR},
-    {3, 1, DEFAULT_COLOUR}, {3, 2, DEFAULT_COLOUR}, {3, 3, DEFAULT_COLOUR}, {3, 4, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
 };
 
 static const Pixel LETTER_O[] = {
@@ -227,11 +227,11 @@ static const Pixel LETTER_V[] = {
 };
 
 static const Pixel LETTER_W[] = {
-    // 5x5
+    // 3x5
     {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR},
-    {0, 4, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {3, 3, DEFAULT_COLOUR},
-    {4, 0, DEFAULT_COLOUR}, {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR}, {4, 3, DEFAULT_COLOUR},
-    {4, 4, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR},
+    {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR},
+    {2, 4, DEFAULT_COLOUR},
 };
 
 static const Pixel LETTER_X[] = {
@@ -405,7 +405,7 @@ static const Glyph ALPHABET[26] = {
     {LETTER_K, ARRAY_SIZE(LETTER_K), 3, 5},  // K
     {LETTER_L, ARRAY_SIZE(LETTER_L), 3, 5},  // L
     {LETTER_M, ARRAY_SIZE(LETTER_M), 5, 5},  // M
-    {LETTER_N, ARRAY_SIZE(LETTER_N), 4, 5},  // N
+    {LETTER_N, ARRAY_SIZE(LETTER_N), 3, 5},  // N
     {LETTER_O, ARRAY_SIZE(LETTER_O), 3, 5},  // O
     {LETTER_P, ARRAY_SIZE(LETTER_P), 3, 5},  // P
     {LETTER_Q, ARRAY_SIZE(LETTER_Q), 4, 5},  // Q
@@ -561,8 +561,9 @@ static const Pixel ICON_POWER[15] = {
 };
 
 static const Pixel ICON_CRYPTO[16] = {
-    {1, 0, YELLOW}, {2, 0, YELLOW}, {3, 0, YELLOW}, {0, 1, YELLOW}, {0, 2, YELLOW},
-    {0, 3, YELLOW}, {4, 1, YELLOW}, {4, 2, YELLOW}, {4, 3, YELLOW}, {1, 4, YELLOW}, {2, 4, YELLOW}, {3, 4, YELLOW}, {2, 1, YELLOW},{1, 2, YELLOW},{3, 2, YELLOW},{2, 3, YELLOW},
+    {1, 0, YELLOW}, {2, 0, YELLOW}, {3, 0, YELLOW}, {0, 1, YELLOW}, {0, 2, YELLOW}, {0, 3, YELLOW},
+    {4, 1, YELLOW}, {4, 2, YELLOW}, {4, 3, YELLOW}, {1, 4, YELLOW}, {2, 4, YELLOW}, {3, 4, YELLOW},
+    {2, 1, YELLOW}, {1, 2, YELLOW}, {3, 2, YELLOW}, {2, 3, YELLOW},
 };
 
 // =================
@@ -587,7 +588,7 @@ static const Glyph ICONS_ARR[ICON_COUNT] = {
     {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                  // 14: WIFI
     {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                  // 15: DATA
     {ICON_POWER, ARRAY_SIZE(ICON_POWER), 5, 5},                // 16: POWER
-    {ICON_CRYPTO, ARRAY_SIZE(ICON_CRYPTO), 5, 5},                   // 17: CRYPTO
+    {ICON_CRYPTO, ARRAY_SIZE(ICON_CRYPTO), 5, 5},              // 17: CRYPTO
 };
 
 #endif  // DISPLAYS_H

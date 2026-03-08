@@ -12,8 +12,8 @@ Top-level menu categories.
 
 ```c
 typedef enum {
-    MENU_CRYPTO = 0,
-    MENU_GAMES = 1,
+    MENU_STOCKS = 0,
+    MENU_CRYPTO = 1,
     MENU_WEATHER = 2,
     MENU_CONFIG = 3,
     MENU_RESET = 4,
@@ -40,8 +40,8 @@ typedef struct {
 
 ```c
 static const Menu MENUS[] = {
-    {MENU_CRYPTO, "CRYPTO", &ICONS_ARR[TICKERS]},
-    {MENU_GAMES, "GAMES", &ICONS_ARR[GAMES]},
+    {MENU_STOCKS, "STOCKS", &ICONS_ARR[STOCKS]},
+    {MENU_CRYPTO, "CRYPTO", &ICONS_ARR[CRYPTO]},
     {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},
     {MENU_CONFIG, "CONFIG", &ICONS_ARR[DATA]},
     {MENU_RESET, "RESET", &ICONS_ARR[POWER]},
@@ -91,24 +91,14 @@ void menu_start(Button* btns, Rotator* rtr, Matrix* mtrx);
 
 Each display mode implements a display function and optionally a cleanup function.
 
-### Ticker Mode
+### Crypto Mode
 
 ```c
 void ticker_display(Matrix* mtrx, int* offset);
 void ticker_cleanup(void);
 ```
 
-**Purpose:** Display live cryptocurrency prices (Bitcoin, Ethereum, Solana) with 24-hour change percentage. Fetches from Kraken API every 15 minutes. Scrolls continuously across the display.
-
----
-
-### Game Mode
-
-```c
-void game_display(Matrix* mtrx);
-```
-
-**Purpose:** Game implementations (currently a stub/TODO).
+**Purpose:** Display live cryptocurrency prices with 24-hour change percentage. Fetches from Kraken API every 15 minutes. Scrolls continuously across the display.
 
 ---
 

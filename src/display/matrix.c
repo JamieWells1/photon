@@ -209,10 +209,7 @@ void matrix_clear(Matrix* mtrx)
     }
 }
 
-void matrix_set_max_brightness(uint8_t max_pct)
-{
-    g_max_brightness_pct = max_pct;
-}
+void matrix_set_max_brightness(uint8_t max_pct) { g_max_brightness_pct = max_pct; }
 
 void matrix_set_brightness(uint8_t brightness_pct)
 {

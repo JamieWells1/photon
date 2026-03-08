@@ -9,6 +9,7 @@
 #include <ws2812.pio.h>
 
 #define DEBOUNCE_TIME_US 500
+#define LONG_PRESS_TIME_MS 500
 
 void input_update(Button* btns, Rotator* rtr)
 {
@@ -28,6 +29,17 @@ void input_rtr_update(Rotator* rtr)
     rtr->current_clk_state = gpio_get(rtr->pin_clk);
     rtr->current_dt_state = gpio_get(rtr->pin_dt);
     rtr->current_sw_state = gpio_get(rtr->pin_sw);
+
+    if (input_rtr_pressed(rtr))
+    {
+        rtr->press_start_time = time_us_32() / 1000;
+        rtr->long_press_triggered = false;
+    }
+
+    if (input_rtr_released(rtr))
+    {
+        rtr->long_press_triggered = false;
+    }
 
     uint8_t new_state = (rtr->current_clk_state << 1) | rtr->current_dt_state;
 
@@ -101,6 +113,22 @@ bool input_rtr_pressed(Rotator* rtr)
 bool input_rtr_released(Rotator* rtr)
 {
     return rtr->last_sw_state == false && rtr->current_sw_state == true;
+}
+
+bool input_rtr_long_pressed(Rotator* rtr)
+{
+    if (rtr->current_sw_state == false && !rtr->long_press_triggered)
+    {
+        uint32_t now_ms = time_us_32() / 1000;
+        uint32_t held_time = now_ms - rtr->press_start_time;
+
+        if (held_time >= LONG_PRESS_TIME_MS)
+        {
+            rtr->long_press_triggered = true;
+            return true;
+        }
+    }
+    return false;
 }
 
 bool input_any_btn_pressed(Button* btns, Rotator* rtr)
