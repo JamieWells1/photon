@@ -211,7 +211,7 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
     switch (metric)
     {
         case METRIC_PL_ABSOLUTE:
-            snprintf(label_str, sizeof(label_str), "P/L");
+            snprintf(label_str, sizeof(label_str), "  P/L");
             snprintf(value_str, sizeof(value_str), " $%.2f", total_pl);
             if (total_pl == 0.0f)
                 value_color = &DEFAULT_COLOUR;
@@ -221,7 +221,7 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
             break;
 
         case METRIC_PL_PERCENTAGE:
-            snprintf(label_str, sizeof(label_str), "P/L");
+            snprintf(label_str, sizeof(label_str), "  P/L");
             snprintf(value_str, sizeof(value_str), " %.2f%%", total_pct);
             if (total_pct == 0.0f)
                 value_color = &DEFAULT_COLOUR;
