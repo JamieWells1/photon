@@ -70,7 +70,7 @@ static const RGB YELLOW = {250, 200, 50};
 static const RGB LIGHT_BLUE = {150, 250, 250};
 static const RGB BLUE = {50, 150, 200};
 static const RGB ORANGE = {240, 120, 30};
-static const RGB LABEL_ORANGE = {255, 150, 0};
+static const RGB LABEL_ORANGE = {255, 100, 0};
 
 // =======
 // LETTERS

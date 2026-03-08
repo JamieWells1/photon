@@ -187,14 +187,14 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
     {
         case METRIC_PL_ABSOLUTE:
             snprintf(label_str, sizeof(label_str), "P/L");
-            snprintf(value_str, sizeof(value_str), "$%.2f", total_pl);
+            snprintf(value_str, sizeof(value_str), " $%.2f", total_pl);
             value_color = (total_pl >= 0) ? &GREEN : &RED;
             has_label = true;
             break;
 
         case METRIC_PL_PERCENTAGE:
             snprintf(label_str, sizeof(label_str), "P/L");
-            snprintf(value_str, sizeof(value_str), "%.2f%%", total_pct);
+            snprintf(value_str, sizeof(value_str), " %.2f%%", total_pct);
             value_color = (total_pct >= 0) ? &GREEN : &RED;
             has_label = true;
             break;
@@ -206,8 +206,8 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
                 float current_value =
                     g_positions[winner_idx].quantity * g_positions[winner_idx].current_price;
                 float pct_change = (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
-                snprintf(label_str, sizeof(label_str), "%s", g_positions[winner_idx].ticker);
-                snprintf(value_str, sizeof(value_str), " +%.2f%%", pct_change);
+                snprintf(label_str, sizeof(label_str), "  %s", g_positions[winner_idx].ticker);
+                snprintf(value_str, sizeof(value_str), "+%.2f%%", pct_change);
                 value_color = &GREEN;
                 has_label = true;
             }
@@ -225,8 +225,8 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
                 float current_value =
                     g_positions[loser_idx].quantity * g_positions[loser_idx].current_price;
                 float pct_change = (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
-                snprintf(label_str, sizeof(label_str), "%s", g_positions[loser_idx].ticker);
-                snprintf(value_str, sizeof(value_str), " %.2f%%", pct_change);
+                snprintf(label_str, sizeof(label_str), "  %s", g_positions[loser_idx].ticker);
+                snprintf(value_str, sizeof(value_str), "%.2f%%", pct_change);
                 value_color = &RED;
                 has_label = true;
             }
@@ -251,10 +251,30 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
     int label_width = has_label ? matrix_calculate_word_width_with_space(label_str) : 0;
     int value_width = matrix_calculate_word_width_with_space(value_str);
     int total_width = label_width + value_width;
+    int position_offset = 0;
+
+    if (has_label)
+    {
+        if (metric == METRIC_PL_ABSOLUTE || metric == METRIC_PL_PERCENTAGE)
+        {
+            total_width -= 2;
+            position_offset = -1;
+        }
+        else if (metric == METRIC_BIGGEST_WINNER || metric == METRIC_BIGGEST_LOSER)
+        {
+            total_width -= 1;
+            position_offset = 2;
+        }
+        else if (metric == METRIC_TOTAL_VALUE)
+        {
+            total_width -= 1;
+            position_offset = 1;
+        }
+    }
 
     matrix_clear(mtrx);
 
-    if (total_width > 30)
+    if (total_width >= 31)
     {
         for (int wrap = 0; wrap < 2; wrap++)
         {
@@ -262,7 +282,7 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
             if (has_label)
             {
                 matrix_display_word(label_str, base_x, 1, &LABEL_ORANGE);
-                matrix_display_word(value_str, base_x + label_width, 1, value_color);
+                matrix_display_word(value_str, base_x + label_width + position_offset, 1, value_color);
             }
             else
             {
@@ -270,6 +290,12 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
             }
         }
         matrix_show(mtrx);
+
+        g_scroll_offset += 2;
+        if (g_scroll_offset >= total_width + 4)
+        {
+            g_scroll_offset = 0;
+        }
     }
     else
     {
@@ -277,7 +303,7 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
         if (has_label)
         {
             matrix_display_word(label_str, x_pos, 1, &LABEL_ORANGE);
-            matrix_display_word(value_str, x_pos + label_width, 1, value_color);
+            matrix_display_word(value_str, x_pos + label_width + position_offset, 1, value_color);
         }
         else
         {
@@ -398,97 +424,6 @@ void portfolio_display(Matrix* mtrx, int* offset)
     else if (g_data_fetched)
     {
         portfolio_display_metric(mtrx, g_current_metric);
-
-        char label_str[32] = "";
-        char value_str[32] = "";
-        bool has_label = false;
-
-        float total_pl, total_pct, total_value;
-        int winner_idx, loser_idx;
-        portfolio_calculate_metrics(&total_pl, &total_pct, &winner_idx, &loser_idx, &total_value);
-
-        switch (g_current_metric)
-        {
-            case METRIC_PL_ABSOLUTE:
-            {
-                snprintf(label_str, sizeof(label_str), "P/L");
-                snprintf(value_str, sizeof(value_str), "$%.2f", total_pl);
-                has_label = true;
-                break;
-            }
-            case METRIC_PL_PERCENTAGE:
-            {
-                snprintf(label_str, sizeof(label_str), "P/L");
-                snprintf(value_str, sizeof(value_str), "%.2f%%", total_pct);
-                has_label = true;
-                break;
-            }
-            case METRIC_BIGGEST_WINNER:
-            {
-                if (winner_idx >= 0)
-                {
-                    float cost =
-                        g_positions[winner_idx].quantity * g_positions[winner_idx].avg_price;
-                    float current_value =
-                        g_positions[winner_idx].quantity * g_positions[winner_idx].current_price;
-                    float pct_change =
-                        (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
-                    snprintf(label_str, sizeof(label_str), "%s", g_positions[winner_idx].ticker);
-                    snprintf(value_str, sizeof(value_str), " +%.2f%%", pct_change);
-                    has_label = true;
-                }
-                else
-                {
-                    snprintf(value_str, sizeof(value_str), "NO DATA");
-                    has_label = false;
-                }
-                break;
-            }
-            case METRIC_BIGGEST_LOSER:
-            {
-                if (loser_idx >= 0)
-                {
-                    float cost = g_positions[loser_idx].quantity * g_positions[loser_idx].avg_price;
-                    float current_value =
-                        g_positions[loser_idx].quantity * g_positions[loser_idx].current_price;
-                    float pct_change =
-                        (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
-                    snprintf(label_str, sizeof(label_str), "%s", g_positions[loser_idx].ticker);
-                    snprintf(value_str, sizeof(value_str), " %.2f%%", pct_change);
-                    has_label = true;
-                }
-                else
-                {
-                    snprintf(value_str, sizeof(value_str), "NO DATA");
-                    has_label = false;
-                }
-                break;
-            }
-            case METRIC_TOTAL_VALUE:
-            {
-                snprintf(label_str, sizeof(label_str), "  TOTAL");
-                snprintf(value_str, sizeof(value_str), "$%.2f %+.2f%%", total_value, total_pct);
-                has_label = true;
-                break;
-            }
-            default:
-                snprintf(value_str, sizeof(value_str), "ERROR");
-                has_label = false;
-                break;
-        }
-
-        int label_width = has_label ? matrix_calculate_word_width_with_space(label_str) : 0;
-        int value_width = matrix_calculate_word_width_with_space(value_str);
-        int text_width = label_width + value_width;
-
-        if (text_width > 30)
-        {
-            g_scroll_offset += 2;
-            if (g_scroll_offset >= text_width + 4)
-            {
-                g_scroll_offset = 0;
-            }
-        }
     }
     else
     {
@@ -498,14 +433,34 @@ void portfolio_display(Matrix* mtrx, int* offset)
     }
 }
 
-void portfolio_next_metric(void)
+void portfolio_next_metric(Matrix* mtrx)
 {
+    ASSERT_NOT_NULL(mtrx);
+
+    // Save current state before changing metric
+    PixelState current_state[NUM_PIXELS];
+    matrix_save_state(current_state);
+
+    // Update to next metric
     g_current_metric = (g_current_metric + 1) % METRIC_COUNT;
     g_scroll_offset = 0;
+
+    // Render new metric and save its state
+    portfolio_display_metric(mtrx, g_current_metric);
+    PixelState next_state[NUM_PIXELS];
+    matrix_save_state(next_state);
+
+    // Animate the transition
+    matrix_slide_right(mtrx, current_state, next_state);
 }
 
-void portfolio_prev_metric(void)
+void portfolio_prev_metric(Matrix* mtrx)
 {
+    ASSERT_NOT_NULL(mtrx);
+
+    PixelState current_state[NUM_PIXELS];
+    matrix_save_state(current_state);
+
     if (g_current_metric == 0)
     {
         g_current_metric = METRIC_COUNT - 1;
@@ -515,6 +470,12 @@ void portfolio_prev_metric(void)
         g_current_metric--;
     }
     g_scroll_offset = 0;
+
+    portfolio_display_metric(mtrx, g_current_metric);
+    PixelState next_state[NUM_PIXELS];
+    matrix_save_state(next_state);
+
+    matrix_slide_left(mtrx, current_state, next_state);
 }
 
 void portfolio_cleanup(void)
