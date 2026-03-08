@@ -20,6 +20,7 @@ typedef struct
     uint16_t stocks;
 
     uint8_t portfolio_count;
+    uint8_t portfolio_mode;
     char portfolio_tickers[50][10];  // Max 50 tickers (T212 limit)
     float portfolio_quantities[50];
     float portfolio_avg_prices[50];

@@ -26,7 +26,8 @@ typedef struct
     float quantity;
     float avg_price;
     float current_price;
-    float csv_price;  // Price from CSV upload (fallback for translated/LSE tickers)
+    float prev_close;
+    float csv_price;
 } PortfolioPosition;
 
 typedef enum
@@ -66,19 +67,22 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
     debug(DEBUG, "Received portfolio response: %.*s", (int)len, body);
 
     float current_price = parse_price_from_json_array(body, "\"c\":");
+    float prev_close = parse_price_from_json_string(body, "\"o\":");
 
     if (!current_price) current_price = 0.0f;
+    if (!prev_close) prev_close = 0.0f;
 
     if (current_price > 0.0f)
     {
         g_positions[g_ticker_to_fetch_index].current_price = current_price;
+        g_positions[g_ticker_to_fetch_index].prev_close = prev_close;
         g_data_fetched = true;
 
         uint64_t ms_until_next_fetch = 15 * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
 
-        debug(INFO, "Parsed %s price: $%.2f", g_positions[g_ticker_to_fetch_index].ticker,
-              current_price);
+        debug(INFO, "Parsed %s price: current=%.2f, prev_close=%.2f",
+              g_positions[g_ticker_to_fetch_index].ticker, current_price, prev_close);
         debug(TRACE, "Next fetch scheduled in 15 minutes");
     }
     else
@@ -98,22 +102,22 @@ static void portfolio_fetch_prices(Matrix* mtrx)
     while (g_ticker_to_fetch_index < g_portfolio_count)
     {
         const char* ticker = g_positions[g_ticker_to_fetch_index].ticker;
-        const char* translated_ticker = ticker_translate(ticker);
 
-        // Skip fetching for translated tickers (LSE/European) - use CSV price instead
-        if (strcmp(ticker, translated_ticker) != 0)
+        char ticker_symbol[16];
+        if (ticker_is_lse(ticker))
         {
-            debug(INFO, "Skipping live fetch for %s (translated to %s) - using CSV price %.2f",
-                  ticker, translated_ticker, g_positions[g_ticker_to_fetch_index].csv_price);
-            g_ticker_to_fetch_index++;
-            continue;
+            snprintf(ticker_symbol, sizeof(ticker_symbol), "%s.L", ticker);
+            debug(INFO, "Fetching LSE ticker: %s -> %s", ticker, ticker_symbol);
+        }
+        else
+        {
+            snprintf(ticker_symbol, sizeof(ticker_symbol), "%s", ticker);
         }
 
         char path[256];
-        snprintf(path, sizeof(path), "/stocks/%s", translated_ticker);
+        snprintf(path, sizeof(path), "/stocks/%s", ticker_symbol);
 
-        debug(INFO, "Fetching %s via proxy: %s:%s%s", translated_ticker, PROXY_HOST, PROXY_PORT,
-              path);
+        debug(INFO, "Fetching %s via proxy: %s:%s%s", ticker_symbol, PROXY_HOST, PROXY_PORT, path);
 
         uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
         ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, portfolio_response_callback, mtrx);
@@ -143,7 +147,8 @@ static void portfolio_load_from_flash(void)
             g_positions[i].quantity = config.portfolio_quantities[i];
             g_positions[i].avg_price = config.portfolio_avg_prices[i];
             g_positions[i].csv_price = config.portfolio_csv_prices[i];
-            g_positions[i].current_price = g_positions[i].csv_price;  // Initialize with CSV price
+            g_positions[i].current_price = g_positions[i].csv_price;
+            g_positions[i].prev_close = g_positions[i].csv_price;
         }
         debug(INFO, "Loaded %d portfolio positions", g_portfolio_count);
     }
@@ -152,6 +157,10 @@ static void portfolio_load_from_flash(void)
 static void portfolio_calculate_metrics(float* total_pl, float* total_pct, int* winner_idx,
                                         int* loser_idx, float* total_value)
 {
+    device_config_t config;
+    flash_memory_read(&config);
+    bool daily_mode = (config.portfolio_mode == 1);
+
     float total_cost = 0.0f;
     *total_value = 0.0f;
     *winner_idx = -1;
@@ -163,7 +172,9 @@ static void portfolio_calculate_metrics(float* total_pl, float* total_pct, int* 
     {
         if (g_positions[i].current_price == 0.0f) continue;
 
-        float cost = g_positions[i].quantity * g_positions[i].avg_price;
+        float baseline_price = daily_mode ? g_positions[i].prev_close : g_positions[i].avg_price;
+
+        float cost = g_positions[i].quantity * baseline_price;
         float value = g_positions[i].quantity * g_positions[i].current_price;
         float pl = value - cost;
 
@@ -202,27 +213,41 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
         case METRIC_PL_ABSOLUTE:
             snprintf(label_str, sizeof(label_str), "P/L");
             snprintf(value_str, sizeof(value_str), " $%.2f", total_pl);
-            value_color = (total_pl >= 0) ? &GREEN : &RED;
+            if (total_pl == 0.0f)
+                value_color = &DEFAULT_COLOUR;
+            else
+                value_color = (total_pl > 0) ? &GREEN : &RED;
             has_label = true;
             break;
 
         case METRIC_PL_PERCENTAGE:
             snprintf(label_str, sizeof(label_str), "P/L");
             snprintf(value_str, sizeof(value_str), " %.2f%%", total_pct);
-            value_color = (total_pct >= 0) ? &GREEN : &RED;
+            if (total_pct == 0.0f)
+                value_color = &DEFAULT_COLOUR;
+            else
+                value_color = (total_pct > 0) ? &GREEN : &RED;
             has_label = true;
             break;
 
         case METRIC_BIGGEST_WINNER:
             if (winner_idx >= 0)
             {
-                float cost = g_positions[winner_idx].quantity * g_positions[winner_idx].avg_price;
+                device_config_t config;
+                flash_memory_read(&config);
+                bool daily_mode = (config.portfolio_mode == 1);
+                float baseline = daily_mode ? g_positions[winner_idx].prev_close : g_positions[winner_idx].avg_price;
+
+                float cost = g_positions[winner_idx].quantity * baseline;
                 float current_value =
                     g_positions[winner_idx].quantity * g_positions[winner_idx].current_price;
                 float pct_change = (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
                 snprintf(label_str, sizeof(label_str), "  %s", g_positions[winner_idx].ticker);
-                snprintf(value_str, sizeof(value_str), "+%.2f%%", pct_change);
-                value_color = &GREEN;
+                snprintf(value_str, sizeof(value_str), "%+.2f%%", pct_change);
+                if (pct_change == 0.0f)
+                    value_color = &DEFAULT_COLOUR;
+                else
+                    value_color = (pct_change > 0) ? &GREEN : &RED;
                 has_label = true;
             }
             else
@@ -235,13 +260,21 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
         case METRIC_BIGGEST_LOSER:
             if (loser_idx >= 0)
             {
-                float cost = g_positions[loser_idx].quantity * g_positions[loser_idx].avg_price;
+                device_config_t config;
+                flash_memory_read(&config);
+                bool daily_mode = (config.portfolio_mode == 1);
+                float baseline = daily_mode ? g_positions[loser_idx].prev_close : g_positions[loser_idx].avg_price;
+
+                float cost = g_positions[loser_idx].quantity * baseline;
                 float current_value =
                     g_positions[loser_idx].quantity * g_positions[loser_idx].current_price;
                 float pct_change = (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
                 snprintf(label_str, sizeof(label_str), "  %s", g_positions[loser_idx].ticker);
-                snprintf(value_str, sizeof(value_str), "%.2f%%", pct_change);
-                value_color = &RED;
+                snprintf(value_str, sizeof(value_str), "%+.2f%%", pct_change);
+                if (pct_change == 0.0f)
+                    value_color = &DEFAULT_COLOUR;
+                else
+                    value_color = (pct_change > 0) ? &GREEN : &RED;
                 has_label = true;
             }
             else
@@ -254,7 +287,10 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
         case METRIC_TOTAL_VALUE:
             snprintf(label_str, sizeof(label_str), "  TOTAL");
             snprintf(value_str, sizeof(value_str), "$%.2f %+.2f%%", total_value, total_pct);
-            value_color = (total_pct >= 0) ? &GREEN : &RED;
+            if (total_pct == 0.0f)
+                value_color = &DEFAULT_COLOUR;
+            else
+                value_color = (total_pct > 0) ? &GREEN : &RED;
             has_label = true;
             break;
 
@@ -296,7 +332,8 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
             if (has_label)
             {
                 matrix_display_word(label_str, base_x, 1, &LABEL_ORANGE);
-                matrix_display_word(value_str, base_x + label_width + position_offset, 1, value_color);
+                matrix_display_word(value_str, base_x + label_width + position_offset, 1,
+                                    value_color);
             }
             else
             {

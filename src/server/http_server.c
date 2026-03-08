@@ -29,6 +29,7 @@ typedef struct
     size_t received;
     size_t content_length;
     bool headers_complete;
+    bool request_processed;
 } http_request_state_t;
 
 static int hex_to_int(char c)
@@ -227,12 +228,41 @@ static err_t http_send_data(struct tcp_pcb* pcb, const char* data, size_t len,
                             http_request_state_t* state)
 {
     debug(DEBUG, "Sending %zu bytes", len);
-    err_t err = tcp_write(pcb, data, len, 0);
+
+    if (len <= 2048)
+    {
+        err_t err = tcp_write(pcb, data, len, 0);
+        if (err != ERR_OK)
+        {
+            debug(ERROR, "tcp_write failed: %d", err);
+            return err;
+        }
+        return ERR_OK;
+    }
+
+    const size_t chunk_size = 2048;
+    size_t sent = 0;
+
+    while (sent < len)
+    {
+        size_t to_send = (len - sent) > chunk_size ? chunk_size : (len - sent);
+        err_t err = tcp_write(pcb, data + sent, to_send, TCP_WRITE_FLAG_COPY);
+        if (err != ERR_OK)
+        {
+            debug(ERROR, "tcp_write failed at offset %zu: %d", sent, err);
+            return err;
+        }
+        sent += to_send;
+    }
+
+    err_t err = tcp_output(pcb);
     if (err != ERR_OK)
     {
-        debug(ERROR, "tcp_write failed: %d (HTML too large, must be <4KB)", err);
+        debug(ERROR, "tcp_output failed: %d", err);
         return err;
     }
+
+    debug(DEBUG, "Successfully sent %zu bytes in chunks", sent);
     return ERR_OK;
 }
 
@@ -351,7 +381,15 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
     debug(TRACE, "HTTP request complete, length: %zu", state->received);
     debug(DEBUG, "Request first line: %.100s", request);
 
-    if (strncmp(request, "POST /upload-portfolio", 22) == 0)
+    // Prevent processing the same request multiple times
+    if (state->request_processed)
+    {
+        debug(DEBUG, "Request already processed, ignoring");
+        return ERR_OK;
+    }
+    state->request_processed = true;
+
+    if (strncmp(request, "POST /upload", 12) == 0)
     {
         const char* body = strstr(request, "\r\n\r\n");
         if (body)
@@ -401,6 +439,89 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
                             device_config_t config;
                             flash_memory_read(&config);
+
+                            // Parse all settings from multipart form data
+                            const char* field;
+                            const char* val;
+
+                            // Parse brightness
+                            field = strstr(body, "name=\"brightness\"");
+                            if (field)
+                            {
+                                val = strstr(field, "\r\n\r\n");
+                                if (val)
+                                {
+                                    val += 4;
+                                    uint8_t brightness = (uint8_t)atoi(val);
+                                    config.brightness = brightness ? brightness : DEFAULT_BRIGHTNESS;
+                                    debug(DEBUG, "Parsed brightness: %d", config.brightness);
+                                }
+                            }
+
+                            // Parse location
+                            field = strstr(body, "name=\"location\"");
+                            if (field)
+                            {
+                                val = strstr(field, "\r\n\r\n");
+                                if (val)
+                                {
+                                    val += 4;
+                                    config.location = (uint8_t)atoi(val);
+                                    debug(DEBUG, "Parsed location: %d", config.location);
+                                }
+                            }
+
+                            // Parse currency
+                            field = strstr(body, "name=\"currency\"");
+                            if (field)
+                            {
+                                val = strstr(field, "\r\n\r\n");
+                                if (val)
+                                {
+                                    val += 4;
+                                    config.currency = (uint8_t)atoi(val);
+                                    debug(DEBUG, "Parsed currency: %d", config.currency);
+                                }
+                            }
+
+                            // Parse portfolio_mode
+                            field = strstr(body, "name=\"portfolio_mode\"");
+                            if (field)
+                            {
+                                val = strstr(field, "\r\n\r\n");
+                                if (val)
+                                {
+                                    val += 4;
+                                    config.portfolio_mode = (uint8_t)atoi(val);
+                                    debug(DEBUG, "Parsed portfolio_mode: %d", config.portfolio_mode);
+                                }
+                            }
+
+                            // Parse crypto checkboxes
+                            uint16_t crypto = 0;
+                            for (int i = 0; i < CRYPTO_COUNT; i++)
+                            {
+                                char key[20];
+                                snprintf(key, sizeof(key), "name=\"crypto_%d\"", i);
+                                if (strstr(body, key)) crypto |= (1 << i);
+                            }
+                            if (crypto) config.crypto = crypto;
+
+                            // Parse stock checkboxes
+                            uint16_t stocks = 0;
+                            for (int i = 0; i < STK_COUNT; i++)
+                            {
+                                char key[20];
+                                snprintf(key, sizeof(key), "name=\"stk_%d\"", i);
+                                if (strstr(body, key)) stocks |= (1 << i);
+                            }
+                            if (stocks) config.stocks = stocks;
+
+                            debug(INFO,
+                                  "Upload - Brightness: %d%%, Location: %d, Currency: %d, Mode: %d, "
+                                  "Crypto: 0x%04X, Stocks: 0x%04X",
+                                  config.brightness, config.location, config.currency,
+                                  config.portfolio_mode, config.crypto, config.stocks);
 
                             if (parse_csv_portfolio(csv_data, &config))
                             {
@@ -453,6 +574,8 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             if (val) config.location = (uint8_t)atoi(val + 9);
             val = strstr(body, "currency=");
             if (val) config.currency = (uint8_t)atoi(val + 9);
+            val = strstr(body, "portfolio_mode=");
+            if (val) config.portfolio_mode = (uint8_t)atoi(val + 15);
 
             uint16_t crypto = 0;
             for (int i = 0; i < CRYPTO_COUNT; i++)
@@ -504,6 +627,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             config.brightness = DEFAULT_BRIGHTNESS;
             config.location = DEFAULT_LOCATION;
             config.currency = DEFAULT_CURRENCY;
+            config.portfolio_mode = 0;
 
             debug(DEBUG, "Parsed - SSID: '%s', Password: '%s'", config.ssid, config.password);
             debug(DEBUG, "Set defaults - Brightness: %d, Location: %d, Currency: %d",
@@ -581,7 +705,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         return ERR_OK;
     }
     else if (strncmp(request, "GET /portfolio", 14) == 0 ||
-             strncmp(request, "GET /upload", 11) == 0)
+             strncmp(request, "GET /upload ", 12) == 0)
     {
         device_config_t config;
         flash_memory_read(&config);
