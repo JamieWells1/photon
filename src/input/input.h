@@ -22,7 +22,7 @@ typedef struct
     bool last_clk_state;
     bool last_sw_state;
     uint8_t state;              // Current quadrature state (0-3)
-    int8_t direction;           // Last detected direction: 1=CW, -1=CCW, 0=none
+    int8_t rotation_count;      // Accumulated rotations: positive=CW, negative=CCW
     uint32_t last_change_time;  // For debouncing
     uint32_t press_start_time;  // Track when button was pressed (for long press)
     bool long_press_triggered;  // Prevent multiple long press triggers

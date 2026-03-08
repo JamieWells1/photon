@@ -3,7 +3,6 @@
 #include <const.h>
 #include <error.h>
 #include <glyphs.h>
-#include <graphics.h>
 #include <macro.h>
 
 #include <stdio.h>

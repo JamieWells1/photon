@@ -48,7 +48,6 @@ set(COMMON_SOURCES
 
 # Display subsystem
 set(DISPLAY_SOURCES
-        src/display/graphics.c
         src/display/matrix.c
         src/display/glyphs.c
 )
@@ -142,6 +141,7 @@ target_compile_options(photon PRIVATE
         -Werror=return-type
         -Wno-unused-parameter
         -Wno-type-limits
+        $<$<COMPILE_LANGUAGE:C>:-include assert.h>
 )
 
 # lwIP configuration for larger TCP uploads (50 ticker portfolio support)

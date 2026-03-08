@@ -4,7 +4,6 @@
 #include <const.h>
 #include <flash_memory.h>
 #include <global.h>
-#include <graphics.h>
 #include <input.h>
 #include <macro.h>
 #include <matrix.h>

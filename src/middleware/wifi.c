@@ -4,7 +4,6 @@
 #include <error.h>
 #include <flash_memory.h>
 #include <glyphs.h>
-#include <graphics.h>
 #include <macro.h>
 
 #include <stdio.h>

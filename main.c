@@ -4,7 +4,6 @@
 #include <error.h>
 #include <flash_memory.h>
 #include <global.h>
-#include <graphics.h>
 #include <http_server.h>
 #include <input.h>
 #include <macro.h>
@@ -40,13 +39,13 @@ void debug_inputs(Button* btns, Rotator* rtr)
     {
         debug(DEBUG, "Right button released");
     }
-    if (rtr->direction == 1)
+    if (rtr->rotation_count > 0)
     {
-        debug(DEBUG, "Rotator clockwise");
+        debug(DEBUG, "Rotator clockwise (count: %d)", rtr->rotation_count);
     }
-    if (rtr->direction == -1)
+    if (rtr->rotation_count < 0)
     {
-        debug(DEBUG, "Rotator anti-clockwise");
+        debug(DEBUG, "Rotator anti-clockwise (count: %d)", rtr->rotation_count);
     }
     if (input_rtr_pressed(rtr))
     {
@@ -107,7 +106,7 @@ Rotator* main_init_rotator(void)
     rotator.last_sw_state = rotator.current_sw_state;
 
     rotator.state = (rotator.current_clk_state << 1) | rotator.current_dt_state;
-    rotator.direction = 0;
+    rotator.rotation_count = 0;
     rotator.last_change_time = time_us_32();
 
     debug(INFO, "✓ GPIO pins for rotary encoder initialised");
@@ -269,7 +268,7 @@ int main(void)
 
         if (!menu_active)
         {
-            graphics_display_start_screen(mtrx);
+            matrix_display_start_screen(mtrx);
 
             bool all_released = false;
             int wait_count = 0;

@@ -4,7 +4,6 @@
 #include <error.h>
 #include <flash_memory.h>
 #include <glyphs.h>
-#include <graphics.h>
 #include <http.h>
 #include <location.h>
 #include <matrix.h>
