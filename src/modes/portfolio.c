@@ -8,6 +8,7 @@
 #include <http_server.h>
 #include <macro.h>
 #include <matrix.h>
+#include <ticker_translate.h>
 #include <utils.h>
 #include <wifi.h>
 
@@ -96,11 +97,18 @@ static void portfolio_fetch_prices(Matrix* mtrx)
     while (g_ticker_to_fetch_index < g_portfolio_count)
     {
         const char* ticker = g_positions[g_ticker_to_fetch_index].ticker;
+        const char* translated_ticker = ticker_translate(ticker);
+
+        if (strcmp(ticker, translated_ticker) != 0)
+        {
+            debug(INFO, "Translating ticker: %s -> %s", ticker, translated_ticker);
+        }
 
         char path[256];
-        snprintf(path, sizeof(path), "/stocks/%s", ticker);
+        snprintf(path, sizeof(path), "/stocks/%s", translated_ticker);
 
-        debug(INFO, "Fetching %s via proxy: %s:%s%s", ticker, PROXY_HOST, PROXY_PORT, path);
+        debug(INFO, "Fetching %s via proxy: %s:%s%s", translated_ticker, PROXY_HOST, PROXY_PORT,
+              path);
 
         uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
         ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, portfolio_response_callback, mtrx);
