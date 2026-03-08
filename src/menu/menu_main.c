@@ -10,6 +10,7 @@
 #include <matrix.h>
 #include <menu_common.h>
 #include <menu_markets.h>
+#include <reset.h>
 #include <stdio.h>
 #include <weather.h>
 
@@ -18,17 +19,13 @@
 #include <pico/time.h>
 #include <stdlib.h>
 
-// Mode defines for main menu
-#define TEMP_START \
-    4  // After markets modes (INVEST_END + STK_END + CRYPTO_END = 1+1+3 = 5, but we start at 0 so
-       // 4)
+#define TEMP_START 4
 #define TEMP_END 2
 #define CONFIG_START (TEMP_START + TEMP_END)
 #define CONFIG_END 1
 #define RESET_START (CONFIG_START + CONFIG_END)
 #define RESET_END 1
 
-// Main menus array
 static const Menu MENUS[] = {
     {MENU_MARKETS, "MARKET", &ICONS_ARR[STOCKS]},
     {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},
@@ -36,17 +33,13 @@ static const Menu MENUS[] = {
     {MENU_RESET, "RESET", &ICONS_ARR[POWER]},
 };
 
-// Main menu state
 static bool g_display_initialized = false;
 static int g_tick = 0;
 static bool g_underscore_on = true;
 static bool g_in_submenu = false;
 static Mode g_current_mode = TEMP_START;
 
-// Submenu-specific state
 static int g_weather_hour_offset = 0;
-static int g_reset_selection = 0;
-static bool g_reset_submenu_ready = false;
 
 static void menu_main_set_underscore(bool underscore_on)
 {
@@ -76,44 +69,17 @@ void menu_main_reset_states(Matrix* mtrx)
     weather_cleanup();
     config_cleanup();
     menu_markets_cleanup();
+    reset_cleanup();
 
     g_display_initialized = false;
     g_underscore_on = true;
     g_tick = 0;
     g_in_submenu = false;
     g_weather_hour_offset = 0;
-    g_reset_selection = 0;
-    g_reset_submenu_ready = false;
 
     matrix_clear(mtrx);
     menu_main_set_initial_display();
     menu_main_set_underscore(true);
-    matrix_show(mtrx);
-}
-
-static void menu_main_reset_display(Matrix* mtrx)
-{
-    matrix_clear(mtrx);
-
-    int yes_x = 2;
-    int no_x = 18;
-    int text_y = 1;
-    int uscr_starting_y = 7;
-    int uscr_length_yes = matrix_calculate_word_width_with_space("YES") - 1;
-    int uscr_length_no = matrix_calculate_word_width_with_space("NO") - 1;
-
-    matrix_display_word("YES", yes_x, text_y, &GREEN);
-    matrix_display_word("NO", no_x, text_y, &RED);
-
-    if (g_reset_selection == 0)
-    {
-        matrix_draw_horiz_line(yes_x, uscr_starting_y, uscr_length_yes, &GREEN);
-    }
-    else
-    {
-        matrix_draw_horiz_line(no_x, uscr_starting_y, uscr_length_no, &RED);
-    }
-
     matrix_show(mtrx);
 }
 
@@ -213,11 +179,9 @@ static void menu_main_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr
             g_in_submenu = true;
             g_current_mode = target_menu;
             g_display_initialized = false;
-            g_reset_submenu_ready = false;
-            debug(DEBUG, "Reset submenu entered, waiting for button release");
             g_display_initialized = true;
         }
-        menu_main_reset_display(mtrx);
+        reset_display(mtrx);
     }
 }
 
@@ -281,70 +245,6 @@ static void menu_main_config_detect_inputs(Button* btns, Rotator* rtr, Matrix* m
     }
 }
 
-static void menu_main_reset_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
-{
-    if (!g_reset_submenu_ready)
-    {
-        bool all_released = (btns[0].current_state == true && btns[1].current_state == true &&
-                             rtr->current_sw_state == true);
-
-        if (all_released)
-        {
-            g_reset_submenu_ready = true;
-            debug(DEBUG, "All buttons released, reset submenu ready for input");
-        }
-        else
-        {
-            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
-                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
-        }
-        return;
-    }
-
-    if (input_rtr_cw(rtr))
-    {
-        debug(DEBUG, "Reset menu: encoder CW, selection %d -> %d", g_reset_selection,
-              (g_reset_selection + 1) % 2);
-        g_reset_selection = (g_reset_selection + 1) % 2;
-        menu_main_reset_display(mtrx);
-    }
-
-    if (input_rtr_anti_cw(rtr))
-    {
-        debug(DEBUG, "Reset menu: encoder CCW, selection %d -> %d", g_reset_selection,
-              (g_reset_selection - 1 + 2) % 2);
-        g_reset_selection = (g_reset_selection - 1 + 2) % 2;
-        menu_main_reset_display(mtrx);
-    }
-
-    if (input_any_btn_pressed(btns, rtr))
-    {
-        debug(INFO, "Reset menu: button pressed, selection=%d (%s)", g_reset_selection,
-              g_reset_selection == 0 ? "YES" : "NO");
-
-        if (g_reset_selection == 0)
-        {
-            debug(INFO, "Executing flash reset");
-            flash_memory_erase();
-
-            matrix_clear(mtrx);
-            matrix_display_word_icon_pair("DONE", &GREEN, NULL, 0);
-            matrix_show(mtrx);
-            sleep_ms(1000);
-
-            debug(INFO, "Rebooting device");
-            watchdog_enable(1, 1);
-            while (1);
-        }
-        else
-        {
-            debug(INFO, "Reset cancelled by user");
-        }
-
-        menu_main_reset_states(mtrx);
-    }
-}
-
 static void menu_main_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (!g_in_submenu)
@@ -393,7 +293,13 @@ static void menu_main_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
         }
         else if (g_current_mode == RESET_START)
         {
-            menu_main_reset_detect_inputs(btns, rtr, mtrx);
+            bool was_ready = reset_is_ready();
+            reset_detect_inputs(btns, rtr, mtrx);
+
+            if (was_ready && input_any_btn_pressed(btns, rtr))
+            {
+                menu_main_reset_states(mtrx);
+            }
         }
     }
 }

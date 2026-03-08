@@ -110,6 +110,7 @@ set(MODE_SOURCES
         src/modes/crypto.c
         src/modes/weather.c
         src/modes/config.c
+        src/modes/reset.c
 )
 
 add_executable(photon
