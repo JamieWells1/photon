@@ -118,9 +118,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def handle_stock_request(self, client_ip):
         import yfinance as yf
+        import re
 
         symbol = self.path[8:].split("?")[0].upper()
-        if not symbol or not symbol.isalnum():
+
+        # Allow alphanumeric + dots for exchange suffixes (e.g., VUAG.L for LSE)
+        if not symbol or not re.match(r'^[A-Z0-9]+(\.[A-Z]+)?$', symbol):
             self.send_json_response(400, {"error": "Invalid symbol"})
             return
 
@@ -133,6 +136,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
             if current is None or prev_close is None:
                 self.send_json_response(404, {"error": f"No data for symbol '{symbol}'"})
                 return
+
+            # LSE stocks trade in pence (GBX), convert to pounds (GBP) for T212 compatibility
+            if symbol.endswith('.L'):
+                current = current / 100.0
+                prev_close = prev_close / 100.0
+                logger.info(f"LSE ticker {symbol}: converted from pence to pounds")
 
             # Matches Kraken's format so the Pico-side parser works unchanged:
             #   "c": ["price"] -> ticker_parse_price_from_array

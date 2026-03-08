@@ -26,6 +26,7 @@ typedef struct
     float quantity;
     float avg_price;
     float current_price;
+    float csv_price;  // Price from CSV upload (fallback for translated/LSE tickers)
 } PortfolioPosition;
 
 typedef enum
@@ -99,9 +100,13 @@ static void portfolio_fetch_prices(Matrix* mtrx)
         const char* ticker = g_positions[g_ticker_to_fetch_index].ticker;
         const char* translated_ticker = ticker_translate(ticker);
 
+        // Skip fetching for translated tickers (LSE/European) - use CSV price instead
         if (strcmp(ticker, translated_ticker) != 0)
         {
-            debug(INFO, "Translating ticker: %s -> %s", ticker, translated_ticker);
+            debug(INFO, "Skipping live fetch for %s (translated to %s) - using CSV price %.2f",
+                  ticker, translated_ticker, g_positions[g_ticker_to_fetch_index].csv_price);
+            g_ticker_to_fetch_index++;
+            continue;
         }
 
         char path[256];
@@ -137,7 +142,8 @@ static void portfolio_load_from_flash(void)
             strncpy(g_positions[i].ticker, config.portfolio_tickers[i], 10);
             g_positions[i].quantity = config.portfolio_quantities[i];
             g_positions[i].avg_price = config.portfolio_avg_prices[i];
-            g_positions[i].current_price = 0.0f;
+            g_positions[i].csv_price = config.portfolio_csv_prices[i];
+            g_positions[i].current_price = g_positions[i].csv_price;  // Initialize with CSV price
         }
         debug(INFO, "Loaded %d portfolio positions", g_portfolio_count);
     }

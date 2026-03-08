@@ -23,6 +23,7 @@ typedef struct
     char portfolio_tickers[50][10];  // Max 50 tickers (T212 limit)
     float portfolio_quantities[50];
     float portfolio_avg_prices[50];
+    float portfolio_csv_prices[50];
 
     uint32_t crc32;
 } device_config_t;

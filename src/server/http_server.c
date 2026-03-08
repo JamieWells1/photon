@@ -95,6 +95,7 @@ static bool parse_csv_portfolio(const char* csv_data, device_config_t* config)
             int col_num = 0;
             char ticker[10] = {0};
             float invested_value = 0.0f;
+            float current_value = 0.0f;
             float quantity = 0.0f;
 
             while (col_start < line_end_trimmed && col_num < 6)
@@ -125,6 +126,10 @@ static bool parse_csv_portfolio(const char* csv_data, device_config_t* config)
                 {
                     invested_value = atof(col_start);
                 }
+                else if (col_num == 3)
+                {
+                    current_value = atof(col_start);
+                }
                 else if (col_num == 5)
                 {
                     quantity = atof(col_start);
@@ -140,12 +145,17 @@ static bool parse_csv_portfolio(const char* csv_data, device_config_t* config)
                 strncpy(config->portfolio_tickers[config->portfolio_count], ticker, 10);
 
                 float avg_price = invested_value / quantity;
+                float csv_price = (current_value > 0.0f) ? (current_value / quantity) : 0.0f;
 
                 config->portfolio_quantities[config->portfolio_count] = quantity;
                 config->portfolio_avg_prices[config->portfolio_count] = avg_price;
+                config->portfolio_csv_prices[config->portfolio_count] = csv_price;
 
-                debug(DEBUG, "✓ Parsed position %d: %s qty=%.4f avg_price=%.2f invested=%.2f",
-                      config->portfolio_count, ticker, quantity, avg_price, invested_value);
+                debug(DEBUG,
+                      "✓ Parsed position %d: %s qty=%.4f avg_price=%.2f csv_price=%.2f "
+                      "invested=%.2f value=%.2f",
+                      config->portfolio_count, ticker, quantity, avg_price, csv_price,
+                      invested_value, current_value);
 
                 config->portfolio_count++;
             }
