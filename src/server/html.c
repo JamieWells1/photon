@@ -199,17 +199,19 @@ const char* html_build_config_page(const device_config_t* config)
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div>");
 
     // Portfolio upload section
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                    "<label>Portfolio Upload</label>"
-                    "<p style=\"color:#888;font-size:12px;margin:4px 0 8px;\">Upload T212 CSV export to "
-                    "track your portfolio (max 30 tickers)</p>");
+    pos += snprintf(
+        config_html_buf + pos, sizeof(config_html_buf) - pos,
+        "<label>Portfolio Upload</label>"
+        "<p style=\"color:#888;font-size:12px;margin:4px 0 8px;\">Upload T212 CSV export to "
+        "track your portfolio (max 30 tickers)</p>");
 
     if (config->portfolio_count > 0)
     {
-        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<p style=\"color:#10b981;font-size:13px;font-weight:500;margin-bottom:8px;\">✓ "
-                        "%d ticker%s loaded</p>",
-                        config->portfolio_count, config->portfolio_count == 1 ? "" : "s");
+        pos += snprintf(
+            config_html_buf + pos, sizeof(config_html_buf) - pos,
+            "<p style=\"color:#10b981;font-size:13px;font-weight:500;margin-bottom:8px;\">✓ "
+            "%d ticker%s loaded</p>",
+            config->portfolio_count, config->portfolio_count == 1 ? "" : "s");
     }
 
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,

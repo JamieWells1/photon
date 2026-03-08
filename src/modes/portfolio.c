@@ -59,8 +59,8 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
         uint64_t ms_until_next_fetch = 15 * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
 
-        debug(INFO, "Parsed %s price: $%.2f",
-              g_portfolio_tickers[g_ticker_to_fetch_index].ticker, current_price);
+        debug(INFO, "Parsed %s price: $%.2f", g_portfolio_tickers[g_ticker_to_fetch_index].ticker,
+              current_price);
         debug(TRACE, "Next fetch scheduled in 15 minutes");
     }
     else
@@ -109,7 +109,8 @@ void portfolio_display(Matrix* mtrx, int* offset)
                 debug(INFO, "Fetching %s via proxy: %s:%s%s", ticker, PROXY_HOST, PROXY_PORT, path);
 
                 uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-                ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, portfolio_response_callback, mtrx);
+                ReturnCode rc =
+                    http_get(PROXY_HOST, proxy_port, path, portfolio_response_callback, mtrx);
                 if (RC_FAILED(rc))
                 {
                     debug(ERROR, "HTTP request failed for %s: %s", ticker, rc_to_string(rc));

@@ -30,7 +30,6 @@ typedef struct
     bool headers_complete;
 } http_request_state_t;
 
-
 static int hex_to_int(char c)
 {
     if (c >= '0' && c <= '9') return c - '0';
@@ -103,7 +102,8 @@ static bool parse_csv_portfolio(const char* csv_data, device_config_t* config)
             // Skip "Total" row and empty tickers
             if (ticker_len > 0 && ticker_len < 10 && strncmp(ticker_start, "Total", 5) != 0)
             {
-                strncpy(config->portfolio_tickers[config->portfolio_count], ticker_start, ticker_len);
+                strncpy(config->portfolio_tickers[config->portfolio_count], ticker_start,
+                        ticker_len);
                 config->portfolio_tickers[config->portfolio_count][ticker_len] = '\0';
 
                 debug(DEBUG, "Parsed ticker %d: %s", config->portfolio_count,
@@ -287,8 +287,8 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                 {
                     boundary_start += 9;
                     const char* boundary_end = strstr(boundary_start, "\r\n");
-                    size_t boundary_len =
-                        boundary_end ? (size_t)(boundary_end - boundary_start) : strlen(boundary_start);
+                    size_t boundary_len = boundary_end ? (size_t)(boundary_end - boundary_start)
+                                                       : strlen(boundary_start);
                     if (boundary_len < sizeof(boundary))
                     {
                         strncpy(boundary, boundary_start, boundary_len);
@@ -444,7 +444,9 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
     }
     else if (strncmp(request, "GET /config", 11) == 0 || strncmp(request, "GET / ", 6) == 0)
     {
-        device_config_t config; flash_memory_read(&config); const char* config_page = html_build_config_page(&config);
+        device_config_t config;
+        flash_memory_read(&config);
+        const char* config_page = html_build_config_page(&config);
         tcp_write(pcb, config_page, strlen(config_page), TCP_WRITE_FLAG_COPY);
         tcp_output(pcb);
         tcp_sent(pcb, http_sent_callback);

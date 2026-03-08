@@ -1,18 +1,18 @@
 #include <menu_markets.h>
 
-#include <menu_main.h>
-#include <menu_common.h>
 #include <const.h>
 #include <crypto.h>
 #include <input.h>
 #include <macro.h>
 #include <matrix.h>
+#include <menu_common.h>
+#include <menu_main.h>
 #include <portfolio.h>
 #include <stock.h>
 
-#include <stdio.h>
 #include <glyphs.h>
 #include <pico/time.h>
+#include <stdio.h>
 
 typedef enum
 {

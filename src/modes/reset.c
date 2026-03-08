@@ -110,7 +110,4 @@ void reset_cleanup(void)
     g_reset_submenu_ready = false;
 }
 
-bool reset_is_ready(void)
-{
-    return g_reset_submenu_ready;
-}
+bool reset_is_ready(void) { return g_reset_submenu_ready; }
