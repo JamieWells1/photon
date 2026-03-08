@@ -63,8 +63,8 @@ static const char* html_success =
     "24px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:"
     "center;font-size:40px;color:white}"
     "</style></head><body>"
-    "<div class=\"container\"><div class=\"checkmark\">OK</div><h1>Success!</h1>"
-    "<p>Device is rebooting...<br>Do not close this page</p></div></body></html>";
+    "<div class=\"container\"><h1>Save Successful!</h1>"
+    "<p>Device is rebooting...<br>You can close this page</p></div></body></html>";
 
 static const char* html_portfolio_success =
     "HTTP/1.1 200 OK\r\n"
