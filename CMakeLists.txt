@@ -144,6 +144,14 @@ target_compile_options(photon PRIVATE
         -Wno-type-limits
 )
 
+# lwIP configuration for larger TCP uploads (50 ticker portfolio support)
+target_compile_definitions(photon PRIVATE
+        TCP_WND=8192              # TCP receive window: 8KB (allows larger uploads)
+        TCP_SND_BUF=8192          # TCP send buffer: 8KB
+        MEMP_NUM_TCP_SEG=32       # Number of TCP segments
+        PBUF_POOL_SIZE=24         # Packet buffer pool size
+)
+
 target_link_libraries(photon
         pico_stdlib)
 

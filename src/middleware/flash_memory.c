@@ -64,6 +64,11 @@ bool flash_memory_read(device_config_t* config)
         return false;
     }
 
+    if (config->brightness == 0)
+    {
+        config->brightness = DEFAULT_BRIGHTNESS;
+    }
+
     if (config->crypto == 0)
     {
         config->crypto = DEFAULT_CRYPTO;

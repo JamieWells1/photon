@@ -5,6 +5,7 @@
 #include <flash_memory.h>
 #include <glyphs.h>
 #include <http.h>
+#include <http_server.h>
 #include <macro.h>
 #include <matrix.h>
 #include <utils.h>
@@ -14,6 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <hardware/watchdog.h>
+#include <pico/cyw43_arch.h>
 #include <pico/time.h>
 
 typedef struct
@@ -34,7 +37,7 @@ typedef enum
     METRIC_COUNT
 } PortfolioMetric;
 
-static PortfolioPosition g_positions[30];
+static PortfolioPosition g_positions[50];
 static uint8_t g_portfolio_count = 0;
 static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
@@ -42,6 +45,7 @@ static unsigned int g_ticker_to_fetch_index = 0;
 static int g_scroll_offset = 0;
 static int g_url_scroll_offset = 0;
 static PortfolioMetric g_current_metric = METRIC_PL_ABSOLUTE;
+static bool g_server_started = false;
 
 static void portfolio_response_callback(const char* body, size_t len, bool complete)
 {
@@ -132,7 +136,7 @@ static void portfolio_load_from_flash(void)
 }
 
 static void portfolio_calculate_metrics(float* total_pl, float* total_pct, int* winner_idx,
-                                         int* loser_idx, float* total_value)
+                                        int* loser_idx, float* total_value)
 {
     float total_cost = 0.0f;
     *total_value = 0.0f;
@@ -174,83 +178,118 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
     int winner_idx, loser_idx;
     portfolio_calculate_metrics(&total_pl, &total_pct, &winner_idx, &loser_idx, &total_value);
 
-    char display_str[64];
-    const RGB* color = &DEFAULT_COLOUR;
+    char label_str[32] = "";
+    char value_str[32] = "";
+    const RGB* value_color = &DEFAULT_COLOUR;
+    bool has_label = false;
 
     switch (metric)
     {
         case METRIC_PL_ABSOLUTE:
-            snprintf(display_str, sizeof(display_str), "P/L $%.2f", total_pl);
-            color = (total_pl >= 0) ? &GREEN : &RED;
+            snprintf(label_str, sizeof(label_str), "P/L");
+            snprintf(value_str, sizeof(value_str), "$%.2f", total_pl);
+            value_color = (total_pl >= 0) ? &GREEN : &RED;
+            has_label = true;
             break;
 
         case METRIC_PL_PERCENTAGE:
-            snprintf(display_str, sizeof(display_str), "P/L %.2f%%", total_pct);
-            color = (total_pct >= 0) ? &GREEN : &RED;
+            snprintf(label_str, sizeof(label_str), "P/L");
+            snprintf(value_str, sizeof(value_str), "%.2f%%", total_pct);
+            value_color = (total_pct >= 0) ? &GREEN : &RED;
+            has_label = true;
             break;
 
         case METRIC_BIGGEST_WINNER:
             if (winner_idx >= 0)
             {
-                float pl = g_positions[winner_idx].quantity *
-                           (g_positions[winner_idx].current_price - g_positions[winner_idx].avg_price);
-                snprintf(display_str, sizeof(display_str), "%s +$%.2f",
-                         g_positions[winner_idx].ticker, pl);
-                color = &GREEN;
+                float cost = g_positions[winner_idx].quantity * g_positions[winner_idx].avg_price;
+                float current_value =
+                    g_positions[winner_idx].quantity * g_positions[winner_idx].current_price;
+                float pct_change = (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
+                snprintf(label_str, sizeof(label_str), "%s", g_positions[winner_idx].ticker);
+                snprintf(value_str, sizeof(value_str), " +%.2f%%", pct_change);
+                value_color = &GREEN;
+                has_label = true;
             }
             else
             {
-                snprintf(display_str, sizeof(display_str), "NO DATA");
+                snprintf(value_str, sizeof(value_str), "NO DATA");
+                has_label = false;
             }
             break;
 
         case METRIC_BIGGEST_LOSER:
             if (loser_idx >= 0)
             {
-                float pl = g_positions[loser_idx].quantity *
-                           (g_positions[loser_idx].current_price - g_positions[loser_idx].avg_price);
-                snprintf(display_str, sizeof(display_str), "%s $%.2f",
-                         g_positions[loser_idx].ticker, pl);
-                color = &RED;
+                float cost = g_positions[loser_idx].quantity * g_positions[loser_idx].avg_price;
+                float current_value =
+                    g_positions[loser_idx].quantity * g_positions[loser_idx].current_price;
+                float pct_change = (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
+                snprintf(label_str, sizeof(label_str), "%s", g_positions[loser_idx].ticker);
+                snprintf(value_str, sizeof(value_str), " %.2f%%", pct_change);
+                value_color = &RED;
+                has_label = true;
             }
             else
             {
-                snprintf(display_str, sizeof(display_str), "NO DATA");
+                snprintf(value_str, sizeof(value_str), "NO DATA");
+                has_label = false;
             }
             break;
 
         case METRIC_TOTAL_VALUE:
-            snprintf(display_str, sizeof(display_str), "VAL $%.2f %+.2f%%", total_value, total_pct);
-            color = (total_pct >= 0) ? &GREEN : &RED;
+            snprintf(label_str, sizeof(label_str), "  TOTAL");
+            snprintf(value_str, sizeof(value_str), "$%.2f %+.2f%%", total_value, total_pct);
+            value_color = (total_pct >= 0) ? &GREEN : &RED;
+            has_label = true;
             break;
 
         default:
             return;
     }
 
-    int text_width = matrix_calculate_word_width_with_space(display_str);
+    int label_width = has_label ? matrix_calculate_word_width_with_space(label_str) : 0;
+    int value_width = matrix_calculate_word_width_with_space(value_str);
+    int total_width = label_width + value_width;
+
     matrix_clear(mtrx);
 
-    if (text_width > 30)
+    if (total_width > 30)
     {
         for (int wrap = 0; wrap < 2; wrap++)
         {
-            int x_pos = (wrap * (text_width + 4)) - g_scroll_offset;
-            matrix_display_word(display_str, x_pos, 1, color);
+            int base_x = (wrap * (total_width + 4)) - g_scroll_offset;
+            if (has_label)
+            {
+                matrix_display_word(label_str, base_x, 1, &LABEL_ORANGE);
+                matrix_display_word(value_str, base_x + label_width, 1, value_color);
+            }
+            else
+            {
+                matrix_display_word(value_str, base_x, 1, value_color);
+            }
         }
         matrix_show(mtrx);
     }
     else
     {
         int x_pos = 1;
-        matrix_display_word(display_str, x_pos, 1, color);
+        if (has_label)
+        {
+            matrix_display_word(label_str, x_pos, 1, &LABEL_ORANGE);
+            matrix_display_word(value_str, x_pos + label_width, 1, value_color);
+        }
+        else
+        {
+            matrix_display_word(value_str, x_pos, 1, value_color);
+        }
         matrix_show(mtrx);
     }
 }
 
 static void portfolio_display_url(Matrix* mtrx)
 {
-    const char* url_text = "    http://photon.local/upload";
+    const char* url_text = "    http://photon.local/portfolio";
     int total_width = matrix_calculate_word_width_with_space(url_text) + 4;
 
     matrix_clear(mtrx);
@@ -270,6 +309,20 @@ void portfolio_display(Matrix* mtrx, int* offset)
     ASSERT_NOT_NULL(mtrx);
     ASSERT_NOT_NULL(offset);
 
+    if (http_server_config_saved())
+    {
+        debug(INFO, "Config saved, rebooting...");
+
+        matrix_clear(mtrx);
+        matrix_display_word_icon_pair("REBOOT...", &ORANGE, NULL, 0);
+        matrix_show(mtrx);
+
+        sleep_ms(2000);
+
+        watchdog_enable(1, 1);
+        while (1);
+    }
+
     uint64_t current_time_ms = get_current_time_ms();
     bool should_fetch = (g_next_fetch_time_ms == 0) || (current_time_ms >= g_next_fetch_time_ms);
 
@@ -284,93 +337,153 @@ void portfolio_display(Matrix* mtrx, int* offset)
 
     if (g_portfolio_count == 0)
     {
-        portfolio_display_url(mtrx);
-        g_url_scroll_offset++;
-        int url_width = matrix_calculate_word_width_with_space("    http://photon.local/upload") + 4;
-        if (g_url_scroll_offset >= url_width)
+        if (!g_server_started)
         {
-            g_url_scroll_offset = 0;
+            if (!wifi_is_connected())
+            {
+                debug(INFO, "WiFi not connected, reconnecting for portfolio upload...");
+
+                device_config_t config;
+                if (!flash_memory_read(&config))
+                {
+                    debug(ERROR, "Failed to read WiFi config from flash");
+                    matrix_clear(mtrx);
+                    matrix_display_word_icon_pair("NO WIFI", &RED, &ICONS_ARR[WIFI], 0);
+                    matrix_show(mtrx);
+                    return;
+                }
+
+                ReturnCode rc = wifi_connect(config.ssid, config.password, mtrx);
+                if (RC_FAILED(rc))
+                {
+                    debug(ERROR, "Failed to reconnect WiFi for portfolio upload: %s",
+                          rc_to_string(rc));
+                    matrix_clear(mtrx);
+                    matrix_display_word_icon_pair("NO WIFI", &RED, &ICONS_ARR[WIFI], 0);
+                    matrix_show(mtrx);
+                    return;
+                }
+            }
+
+            wifi_start_mdns();
+            http_server_start();
+            g_server_started = true;
+            debug(INFO, "======================================");
+            debug(INFO, "PORTFOLIO UPLOAD MODE ACTIVE");
+            debug(INFO, "Web interface available at:");
+            debug(INFO, "  http://photon.local/portfolio");
+            debug(INFO, "======================================");
         }
+
+        if (http_server_portfolio_parse_failed())
+        {
+            matrix_clear(mtrx);
+            matrix_display_word("ERROR", 4, 1, &RED);
+            matrix_show(mtrx);
+        }
+        else
+        {
+            portfolio_display_url(mtrx);
+            g_url_scroll_offset++;
+            int url_width =
+                matrix_calculate_word_width_with_space("    http://photon.local/portfolio") + 4;
+            if (g_url_scroll_offset >= url_width)
+            {
+                g_url_scroll_offset = 0;
+            }
+        }
+
+        cyw43_arch_poll();
     }
     else if (g_data_fetched)
     {
         portfolio_display_metric(mtrx, g_current_metric);
 
-        char display_str[64];
+        char label_str[32] = "";
+        char value_str[32] = "";
+        bool has_label = false;
+
+        float total_pl, total_pct, total_value;
+        int winner_idx, loser_idx;
+        portfolio_calculate_metrics(&total_pl, &total_pct, &winner_idx, &loser_idx, &total_value);
+
         switch (g_current_metric)
         {
-            case METRIC_PL_ABSOLUTE: {
-                float total_pl, total_pct, total_value;
-                int winner_idx, loser_idx;
-                portfolio_calculate_metrics(&total_pl, &total_pct, &winner_idx, &loser_idx,
-                                             &total_value);
-                snprintf(display_str, sizeof(display_str), "P/L $%.2f", total_pl);
+            case METRIC_PL_ABSOLUTE:
+            {
+                snprintf(label_str, sizeof(label_str), "P/L");
+                snprintf(value_str, sizeof(value_str), "$%.2f", total_pl);
+                has_label = true;
                 break;
             }
-            case METRIC_PL_PERCENTAGE: {
-                float total_pl, total_pct, total_value;
-                int winner_idx, loser_idx;
-                portfolio_calculate_metrics(&total_pl, &total_pct, &winner_idx, &loser_idx,
-                                             &total_value);
-                snprintf(display_str, sizeof(display_str), "P/L %.2f%%", total_pct);
+            case METRIC_PL_PERCENTAGE:
+            {
+                snprintf(label_str, sizeof(label_str), "P/L");
+                snprintf(value_str, sizeof(value_str), "%.2f%%", total_pct);
+                has_label = true;
                 break;
             }
-            case METRIC_BIGGEST_WINNER: {
-                float total_pl, total_pct, total_value;
-                int winner_idx, loser_idx;
-                portfolio_calculate_metrics(&total_pl, &total_pct, &winner_idx, &loser_idx,
-                                             &total_value);
+            case METRIC_BIGGEST_WINNER:
+            {
                 if (winner_idx >= 0)
                 {
-                    float pl = g_positions[winner_idx].quantity *
-                               (g_positions[winner_idx].current_price -
-                                g_positions[winner_idx].avg_price);
-                    snprintf(display_str, sizeof(display_str), "%s +$%.2f",
-                             g_positions[winner_idx].ticker, pl);
+                    float cost =
+                        g_positions[winner_idx].quantity * g_positions[winner_idx].avg_price;
+                    float current_value =
+                        g_positions[winner_idx].quantity * g_positions[winner_idx].current_price;
+                    float pct_change =
+                        (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
+                    snprintf(label_str, sizeof(label_str), "%s", g_positions[winner_idx].ticker);
+                    snprintf(value_str, sizeof(value_str), " +%.2f%%", pct_change);
+                    has_label = true;
                 }
                 else
                 {
-                    snprintf(display_str, sizeof(display_str), "NO DATA");
+                    snprintf(value_str, sizeof(value_str), "NO DATA");
+                    has_label = false;
                 }
                 break;
             }
-            case METRIC_BIGGEST_LOSER: {
-                float total_pl, total_pct, total_value;
-                int winner_idx, loser_idx;
-                portfolio_calculate_metrics(&total_pl, &total_pct, &winner_idx, &loser_idx,
-                                             &total_value);
+            case METRIC_BIGGEST_LOSER:
+            {
                 if (loser_idx >= 0)
                 {
-                    float pl = g_positions[loser_idx].quantity *
-                               (g_positions[loser_idx].current_price -
-                                g_positions[loser_idx].avg_price);
-                    snprintf(display_str, sizeof(display_str), "%s $%.2f",
-                             g_positions[loser_idx].ticker, pl);
+                    float cost = g_positions[loser_idx].quantity * g_positions[loser_idx].avg_price;
+                    float current_value =
+                        g_positions[loser_idx].quantity * g_positions[loser_idx].current_price;
+                    float pct_change =
+                        (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
+                    snprintf(label_str, sizeof(label_str), "%s", g_positions[loser_idx].ticker);
+                    snprintf(value_str, sizeof(value_str), " %.2f%%", pct_change);
+                    has_label = true;
                 }
                 else
                 {
-                    snprintf(display_str, sizeof(display_str), "NO DATA");
+                    snprintf(value_str, sizeof(value_str), "NO DATA");
+                    has_label = false;
                 }
                 break;
             }
-            case METRIC_TOTAL_VALUE: {
-                float total_pl, total_pct, total_value;
-                int winner_idx, loser_idx;
-                portfolio_calculate_metrics(&total_pl, &total_pct, &winner_idx, &loser_idx,
-                                             &total_value);
-                snprintf(display_str, sizeof(display_str), "VAL $%.2f %+.2f%%", total_value,
-                         total_pct);
+            case METRIC_TOTAL_VALUE:
+            {
+                snprintf(label_str, sizeof(label_str), "  TOTAL");
+                snprintf(value_str, sizeof(value_str), "$%.2f %+.2f%%", total_value, total_pct);
+                has_label = true;
                 break;
             }
             default:
-                snprintf(display_str, sizeof(display_str), "ERROR");
+                snprintf(value_str, sizeof(value_str), "ERROR");
+                has_label = false;
                 break;
         }
 
-        int text_width = matrix_calculate_word_width_with_space(display_str);
+        int label_width = has_label ? matrix_calculate_word_width_with_space(label_str) : 0;
+        int value_width = matrix_calculate_word_width_with_space(value_str);
+        int text_width = label_width + value_width;
+
         if (text_width > 30)
         {
-            g_scroll_offset++;
+            g_scroll_offset += 2;
             if (g_scroll_offset >= text_width + 4)
             {
                 g_scroll_offset = 0;
@@ -406,11 +519,18 @@ void portfolio_prev_metric(void)
 
 void portfolio_cleanup(void)
 {
+    if (g_server_started)
+    {
+        http_server_stop();
+        debug(INFO, "HTTP server stopped");
+    }
+
     g_data_fetched = false;
     g_next_fetch_time_ms = 0;
     g_ticker_to_fetch_index = 0;
     g_scroll_offset = 0;
     g_url_scroll_offset = 0;
     g_current_metric = METRIC_PL_ABSOLUTE;
+    g_server_started = false;
     debug(TRACE, "Portfolio cleanup called");
 }

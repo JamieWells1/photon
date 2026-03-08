@@ -282,13 +282,6 @@ int main(void)
                     (buttons[0].current_state == true && buttons[1].current_state == true &&
                      rotator->current_sw_state == true);
 
-                if (!all_released && wait_count % 50 == 0)
-                {
-                    debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
-                          buttons[0].current_state, buttons[1].current_state,
-                          rotator->current_sw_state);
-                }
-
                 sleep_ms(10);
                 wait_count++;
             }

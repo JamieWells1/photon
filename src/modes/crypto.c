@@ -277,7 +277,7 @@ void crypto_display(Matrix* mtrx, int* offset)
 
                 const unsigned int y = 1;
 
-                matrix_display_word(crp->to_str, crp_x, y, &DEFAULT_COLOUR);
+                matrix_display_word(crp->to_str, crp_x, y, &LABEL_ORANGE);
                 matrix_display_word(price_str, price_x, y, colour);
                 matrix_display_icon(icon, icon_x, y, colour);
                 matrix_display_word(change_perc_str, perc_diff_x, y, colour);

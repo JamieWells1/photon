@@ -50,12 +50,14 @@ static int g_invest_offset = 0;
 static int g_stock_offset = 0;
 static int g_crypto_offset = 0;
 
+static bool g_markets_menu_ready = false;
 static bool g_invest_submenu_ready = false;
 static bool g_stocks_submenu_ready = false;
 static bool g_crypto_submenu_ready = false;
 
-static void menu_markets_set_initial_display(void)
+static void menu_markets_set_initial_display(Matrix* mtrx)
 {
+    matrix_clear(mtrx);
     MarketsMenu currentMode = MARKETS_MENUS[g_markets_selection];
     matrix_display_word_icon_pair(currentMode.text, &DEFAULT_COLOUR, currentMode.icon, 0);
     g_markets_display_initialized = true;
@@ -81,6 +83,7 @@ static void menu_markets_slide_right(Matrix* mtrx)
     g_markets_selection = index_next;
     g_in_markets_submenu = false;
     g_markets_display_initialized = true;
+    g_markets_menu_ready = false;
     g_invest_submenu_ready = false;
     g_stocks_submenu_ready = false;
     g_crypto_submenu_ready = false;
@@ -114,6 +117,7 @@ static void menu_markets_slide_left(Matrix* mtrx)
     g_markets_selection = index_previous;
     g_in_markets_submenu = false;
     g_markets_display_initialized = true;
+    g_markets_menu_ready = false;
     g_invest_submenu_ready = false;
     g_stocks_submenu_ready = false;
     g_crypto_submenu_ready = false;
@@ -147,6 +151,8 @@ static void menu_markets_enter_mode(MarketsMenu submenu, Matrix* mtrx)
         g_markets_current_mode = target_menu;
     }
 
+    matrix_clear(mtrx);
+
     if (g_markets_current_mode == INVEST_START)
     {
         portfolio_display(mtrx, &g_invest_offset);
@@ -172,11 +178,6 @@ static void menu_markets_invest_detect_inputs(Button* btns, Rotator* rtr, Matrix
         {
             g_invest_submenu_ready = true;
             debug(DEBUG, "All buttons released, invest submenu ready for input");
-        }
-        else
-        {
-            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
-                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
         }
         return;
     }
@@ -209,11 +210,6 @@ static void menu_markets_stocks_detect_inputs(Button* btns, Rotator* rtr, Matrix
             g_stocks_submenu_ready = true;
             debug(DEBUG, "All buttons released, stocks submenu ready for input");
         }
-        else
-        {
-            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
-                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
-        }
         return;
     }
 
@@ -240,11 +236,6 @@ static void menu_markets_crypto_detect_inputs(Button* btns, Rotator* rtr, Matrix
             g_crypto_submenu_ready = true;
             debug(DEBUG, "All buttons released, crypto submenu ready for input");
         }
-        else
-        {
-            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
-                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
-        }
         return;
     }
 
@@ -263,6 +254,19 @@ void menu_markets_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (!g_in_markets_submenu)
     {
+        if (!g_markets_menu_ready)
+        {
+            bool all_released = (btns[0].current_state == true && btns[1].current_state == true &&
+                                 rtr->current_sw_state == true);
+
+            if (all_released)
+            {
+                g_markets_menu_ready = true;
+                debug(DEBUG, "All buttons released, markets menu ready for input");
+            }
+            return;
+        }
+
         bool cw = input_rtr_cw(rtr);
         bool acw = input_rtr_anti_cw(rtr);
 
@@ -282,7 +286,7 @@ void menu_markets_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
         }
     }
 
-    if (input_any_btn_pressed(btns, rtr) && !g_in_markets_submenu)
+    if (input_rtr_pressed(rtr) && !g_in_markets_submenu && g_markets_menu_ready)
     {
         debug(DEBUG, "Button pressed in markets menu, entering mode=%d", g_markets_selection);
         menu_markets_enter_mode(MARKETS_MENUS[g_markets_selection], mtrx);
@@ -309,7 +313,7 @@ void menu_markets_start(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (!g_markets_display_initialized)
     {
-        menu_markets_set_initial_display();
+        menu_markets_set_initial_display(mtrx);
         matrix_show(mtrx);
     }
 
@@ -331,6 +335,7 @@ void menu_markets_cleanup(void)
     g_invest_offset = 0;
     g_stock_offset = 0;
     g_crypto_offset = 0;
+    g_markets_menu_ready = false;
     g_invest_submenu_ready = false;
     g_stocks_submenu_ready = false;
     g_crypto_submenu_ready = false;

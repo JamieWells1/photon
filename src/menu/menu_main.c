@@ -28,7 +28,7 @@
 
 static const Menu MENUS[] = {
     {MENU_MARKETS, "MARKET", &ICONS_ARR[STOCKS]},
-    {MENU_WEATHER, "TEMP", &ICONS_ARR[SUNNY_CLOUDY]},
+    {MENU_WEATHER, "WEATHER", &ICONS_ARR[SUNNY_CLOUDY]},
     {MENU_CONFIG, "CONFIG", &ICONS_ARR[DATA]},
     {MENU_RESET, "RESET", &ICONS_ARR[POWER]},
 };
@@ -42,22 +42,6 @@ static Mode g_current_mode = TEMP_START;
 static int g_weather_hour_offset = 0;
 static bool g_weather_submenu_ready = false;
 static bool g_config_submenu_ready = false;
-
-static void menu_main_set_underscore(bool underscore_on)
-{
-    int uscr_starting_x = 1;
-    int uscr_starting_y = 7;
-    int uscr_length = 30;
-
-    if (underscore_on)
-    {
-        matrix_draw_horiz_line(uscr_starting_x, uscr_starting_y, uscr_length, &DEFAULT_COLOUR);
-    }
-    else
-    {
-        matrix_clear_horiz_line(uscr_starting_x, uscr_starting_y, uscr_length);
-    }
-}
 
 static void menu_main_set_initial_display(void)
 {
@@ -83,14 +67,11 @@ void menu_main_reset_states(Matrix* mtrx)
 
     matrix_clear(mtrx);
     menu_main_set_initial_display();
-    menu_main_set_underscore(true);
     matrix_show(mtrx);
 }
 
 static void menu_main_slide_right(Matrix* mtrx)
 {
-    menu_main_set_underscore(true);
-
     int index_next = (MENU_STATE.mode + 1) % ARRAY_SIZE(MENUS);
     Menu nextMode = MENUS[index_next];
 
@@ -112,8 +93,6 @@ static void menu_main_slide_right(Matrix* mtrx)
 
 static void menu_main_slide_left(Matrix* mtrx)
 {
-    menu_main_set_underscore(true);
-
     int index_previous;
     if (MENU_STATE.mode == 0)
     {
@@ -201,11 +180,6 @@ static void menu_main_weather_detect_inputs(Button* btns, Rotator* rtr, Matrix* 
             g_weather_submenu_ready = true;
             debug(DEBUG, "All buttons released, weather submenu ready for input");
         }
-        else
-        {
-            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
-                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
-        }
         return;
     }
 
@@ -270,11 +244,6 @@ static void menu_main_config_detect_inputs(Button* btns, Rotator* rtr, Matrix* m
         {
             g_config_submenu_ready = true;
             debug(DEBUG, "All buttons released, config submenu ready for input");
-        }
-        else
-        {
-            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
-                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
         }
         return;
     }
@@ -356,17 +325,16 @@ void menu_main_start(Button* btns, Rotator* rtr, Matrix* mtrx)
         matrix_show(mtrx);
     }
 
-    if (g_tick % 50 == 0 && !g_in_submenu)
-    {
-        menu_main_set_underscore(g_underscore_on);
-        g_underscore_on = !g_underscore_on;
-        matrix_show(mtrx);
-    }
-
     if (g_in_submenu && g_tick % DISPLAY_UPDATE_INTERVAL_TICKS_MS == 0 &&
         g_current_mode != RESET_START && MENU_STATE.mode != MENU_MARKETS)
     {
         menu_main_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
+    }
+
+    if (g_in_submenu && MENU_STATE.mode == MENU_MARKETS &&
+        g_tick % DISPLAY_UPDATE_INTERVAL_TICKS_MS == 0)
+    {
+        menu_markets_start(btns, rtr, mtrx);
     }
 
     menu_main_detect_inputs(btns, rtr, mtrx);

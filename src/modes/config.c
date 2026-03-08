@@ -24,7 +24,7 @@ void config_display(Matrix* mtrx)
         debug(INFO, "Config saved, rebooting...");
 
         matrix_clear(mtrx);
-        matrix_display_word_icon_pair("REBOOT", &ORANGE, NULL, 0);
+        matrix_display_word_icon_pair("REBOOT...", &ORANGE, NULL, 0);
         matrix_show(mtrx);
 
         sleep_ms(2000);

@@ -52,11 +52,6 @@ void reset_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
             g_reset_submenu_ready = true;
             debug(DEBUG, "All buttons released, reset submenu ready for input");
         }
-        else
-        {
-            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
-                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
-        }
         return;
     }
 

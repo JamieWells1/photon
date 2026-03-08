@@ -15,7 +15,7 @@ void graphics_display_start_screen(Matrix* mtrx)
     matrix_display_word_icon_pair(PROJECT_NAME, &LOGO_COLOUR, &ICONS_ARR[PHOTON], 0);
 
     matrix_show(mtrx);
-    sleep_ms(3000);
+    sleep_ms(2000);
     matrix_clear(mtrx);
     matrix_show(mtrx);
 }
