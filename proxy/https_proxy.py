@@ -118,9 +118,11 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def handle_stock_request(self, client_ip):
         import yfinance as yf
+        import re
 
         symbol = self.path[8:].split("?")[0].upper()
-        if not symbol or not symbol.isalnum():
+
+        if not symbol or not re.match(r'^[A-Z0-9]+(\.[A-Z]+)?$', symbol):
             self.send_json_response(400, {"error": "Invalid symbol"})
             return
 

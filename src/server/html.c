@@ -81,10 +81,6 @@ static const char* html_portfolio_success =
     "rgba(0,0,0,0.15);padding:32px;max-width:400px;width:100%;text-align:center}"
     "h1{color:#10b981;margin:0 0 16px;font-size:32px;font-weight:600}"
     "p{color:#555;font-size:18px;line-height:1.6;margin:0;font-weight:500}"
-    ".checkmark{width:64px;height:64px;margin:0 auto "
-    "24px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:"
-    "center;font-size:40px;color:white}"
-    "a{display:inline-block;margin-top:20px;color:#4A90E2;text-decoration:none;font-weight:600};"
     "</style></head><body>"
     "<div class=\"container\"><h1>Upload Successful!</h1>"
     "<p>You can now view your portfolio on your device</p></div></body></html>";
@@ -131,9 +127,9 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                  ".g label{margin:0}.g input{width:auto}"
                  "</style></head><body><div class=c><h1>Photon</h1>"
                  "<div class=tabs>"
-                 "<button class=\"tab%s\" onclick=\"s(0)\">Device</button>"
-                 "<button class=\"tab%s\" onclick=\"s(1)\">Tickers</button>"
-                 "<button class=\"tab%s\" onclick=\"s(2)\">Portfolio</button>"
+                 "<button class=\"tab%s\" onclick=s(0)>Device</button>"
+                 "<button class=\"tab%s\" onclick=s(1)>Tickers</button>"
+                 "<button class=\"tab%s\" onclick=s(2)>Portfolio</button>"
                  "</div><form method=POST action=/save-config>",
                  strcmp(active_tab, "device") == 0 ? " active" : "",
                  strcmp(active_tab, "tickers") == 0 ? " active" : "",
@@ -142,9 +138,9 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
     // Device tab
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                     "<div class=\"t%s\" id=t0>"
-                    "<label>Brightness: <span id=v>%d%%</span></label>"
+                    "<label>Bright: <span id=v>%d%%</span></label>"
                     "<input type=range name=brightness min=1 max=20 value=%d "
-                    "oninput=\"v.textContent=this.value+'%%'\">",
+                    "oninput=v.textContent=this.value+'%%'>",
                     strcmp(active_tab, "device") == 0 ? " active" : "", config->brightness,
                     config->brightness);
 
@@ -191,36 +187,64 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div></div>");
 
     // Portfolio tab
-    pos += snprintf(
-        config_html_buf + pos, sizeof(config_html_buf) - pos,
-        "<div class=\"t%s\" id=t2><label>Portfolio Upload</label>"
-        "<p style=\"color:#888;font-size:12px\">Upload Trading 212 CSV (max 30 tickers)</p>",
-        strcmp(active_tab, "portfolio") == 0 ? " active" : "");
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                    "<div class=\"t%s\" id=t2><label>Portfolio</label>"
+                    "<p style=color:#888;font-size:12px>T212 CSV</p>",
+                    strcmp(active_tab, "portfolio") == 0 ? " active" : "");
 
     if (config->portfolio_count > 0)
     {
         pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<p style=\"color:#10b981\">%d ticker%s loaded</p>",
-                        config->portfolio_count, config->portfolio_count == 1 ? "" : "s");
+                        "<p style=color:#10b981>%d ticker%s</p>", config->portfolio_count,
+                        config->portfolio_count == 1 ? "" : "s");
     }
+
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                    "</div><button type=submit id=sv style=display:%s>Save & Reboot</button></form>"
+                    "<form method=POST action=/upload enctype=multipart/form-data "
+                    "style=display:%s id=pf onsubmit=\"return a()\">"
+                    "<label>CSV File</label>"
+                    "<input type=file name=portfolio accept=.csv id=f "
+                    "onchange=\"var "
+                    "b=u;b.disabled=!(this.files[0]&&this.files[0].name.endsWith('.csv'));b."
+                    "textContent=b.disabled?'Select CSV':'Save All & Upload'\">"
+                    "<label>P&L Mode</label><select name=portfolio_mode id=pm>"
+                    "<option value=0%s>All-Time</option>"
+                    "<option value=1%s>Daily</option></select>"
+                    "<input type=hidden name=brightness id=B value=%d>"
+                    "<input type=hidden name=location id=L value=%d>"
+                    "<input type=hidden name=currency id=C value=%d>"
+                    "<div id=K></div>"
+                    "<button type=submit id=u disabled>Select CSV</button></form>",
+                    strcmp(active_tab, "portfolio") == 0 ? "none" : "block",
+                    strcmp(active_tab, "portfolio") == 0 ? "block" : "none",
+                    config->portfolio_mode == 0 ? " selected" : "",
+                    config->portfolio_mode == 1 ? " selected" : "", config->brightness,
+                    config->location, config->currency);
 
     pos += snprintf(
         config_html_buf + pos, sizeof(config_html_buf) - pos,
-        "</div><button type=submit id=sv style=\"display:%s\">Save & Reboot</button></form>"
-        "<form method=POST action=/upload-portfolio enctype=multipart/form-data "
-        "style=\"display:%s\" id=pf>"
-        "<input type=file name=portfolio accept=.csv id=f "
-        "onchange=\"u.disabled=!this.files[0]?.name.endsWith('.csv')\">"
-        "<button type=submit id=u disabled>Upload</button></form>"
         "</div><script>"
+        "function a(){"
+        "B.value=document.querySelector('[name=brightness]').value;"
+        "L.value=document.querySelector('[name=location]').value;"
+        "C.value=document.querySelector('[name=currency]').value;"
+        "K.innerHTML='';"
+        "document.querySelectorAll('[name^=crypto_]:checked').forEach(e=>{"
+        "var "
+        "h=document.createElement('input');h.type='hidden';h.name=e.name;h.value='1';K.appendChild("
+        "h)});"
+        "document.querySelectorAll('[name^=stk_]:checked').forEach(e=>{"
+        "var "
+        "h=document.createElement('input');h.type='hidden';h.name=e.name;h.value='1';K.appendChild("
+        "h)});"
+        "return true}"
         "function s(i){"
         "document.querySelectorAll('.tab').forEach((t,j)=>t.className=j==i?'tab active':'tab');"
         "document.querySelectorAll('.t').forEach((t,j)=>t.className=j==i?'t active':'t');"
         "sv.style.display=i==2?'none':'block';"
-        "pf.style.display=i==2?'block':'none';}"
-        "</script></body></html>",
-        strcmp(active_tab, "portfolio") == 0 ? "none" : "block",
-        strcmp(active_tab, "portfolio") == 0 ? "block" : "none");
+        "pf.style.display=i==2?'block':'none'}"
+        "</script></body></html>");
 
     debug(DEBUG, "Generated HTML page: %d bytes (buffer size: %d)", pos,
           (int)sizeof(config_html_buf));
