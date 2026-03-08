@@ -61,10 +61,12 @@ typedef enum
     LOC_SYDNEY,
     LOC_RIO_DE_JANEIRO,
     LOC_CAPE_TOWN,
+    LOC_COUNT
 } Location;
 
 float location_get_latitude(Location loc);
 float location_get_longitude(Location loc);
 const char* location_get_timezone(Location loc);
+const char* location_get_name(Location loc);
 
 #endif  // LOCATION_H

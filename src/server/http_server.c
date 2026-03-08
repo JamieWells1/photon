@@ -1,10 +1,12 @@
 #include <http_server.h>
 
 #include <const.h>
+#include <crypto.h>
 #include <flash_memory.h>
 #include <html.h>
 #include <macro.h>
 #include <matrix.h>
+#include <stock.h>
 
 #include <ctype.h>
 #include <stdio.h>
@@ -368,7 +370,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             if (val) config.currency = (uint8_t)atoi(val + 9);
 
             uint16_t crypto = 0;
-            for (int i = 0; i < NUM_CRYPTO_TICKERS; i++)
+            for (int i = 0; i < CRYPTO_COUNT; i++)
             {
                 char key[12];
                 snprintf(key, sizeof(key), "crypto_%d=", i);
@@ -377,7 +379,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             config.crypto = crypto ? crypto : DEFAULT_CRYPTO;
 
             uint16_t stocks = 0;
-            for (int i = 0; i < NUM_STOCK_TICKERS; i++)
+            for (int i = 0; i < STK_COUNT; i++)
             {
                 char key[8];
                 snprintf(key, sizeof(key), "stk_%d=", i);

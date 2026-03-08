@@ -61,9 +61,9 @@ set(INPUT_SOURCES
 
 # Menu system
 set(MENU_SOURCES
-        src/menu_common.c
-        src/menu_main.c
-        src/menu_markets.c
+        src/menu/menu_common.c
+        src/menu/menu_main.c
+        src/menu/menu_markets.c
 )
 
 # Global state
@@ -153,6 +153,7 @@ target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/common
         ${CMAKE_CURRENT_LIST_DIR}/src/display
         ${CMAKE_CURRENT_LIST_DIR}/src/input
+        ${CMAKE_CURRENT_LIST_DIR}/src/menu
         ${CMAKE_CURRENT_LIST_DIR}/src/middleware
         ${CMAKE_CURRENT_LIST_DIR}/src/server
         ${CMAKE_CURRENT_LIST_DIR}/src/modes

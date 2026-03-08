@@ -1,6 +1,10 @@
 #include <html.h>
 
 #include <const.h>
+#include <crypto.h>
+#include <currency.h>
+#include <location.h>
+#include <stock.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -152,46 +156,45 @@ const char* html_build_config_page(const device_config_t* config)
     // Location select
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                     "<label>Location</label><select name=\"location\">");
-    for (int i = 0; i < NUM_LOCATIONS; i++)
+    for (int i = 0; i < LOC_COUNT; i++)
     {
         pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                         "<option value=\"%d\"%s>%s</option>", i,
-                        config->location == i ? " selected" : "", LOCATION_NAMES[i]);
+                        config->location == i ? " selected" : "", location_get_name(i));
     }
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</select>");
 
     // Currency select
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                     "<label>Currency</label><select name=\"currency\">");
-    for (int i = 0; i < NUM_CURRENCIES; i++)
+    for (int i = 0; i < CCY_COUNT; i++)
     {
         pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<option value=\"%d\"%s>%s (%s)</option>", i,
-                        config->currency == i ? " selected" : "", CURRENCY_NAMES[i],
-                        CURRENCY_SYMBOLS[i]);
+                        "<option value=\"%d\"%s>%s</option>", i,
+                        config->currency == i ? " selected" : "", currency_get_name(i));
     }
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</select>");
 
     // Crypto checkboxes
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                     "<label>Crypto</label><div class=\"ticker-grid\">");
-    for (int i = 0; i < NUM_CRYPTO_TICKERS; i++)
+    for (int i = 0; i < CRYPTO_COUNT; i++)
     {
         pos +=
             snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                      "<label><input type=\"checkbox\" name=\"crypto_%d\" value=\"1\"%s>%s</label>",
-                     i, (config->crypto & (1 << i)) ? " checked" : "", CRYPTO_TICKER_NAMES[i]);
+                     i, (config->crypto & (1 << i)) ? " checked" : "", CRYPTO_ARR[i].to_str);
     }
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div>");
 
     // Stock checkboxes
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                     "<label>Stocks</label><div class=\"ticker-grid\">");
-    for (int i = 0; i < NUM_STOCK_TICKERS; i++)
+    for (int i = 0; i < STK_COUNT; i++)
     {
         pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                         "<label><input type=\"checkbox\" name=\"stk_%d\" value=\"1\"%s>%s</label>",
-                        i, (config->stocks & (1 << i)) ? " checked" : "", STOCK_TICKER_NAMES[i]);
+                        i, (config->stocks & (1 << i)) ? " checked" : "", STK_ARR[i].to_str);
     }
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div>");
 
