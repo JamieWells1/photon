@@ -40,7 +40,6 @@ set(CORE_SOURCES
 
 # Common utilities
 set(COMMON_SOURCES
-        src/common/const.c
         src/common/macro.c
         src/common/location.c
         src/common/currency.c

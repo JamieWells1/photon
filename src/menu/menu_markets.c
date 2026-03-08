@@ -50,6 +50,10 @@ static int g_invest_offset = 0;
 static int g_stock_offset = 0;
 static int g_crypto_offset = 0;
 
+static bool g_invest_submenu_ready = false;
+static bool g_stocks_submenu_ready = false;
+static bool g_crypto_submenu_ready = false;
+
 static void menu_markets_set_initial_display(void)
 {
     MarketsMenu currentMode = MARKETS_MENUS[g_markets_selection];
@@ -77,6 +81,9 @@ static void menu_markets_slide_right(Matrix* mtrx)
     g_markets_selection = index_next;
     g_in_markets_submenu = false;
     g_markets_display_initialized = true;
+    g_invest_submenu_ready = false;
+    g_stocks_submenu_ready = false;
+    g_crypto_submenu_ready = false;
 }
 
 static void menu_markets_slide_left(Matrix* mtrx)
@@ -107,6 +114,9 @@ static void menu_markets_slide_left(Matrix* mtrx)
     g_markets_selection = index_previous;
     g_in_markets_submenu = false;
     g_markets_display_initialized = true;
+    g_invest_submenu_ready = false;
+    g_stocks_submenu_ready = false;
+    g_crypto_submenu_ready = false;
 }
 
 static void menu_markets_enter_mode(MarketsMenu submenu, Matrix* mtrx)
@@ -153,6 +163,24 @@ static void menu_markets_enter_mode(MarketsMenu submenu, Matrix* mtrx)
 
 static void menu_markets_invest_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
+    if (!g_invest_submenu_ready)
+    {
+        bool all_released = (btns[0].current_state == true && btns[1].current_state == true &&
+                             rtr->current_sw_state == true);
+
+        if (all_released)
+        {
+            g_invest_submenu_ready = true;
+            debug(DEBUG, "All buttons released, invest submenu ready for input");
+        }
+        else
+        {
+            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
+                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
+        }
+        return;
+    }
+
     if (input_rtr_long_pressed(rtr))
     {
         menu_main_exit_submenu(mtrx);
@@ -160,12 +188,35 @@ static void menu_markets_invest_detect_inputs(Button* btns, Rotator* rtr, Matrix
 
     if (input_rtr_cw(rtr))
     {
-        g_invest_offset += 1;
+        portfolio_next_metric();
+    }
+
+    if (input_rtr_anti_cw(rtr))
+    {
+        portfolio_prev_metric();
     }
 }
 
 static void menu_markets_stocks_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
+    if (!g_stocks_submenu_ready)
+    {
+        bool all_released = (btns[0].current_state == true && btns[1].current_state == true &&
+                             rtr->current_sw_state == true);
+
+        if (all_released)
+        {
+            g_stocks_submenu_ready = true;
+            debug(DEBUG, "All buttons released, stocks submenu ready for input");
+        }
+        else
+        {
+            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
+                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
+        }
+        return;
+    }
+
     if (input_rtr_long_pressed(rtr))
     {
         menu_main_exit_submenu(mtrx);
@@ -179,6 +230,24 @@ static void menu_markets_stocks_detect_inputs(Button* btns, Rotator* rtr, Matrix
 
 static void menu_markets_crypto_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
+    if (!g_crypto_submenu_ready)
+    {
+        bool all_released = (btns[0].current_state == true && btns[1].current_state == true &&
+                             rtr->current_sw_state == true);
+
+        if (all_released)
+        {
+            g_crypto_submenu_ready = true;
+            debug(DEBUG, "All buttons released, crypto submenu ready for input");
+        }
+        else
+        {
+            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
+                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
+        }
+        return;
+    }
+
     if (input_rtr_long_pressed(rtr))
     {
         menu_main_exit_submenu(mtrx);
@@ -262,4 +331,7 @@ void menu_markets_cleanup(void)
     g_invest_offset = 0;
     g_stock_offset = 0;
     g_crypto_offset = 0;
+    g_invest_submenu_ready = false;
+    g_stocks_submenu_ready = false;
+    g_crypto_submenu_ready = false;
 }

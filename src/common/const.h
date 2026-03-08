@@ -11,10 +11,10 @@ typedef enum
     TRACE = 4
 } LogLevel;
 
-extern const LogLevel LOG_LEVEL;
+#define LOG_LEVEL DEBUG
 
 // Device defaults
-#define DEFAULT_BRIGHTNESS 8   // 8%
+#define DEFAULT_BRIGHTNESS 10   // 8%
 #define DEFAULT_LOCATION 0     // London
 #define DEFAULT_CURRENCY 0     // GBP
 #define DEFAULT_CRYPTO 0x0007  // XBT + ETH + SOL

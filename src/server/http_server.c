@@ -75,39 +75,59 @@ static bool parse_csv_portfolio(const char* csv_data, device_config_t* config)
         line_end = strchr(line_start, '\n');
         if (!line_end) line_end = line_start + strlen(line_start);
 
-        // Skip header line and empty lines
         if (line_num > 0 && (line_end - line_start) > 0)
         {
-            // Extract first column (ticker) - handle quoted CSV
-            const char* ticker_start = line_start;
-            const char* ticker_end = NULL;
+            const char* col_start = line_start;
+            const char* col_end = NULL;
+            int col_num = 0;
+            char ticker[10] = {0};
+            float quantity = 0.0f;
+            float avg_price = 0.0f;
 
-            if (*ticker_start == '"')
+            while (col_start < line_end && col_num < 3)
             {
-                ticker_start++;
-                ticker_end = strchr(ticker_start, '"');
+                if (*col_start == '"')
+                {
+                    col_start++;
+                    col_end = strchr(col_start, '"');
+                }
+                else
+                {
+                    col_end = strchr(col_start, ',');
+                }
+
+                if (!col_end || col_end > line_end) col_end = line_end;
+
+                size_t col_len = col_end - col_start;
+
+                if (col_num == 0 && col_len > 0 && col_len < 10 &&
+                    strncmp(col_start, "Total", 5) != 0)
+                {
+                    strncpy(ticker, col_start, col_len);
+                    ticker[col_len] = '\0';
+                }
+                else if (col_num == 1)
+                {
+                    quantity = atof(col_start);
+                }
+                else if (col_num == 2)
+                {
+                    avg_price = atof(col_start);
+                }
+
+                col_start = (*col_end == '"') ? col_end + 1 : col_end;
+                if (*col_start == ',') col_start++;
+                col_num++;
             }
-            else
+
+            if (ticker[0] != '\0' && quantity > 0.0f && avg_price > 0.0f)
             {
-                ticker_end = strchr(ticker_start, ',');
-            }
+                strncpy(config->portfolio_tickers[config->portfolio_count], ticker, 10);
+                config->portfolio_quantities[config->portfolio_count] = quantity;
+                config->portfolio_avg_prices[config->portfolio_count] = avg_price;
 
-            if (!ticker_end || ticker_end > line_end)
-            {
-                ticker_end = line_end;
-            }
-
-            size_t ticker_len = ticker_end - ticker_start;
-
-            // Skip "Total" row and empty tickers
-            if (ticker_len > 0 && ticker_len < 10 && strncmp(ticker_start, "Total", 5) != 0)
-            {
-                strncpy(config->portfolio_tickers[config->portfolio_count], ticker_start,
-                        ticker_len);
-                config->portfolio_tickers[config->portfolio_count][ticker_len] = '\0';
-
-                debug(DEBUG, "Parsed ticker %d: %s", config->portfolio_count,
-                      config->portfolio_tickers[config->portfolio_count]);
+                debug(DEBUG, "Parsed position %d: %s qty=%.2f price=%.2f", config->portfolio_count,
+                      ticker, quantity, avg_price);
 
                 config->portfolio_count++;
             }
@@ -117,7 +137,7 @@ static bool parse_csv_portfolio(const char* csv_data, device_config_t* config)
         line_start = (*line_end == '\n') ? line_end + 1 : line_end;
     }
 
-    debug(INFO, "Parsed %d tickers from CSV", config->portfolio_count);
+    debug(INFO, "Parsed %d positions from CSV", config->portfolio_count);
     return config->portfolio_count > 0;
 }
 

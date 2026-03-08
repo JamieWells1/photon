@@ -235,7 +235,7 @@ int main(void)
             tick++;
         }
 
-        debug(INFO, "Credentials saved, displaying wait message");
+        debug(INFO, "Credentials saved");
         matrix_clear(mtrx);
         matrix_show(mtrx);
         sleep_ms(200);

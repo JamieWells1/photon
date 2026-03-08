@@ -40,6 +40,8 @@ static bool g_in_submenu = false;
 static Mode g_current_mode = TEMP_START;
 
 static int g_weather_hour_offset = 0;
+static bool g_weather_submenu_ready = false;
+static bool g_config_submenu_ready = false;
 
 static void menu_main_set_underscore(bool underscore_on)
 {
@@ -76,6 +78,8 @@ void menu_main_reset_states(Matrix* mtrx)
     g_tick = 0;
     g_in_submenu = false;
     g_weather_hour_offset = 0;
+    g_weather_submenu_ready = false;
+    g_config_submenu_ready = false;
 
     matrix_clear(mtrx);
     menu_main_set_initial_display();
@@ -187,6 +191,24 @@ static void menu_main_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr
 
 static void menu_main_weather_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
+    if (!g_weather_submenu_ready)
+    {
+        bool all_released = (btns[0].current_state == true && btns[1].current_state == true &&
+                             rtr->current_sw_state == true);
+
+        if (all_released)
+        {
+            g_weather_submenu_ready = true;
+            debug(DEBUG, "All buttons released, weather submenu ready for input");
+        }
+        else
+        {
+            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
+                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
+        }
+        return;
+    }
+
     if (input_rtr_long_pressed(rtr))
     {
         menu_main_reset_states(mtrx);
@@ -239,6 +261,24 @@ static void menu_main_weather_detect_inputs(Button* btns, Rotator* rtr, Matrix* 
 
 static void menu_main_config_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
+    if (!g_config_submenu_ready)
+    {
+        bool all_released = (btns[0].current_state == true && btns[1].current_state == true &&
+                             rtr->current_sw_state == true);
+
+        if (all_released)
+        {
+            g_config_submenu_ready = true;
+            debug(DEBUG, "All buttons released, config submenu ready for input");
+        }
+        else
+        {
+            debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
+                  btns[0].current_state, btns[1].current_state, rtr->current_sw_state);
+        }
+        return;
+    }
+
     if (input_rtr_long_pressed(rtr))
     {
         menu_main_reset_states(mtrx);
