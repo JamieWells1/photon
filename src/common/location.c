@@ -134,3 +134,48 @@ const char* location_get_timezone(Location loc)
             return "UTC";
     }
 }
+
+const char* location_get_name(Location loc)
+{
+    switch (loc)
+    {
+        case LOC_LONDON:
+            return "London";
+        case LOC_NEW_YORK:
+            return "New York";
+        case LOC_LOS_ANGELES:
+            return "Los Angeles";
+        case LOC_CHICAGO:
+            return "Chicago";
+        case LOC_MIAMI:
+            return "Miami";
+        case LOC_SAN_FRANCISCO:
+            return "San Francisco";
+        case LOC_SEATTLE:
+            return "Seattle";
+        case LOC_TORONTO:
+            return "Toronto";
+        case LOC_PARIS:
+            return "Paris";
+        case LOC_BERLIN:
+            return "Berlin";
+        case LOC_STOCKHOLM:
+            return "Stockholm";
+        case LOC_ATHENS:
+            return "Athens";
+        case LOC_DUBAI:
+            return "Dubai";
+        case LOC_SINGAPORE:
+            return "Singapore";
+        case LOC_TOKYO:
+            return "Tokyo";
+        case LOC_SYDNEY:
+            return "Sydney";
+        case LOC_RIO_DE_JANEIRO:
+            return "Rio de Janeiro";
+        case LOC_CAPE_TOWN:
+            return "Cape Town";
+        default:
+            return "Unknown";
+    }
+}

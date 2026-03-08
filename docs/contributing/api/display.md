@@ -1,6 +1,6 @@
 # Display API
 
-The Display API provides functions for controlling the LED matrix, rendering text, icons, and graphics.
+The Display API provides functions for controlling the LED matrix, rendering text and icons.
 
 ## Core Types
 
@@ -426,12 +426,12 @@ void matrix_render_raw(const PixelState* source, int offset_x, int offset_y);
 
 ## Graphics Helpers
 
-### graphics_display_start_screen
+### matrix_display_start_screen
 
 Show the Photon logo at startup.
 
 ```c
-void graphics_display_start_screen(Matrix* mtrx);
+void matrix_display_start_screen(Matrix* mtrx);
 ```
 
 **Example:**
@@ -439,7 +439,7 @@ void graphics_display_start_screen(Matrix* mtrx);
 ```c
 int main() {
     Matrix mtrx = {/* ... */};
-    graphics_display_start_screen(&mtrx);
+    matrix_display_start_screen(&mtrx);
     sleep_ms(2000);  // Show for 2 seconds
 }
 ```
@@ -449,6 +449,7 @@ int main() {
 ## Examples
 
 **Scrolling:**
+
 ```c
 static int x = MATRIX_WIDTH;
 matrix_clear(mtrx);
@@ -457,6 +458,7 @@ matrix_show(mtrx);
 ```
 
 **Progress bar:**
+
 ```c
 int length = (MATRIX_WIDTH * percent) / 100;
 matrix_draw_horiz_line(0, 7, length, &GREEN);

@@ -40,7 +40,6 @@ set(CORE_SOURCES
 
 # Common utilities
 set(COMMON_SOURCES
-        src/common/const.c
         src/common/macro.c
         src/common/location.c
         src/common/currency.c
@@ -49,7 +48,6 @@ set(COMMON_SOURCES
 
 # Display subsystem
 set(DISPLAY_SOURCES
-        src/display/graphics.c
         src/display/matrix.c
         src/display/glyphs.c
 )
@@ -61,7 +59,9 @@ set(INPUT_SOURCES
 
 # Menu system
 set(MENU_SOURCES
-        src/menu.c
+        src/menu/menu_common.c
+        src/menu/menu_main.c
+        src/menu/menu_markets.c
 )
 
 # Global state
@@ -90,6 +90,7 @@ set(MIDDLEWARE_SOURCES
 set(SERVER_SOURCES
         src/server/dns_server.c
         src/server/http_server.c
+        src/server/html.c
         src/server/dhcpserver.c
 )
 
@@ -102,10 +103,12 @@ set(MDNS_SOURCES
 
 # Display modes
 set(MODE_SOURCES
+        src/modes/portfolio.c
         src/modes/stock.c
         src/modes/crypto.c
         src/modes/weather.c
         src/modes/config.c
+        src/modes/reset.c
 )
 
 add_executable(photon
@@ -138,6 +141,15 @@ target_compile_options(photon PRIVATE
         -Werror=return-type
         -Wno-unused-parameter
         -Wno-type-limits
+        $<$<COMPILE_LANGUAGE:C>:-include assert.h>
+)
+
+# lwIP configuration for larger TCP uploads (50 ticker portfolio support)
+target_compile_definitions(photon PRIVATE
+        TCP_WND=8192              # TCP receive window: 8KB (allows larger uploads)
+        TCP_SND_BUF=8192          # TCP send buffer: 8KB
+        MEMP_NUM_TCP_SEG=32       # Number of TCP segments
+        PBUF_POOL_SIZE=24         # Packet buffer pool size
 )
 
 target_link_libraries(photon
@@ -149,6 +161,7 @@ target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/common
         ${CMAKE_CURRENT_LIST_DIR}/src/display
         ${CMAKE_CURRENT_LIST_DIR}/src/input
+        ${CMAKE_CURRENT_LIST_DIR}/src/menu
         ${CMAKE_CURRENT_LIST_DIR}/src/middleware
         ${CMAKE_CURRENT_LIST_DIR}/src/server
         ${CMAKE_CURRENT_LIST_DIR}/src/modes

@@ -54,6 +54,8 @@ typedef enum
     DATA = 15,
     POWER = 16,
     CRYPTO = 17,
+    INVEST = 18,
+    STOCKS_CANDLE = 19,
     ICON_COUNT
 } IconType;
 
@@ -70,6 +72,7 @@ static const RGB YELLOW = {250, 200, 50};
 static const RGB LIGHT_BLUE = {150, 250, 250};
 static const RGB BLUE = {50, 150, 200};
 static const RGB ORANGE = {240, 120, 30};
+static const RGB LABEL_ORANGE = {255, 100, 0};
 
 // =======
 // LETTERS
@@ -157,18 +160,17 @@ static const Pixel LETTER_L[] = {
 };
 
 static const Pixel LETTER_M[] = {
-    // 5x5
+    // 3x5
     {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR},
-    {0, 4, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {3, 1, DEFAULT_COLOUR},
-    {4, 0, DEFAULT_COLOUR}, {4, 1, DEFAULT_COLOUR}, {4, 2, DEFAULT_COLOUR}, {4, 3, DEFAULT_COLOUR},
-    {4, 4, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
 };
 
 static const Pixel LETTER_N[] = {
     // 3x5
     {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR},
-    {0, 4, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR},
-    {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}, {1, 1, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
 };
 
 static const Pixel LETTER_O[] = {
@@ -229,9 +231,8 @@ static const Pixel LETTER_V[] = {
 static const Pixel LETTER_W[] = {
     // 3x5
     {0, 0, DEFAULT_COLOUR}, {0, 1, DEFAULT_COLOUR}, {0, 2, DEFAULT_COLOUR}, {0, 3, DEFAULT_COLOUR},
-    {0, 4, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR},
-    {2, 0, DEFAULT_COLOUR}, {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR},
-    {2, 4, DEFAULT_COLOUR},
+    {0, 4, DEFAULT_COLOUR}, {1, 2, DEFAULT_COLOUR}, {1, 3, DEFAULT_COLOUR}, {2, 0, DEFAULT_COLOUR},
+    {2, 1, DEFAULT_COLOUR}, {2, 2, DEFAULT_COLOUR}, {2, 3, DEFAULT_COLOUR}, {2, 4, DEFAULT_COLOUR},
 };
 
 static const Pixel LETTER_X[] = {
@@ -404,7 +405,7 @@ static const Glyph ALPHABET[26] = {
     {LETTER_J, ARRAY_SIZE(LETTER_J), 3, 5},  // J
     {LETTER_K, ARRAY_SIZE(LETTER_K), 3, 5},  // K
     {LETTER_L, ARRAY_SIZE(LETTER_L), 3, 5},  // L
-    {LETTER_M, ARRAY_SIZE(LETTER_M), 5, 5},  // M
+    {LETTER_M, ARRAY_SIZE(LETTER_M), 3, 5},  // M
     {LETTER_N, ARRAY_SIZE(LETTER_N), 3, 5},  // N
     {LETTER_O, ARRAY_SIZE(LETTER_O), 3, 5},  // O
     {LETTER_P, ARRAY_SIZE(LETTER_P), 3, 5},  // P
@@ -414,7 +415,7 @@ static const Glyph ALPHABET[26] = {
     {LETTER_T, ARRAY_SIZE(LETTER_T), 3, 5},  // T
     {LETTER_U, ARRAY_SIZE(LETTER_U), 3, 5},  // U
     {LETTER_V, ARRAY_SIZE(LETTER_V), 3, 5},  // V
-    {LETTER_W, ARRAY_SIZE(LETTER_W), 5, 5},  // W
+    {LETTER_W, ARRAY_SIZE(LETTER_W), 3, 5},  // W
     {LETTER_X, ARRAY_SIZE(LETTER_X), 3, 5},  // X
     {LETTER_Y, ARRAY_SIZE(LETTER_Y), 3, 5},  // Y
     {LETTER_Z, ARRAY_SIZE(LETTER_Z), 3, 5},  // Z
@@ -566,29 +567,42 @@ static const Pixel ICON_CRYPTO[16] = {
     {2, 1, YELLOW}, {1, 2, YELLOW}, {3, 2, YELLOW}, {2, 3, YELLOW},
 };
 
+static const Pixel ICON_INVEST[12] = {
+    {0, 3, YELLOW}, {0, 4, YELLOW}, {1, 0, YELLOW}, {1, 1, YELLOW}, {1, 3, YELLOW}, {1, 4, YELLOW},
+    {2, 0, YELLOW}, {2, 1, YELLOW}, {3, 2, YELLOW}, {3, 3, YELLOW}, {4, 2, YELLOW}, {4, 3, YELLOW},
+};
+
+static const Pixel ICON_STOCKS_CANDLE[17] = {
+    {0, 2, GREEN}, {0, 3, GREEN}, {0, 4, GREEN}, {2, 1, GREEN}, {2, 2, GREEN}, {2, 3, GREEN},
+    {4, 0, GREEN}, {4, 1, GREEN}, {4, 2, GREEN}, {4, 3, GREEN}, {4, 4, GREEN}, {1, 2, RED},
+    {1, 3, RED},   {3, 1, RED},   {3, 2, RED},   {3, 3, RED},   {3, 4, RED},
+};
+
 // =================
 // ICON LOOKUP TABLE
 // =================
 
 static const Glyph ICONS_ARR[ICON_COUNT] = {
-    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},              // 0: PHOTON
-    {ICON_STOCKS, ARRAY_SIZE(ICON_STOCKS), 5, 5},              // 1: STOCKS
-    {ICON_TKR_UP, ARRAY_SIZE(ICON_TKR_UP), 5, 5},              // 2: TKR_UP
-    {ICON_TKR_DOWN, ARRAY_SIZE(ICON_TKR_DOWN), 5, 5},          // 3: TKR_DOWN
-    {ICON_GAMES, ARRAY_SIZE(ICON_GAMES), 5, 5},                // 4: GAMES
-    {ICON_TETRIS, ARRAY_SIZE(ICON_TETRIS), 5, 5},              // 5: TETRIS
-    {ICON_SUNNY_CLOUDY, ARRAY_SIZE(ICON_SUNNY_CLOUDY), 5, 5},  // 6: WEATHER
-    {ICON_SUNNY, ARRAY_SIZE(ICON_SUNNY), 5, 5},                // 7: SUNNY
-    {ICON_SUNNY_CLOUDY, ARRAY_SIZE(ICON_SUNNY_CLOUDY), 5, 5},  // 8: SUNNY_CLOUDY
-    {ICON_CLOUDY, ARRAY_SIZE(ICON_CLOUDY), 5, 5},              // 9: CLOUDY
-    {ICON_RAIN, ARRAY_SIZE(ICON_RAIN), 5, 5},                  // 10: RAIN
-    {ICON_LIGHTNING, ARRAY_SIZE(ICON_LIGHTNING), 5, 5},        // 11: LIGHTNING
-    {ICON_SNOW, ARRAY_SIZE(ICON_SNOW), 5, 5},                  // 12: SNOW
-    {ICON_MOON, ARRAY_SIZE(ICON_MOON), 5, 5},                  // 13: MOON
-    {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                  // 14: WIFI
-    {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                  // 15: DATA
-    {ICON_POWER, ARRAY_SIZE(ICON_POWER), 5, 5},                // 16: POWER
-    {ICON_CRYPTO, ARRAY_SIZE(ICON_CRYPTO), 5, 5},              // 17: CRYPTO
+    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},                    // 0: PHOTON
+    {ICON_STOCKS, ARRAY_SIZE(ICON_STOCKS), 5, 5},                    // 1: STOCKS
+    {ICON_TKR_UP, ARRAY_SIZE(ICON_TKR_UP), 5, 5},                    // 2: TKR_UP
+    {ICON_TKR_DOWN, ARRAY_SIZE(ICON_TKR_DOWN), 5, 5},                // 3: TKR_DOWN
+    {ICON_GAMES, ARRAY_SIZE(ICON_GAMES), 5, 5},                      // 4: GAMES
+    {ICON_TETRIS, ARRAY_SIZE(ICON_TETRIS), 5, 5},                    // 5: TETRIS
+    {ICON_SUNNY_CLOUDY, ARRAY_SIZE(ICON_SUNNY_CLOUDY), 5, 5},        // 6: WEATHER
+    {ICON_SUNNY, ARRAY_SIZE(ICON_SUNNY), 5, 5},                      // 7: SUNNY
+    {ICON_SUNNY_CLOUDY, ARRAY_SIZE(ICON_SUNNY_CLOUDY), 5, 5},        // 8: SUNNY_CLOUDY
+    {ICON_CLOUDY, ARRAY_SIZE(ICON_CLOUDY), 5, 5},                    // 9: CLOUDY
+    {ICON_RAIN, ARRAY_SIZE(ICON_RAIN), 5, 5},                        // 10: RAIN
+    {ICON_LIGHTNING, ARRAY_SIZE(ICON_LIGHTNING), 5, 5},              // 11: LIGHTNING
+    {ICON_SNOW, ARRAY_SIZE(ICON_SNOW), 5, 5},                        // 12: SNOW
+    {ICON_MOON, ARRAY_SIZE(ICON_MOON), 5, 5},                        // 13: MOON
+    {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                        // 14: WIFI
+    {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                        // 15: DATA
+    {ICON_POWER, ARRAY_SIZE(ICON_POWER), 5, 5},                      // 16: POWER
+    {ICON_CRYPTO, ARRAY_SIZE(ICON_CRYPTO), 5, 5},                    // 17: CRYPTO
+    {ICON_INVEST, ARRAY_SIZE(ICON_INVEST), 5, 5},                    // 18: INVEST
+    {ICON_STOCKS_CANDLE, ARRAY_SIZE(ICON_STOCKS_CANDLE), 5, 5},      // 19: STOCKS_CANDLE
 };
 
 #endif  // DISPLAYS_H

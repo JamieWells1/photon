@@ -33,6 +33,8 @@ void matrix_shift(Matrix* mtrx, int offset_x, int offset_y);
 void matrix_slide_left(Matrix* mtrx, PixelState* current_state, PixelState* next_state);
 void matrix_slide_right(Matrix* mtrx, PixelState* current_state, PixelState* next_state);
 
+void matrix_display_start_screen(Matrix* mtrx);
+
 void matrix_show(Matrix* mtrx);
 void matrix_clear(Matrix* mtrx);
 void matrix_set_max_brightness(uint8_t max_pct);

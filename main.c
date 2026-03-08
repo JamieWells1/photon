@@ -4,12 +4,11 @@
 #include <error.h>
 #include <flash_memory.h>
 #include <global.h>
-#include <graphics.h>
 #include <http_server.h>
 #include <input.h>
 #include <macro.h>
 #include <matrix.h>
-#include <menu.h>
+#include <menu_main.h>
 #include <power.h>
 #include <wifi.h>
 
@@ -40,13 +39,13 @@ void debug_inputs(Button* btns, Rotator* rtr)
     {
         debug(DEBUG, "Right button released");
     }
-    if (rtr->direction == 1)
+    if (rtr->rotation_count > 0)
     {
-        debug(DEBUG, "Rotator clockwise");
+        debug(DEBUG, "Rotator clockwise (count: %d)", rtr->rotation_count);
     }
-    if (rtr->direction == -1)
+    if (rtr->rotation_count < 0)
     {
-        debug(DEBUG, "Rotator anti-clockwise");
+        debug(DEBUG, "Rotator anti-clockwise (count: %d)", rtr->rotation_count);
     }
     if (input_rtr_pressed(rtr))
     {
@@ -107,7 +106,7 @@ Rotator* main_init_rotator(void)
     rotator.last_sw_state = rotator.current_sw_state;
 
     rotator.state = (rotator.current_clk_state << 1) | rotator.current_dt_state;
-    rotator.direction = 0;
+    rotator.rotation_count = 0;
     rotator.last_change_time = time_us_32();
 
     debug(INFO, "✓ GPIO pins for rotary encoder initialised");
@@ -235,7 +234,7 @@ int main(void)
             tick++;
         }
 
-        debug(INFO, "Credentials saved, displaying wait message");
+        debug(INFO, "Credentials saved");
         matrix_clear(mtrx);
         matrix_show(mtrx);
         sleep_ms(200);
@@ -269,7 +268,7 @@ int main(void)
 
         if (!menu_active)
         {
-            graphics_display_start_screen(mtrx);
+            matrix_display_start_screen(mtrx);
 
             bool all_released = false;
             int wait_count = 0;
@@ -281,13 +280,6 @@ int main(void)
                 all_released =
                     (buttons[0].current_state == true && buttons[1].current_state == true &&
                      rotator->current_sw_state == true);
-
-                if (!all_released && wait_count % 50 == 0)
-                {
-                    debug(TRACE, "Waiting for button release: btn0=%d btn1=%d rtr=%d",
-                          buttons[0].current_state, buttons[1].current_state,
-                          rotator->current_sw_state);
-                }
 
                 sleep_ms(10);
                 wait_count++;
@@ -304,13 +296,13 @@ int main(void)
 
         if (menu_active)
         {
-            menu_start(buttons, rotator, mtrx);
+            menu_main_start(buttons, rotator, mtrx);
         }
 
-        // Log power stats every 5 seconds (500 ticks * 10ms)
-        if (power_log_tick % 500 == 0)
+        // Log power stats every 30 seconds
+        if (power_log_tick % 3000 == 0)
         {
-            power_log_stats(config.brightness);
+            power_log_stats(TRACE, config.brightness);
         }
         power_log_tick++;
 

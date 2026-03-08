@@ -8,7 +8,7 @@
 #include <pico/time.h>
 #include <ws2812.pio.h>
 
-#define DEBOUNCE_TIME_US 500
+#define DEBOUNCE_TIME_US 200
 #define LONG_PRESS_TIME_MS 500
 
 void input_update(Button* btns, Rotator* rtr)
@@ -17,7 +17,7 @@ void input_update(Button* btns, Rotator* rtr)
     input_btn_update(&btns[0]);
     input_btn_update(&btns[1]);
 
-    // Update states of rotary encoder
+    // Update rotary encoder state
     input_rtr_update(rtr);
 }
 
@@ -46,22 +46,18 @@ void input_rtr_update(Rotator* rtr)
     uint32_t now = time_us_32();
     if (new_state != rtr->state && (now - rtr->last_change_time) > DEBOUNCE_TIME_US)
     {
-        // Valid state transition table for quadrature encoder
-        // [old_state][new_state] -> direction (1=CW, -1=CCW, 0=invalid)
         static const int8_t transition_table[4][4] = {
-            {0, -1, 1, 0},  // From state 0 (00)
-            {1, 0, 0, -1},  // From state 1 (01)
-            {-1, 0, 0, 1},  // From state 2 (10)
-            {0, 1, -1, 0}   // From state 3 (11)
+            {0, -1, 1, 0},   // From state 0 (00)
+            {1, 0, 0, -1},   // From state 1 (01)
+            {-1, 0, 0, 1},   // From state 2 (10)
+            {0, 1, -1, 0}    // From state 3 (11)
         };
 
         int8_t dir = transition_table[rtr->state][new_state];
 
-        // Only update direction when reaching rest position (state 3)
-        // This gives us one trigger per detent instead of four
         if (dir != 0 && new_state == 3)
         {
-            rtr->direction = dir;
+            rtr->rotation_count += dir;
             rtr->last_change_time = now;
         }
 
@@ -87,9 +83,9 @@ bool input_btn_released(Button* btn)
 
 bool input_rtr_cw(Rotator* rtr)
 {
-    if (rtr->direction == 1)
+    if (rtr->rotation_count > 0)
     {
-        rtr->direction = 0;
+        rtr->rotation_count--;
         return true;
     }
     return false;
@@ -97,9 +93,9 @@ bool input_rtr_cw(Rotator* rtr)
 
 bool input_rtr_anti_cw(Rotator* rtr)
 {
-    if (rtr->direction == -1)
+    if (rtr->rotation_count < 0)
     {
-        rtr->direction = 0;
+        rtr->rotation_count++;
         return true;
     }
     return false;

@@ -31,4 +31,6 @@ typedef enum
     CCY_COUNT
 } Currency;
 
+const char* currency_get_name(Currency ccy);
+
 #endif  // CURRENCY_H

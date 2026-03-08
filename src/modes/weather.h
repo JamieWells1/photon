@@ -1,7 +1,7 @@
 #ifndef WEATHER_H
 #define WEATHER_H
 
-#include <menu.h>
+#include <matrix.h>
 
 int weather_current_hour_index(void);
 int weather_hours_fetched(void);

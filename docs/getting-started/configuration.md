@@ -32,7 +32,7 @@ Once connected to WiFi, use the **CONFIG** mode to change settings:
 | **Location**   | 18 cities (London, New York, Tokyo, etc.)  | London   |
 | **Currency**   | 12 currencies (GBP, USD, EUR, JPY, etc.)  | GBP      |
 
-6. Press **Save & Reboot** -- settings are saved to flash and the device reboots
+6. Press **Save All & Reboot** -- settings are saved to flash and the device reboots
 
 All settings persist across power cycles.
 

@@ -19,6 +19,11 @@ typedef struct
     uint16_t crypto;
     uint16_t stocks;
 
+    uint8_t portfolio_count;
+    char portfolio_tickers[50][10];  // Max 50 tickers (T212 limit)
+    float portfolio_quantities[50];
+    float portfolio_avg_prices[50];
+
     uint32_t crc32;
 } device_config_t;
 
