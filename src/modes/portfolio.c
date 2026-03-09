@@ -8,7 +8,6 @@
 #include <http_server.h>
 #include <macro.h>
 #include <matrix.h>
-#include <ticker_translate.h>
 #include <utils.h>
 #include <wifi.h>
 
@@ -103,21 +102,10 @@ static void portfolio_fetch_prices(Matrix* mtrx)
     {
         const char* ticker = g_positions[g_ticker_to_fetch_index].ticker;
 
-        char ticker_symbol[16];
-        if (ticker_is_lse(ticker))
-        {
-            snprintf(ticker_symbol, sizeof(ticker_symbol), "%s.L", ticker);
-            debug(INFO, "Fetching LSE ticker: %s -> %s", ticker, ticker_symbol);
-        }
-        else
-        {
-            snprintf(ticker_symbol, sizeof(ticker_symbol), "%s", ticker);
-        }
-
         char path[256];
-        snprintf(path, sizeof(path), "/stocks/%s", ticker_symbol);
+        snprintf(path, sizeof(path), "/stocks/%s", ticker);
 
-        debug(INFO, "Fetching %s via proxy: %s:%s%s", ticker_symbol, PROXY_HOST, PROXY_PORT, path);
+        debug(INFO, "Fetching %s via proxy: %s:%s%s", ticker, PROXY_HOST, PROXY_PORT, path);
 
         uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
         ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, portfolio_response_callback, mtrx);
@@ -211,8 +199,8 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
     switch (metric)
     {
         case METRIC_PL_ABSOLUTE:
-            snprintf(label_str, sizeof(label_str), "P/L");
-            snprintf(value_str, sizeof(value_str), " $%.2f", total_pl);
+            snprintf(label_str, sizeof(label_str), "  P/L");
+            snprintf(value_str, sizeof(value_str), " %.2f", total_pl);
             if (total_pl == 0.0f)
                 value_color = &DEFAULT_COLOUR;
             else
@@ -221,7 +209,7 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
             break;
 
         case METRIC_PL_PERCENTAGE:
-            snprintf(label_str, sizeof(label_str), "P/L");
+            snprintf(label_str, sizeof(label_str), "  P/L");
             snprintf(value_str, sizeof(value_str), " %.2f%%", total_pct);
             if (total_pct == 0.0f)
                 value_color = &DEFAULT_COLOUR;

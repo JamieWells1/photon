@@ -44,7 +44,6 @@ set(COMMON_SOURCES
         src/common/location.c
         src/common/currency.c
         src/common/error.c
-        src/common/ticker_translate.c
 )
 
 # Display subsystem

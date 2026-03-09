@@ -120,11 +120,32 @@ class ProxyHandler(BaseHTTPRequestHandler):
         import yfinance as yf
         import re
 
+        # LSE tickers that need .L suffix for Yahoo Finance
+        LSE_TICKERS = {
+            # Vanguard S&P 500 UCITS
+            "VUAG", "VUSA",
+            # Vanguard Global/Regional
+            "VWRL", "VWRP", "VNRG", "VEUA", "VFEG", "VJPB", "VDPG",
+            # Vanguard Bond & Dividend
+            "VAGS", "VHYL", "VEVE",
+            # iShares Core (popular in Europe)
+            "IWDA", "SWDA", "CSPX", "EQQQ", "EMIM",
+            # Sector ETFs
+            "IITU",
+            # UK/FTSE ETFs
+            "VUKE", "ISF", "IUKD",
+        }
+
         symbol = self.path[8:].split("?")[0].upper()
 
         if not symbol or not re.match(r'^[A-Z0-9]+(\.[A-Z]+)?$', symbol):
             self.send_json_response(400, {"error": "Invalid symbol"})
             return
+
+        original_symbol = symbol
+        if symbol in LSE_TICKERS and not symbol.endswith('.L'):
+            symbol = f"{symbol}.L"
+            logger.info(f"Translated LSE ticker: {original_symbol} -> {symbol}")
 
         try:
             ticker = yf.Ticker(symbol)
@@ -139,9 +160,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
             # Matches Kraken's format so the Pico-side parser works unchanged:
             #   "c": ["price"] -> ticker_parse_price_from_array
             #   "o": "price"   -> ticker_parse_price_from_string
+            # Use original symbol in response (without .L) so device code works unchanged
             result = {
                 "result": {
-                    symbol: {
+                    original_symbol: {
                         "c": [str(current)],
                         "o": str(prev_close),
                     }
