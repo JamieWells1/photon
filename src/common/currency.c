@@ -32,3 +32,36 @@ const char* currency_get_name(Currency ccy)
             return CCY_GBP;
     }
 }
+
+const char* currency_get_symbol(Currency ccy)
+{
+    switch (ccy)
+    {
+        case GBP:
+            return "\xA3";  // £
+        case USD:
+            return "$";
+        case EUR:
+            return "\x80";  // €
+        case JPY:
+            return "\xA5";  // ¥
+        case CAD:
+            return "$";
+        case AUD:
+            return "$";
+        case CHF:
+            return "Fr";
+        case CNY:
+            return "\xA5";  // ¥
+        case INR:
+            return "\x20\xB9";  // ₹
+        case KRW:
+            return "\x20\xA9";  // ₩
+        case BRL:
+            return "R$";
+        case SGD:
+            return "$";
+        default:
+            return "\xA3";  // £
+    }
+}

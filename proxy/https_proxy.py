@@ -83,6 +83,9 @@ rate_limiter = RateLimiter(RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW)
 
 
 class ProxyHandler(BaseHTTPRequestHandler):
+    _fx_rate_cache = {}
+    _fx_cache_timestamp = 0
+    _fx_cache_ttl = 3600  # Cache for 1 hour
 
     def log_message(self, format, *args):
         logger.info(f"{self.address_string()} - {format % args}")
@@ -108,7 +111,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         return True, None
 
     def extract_target_url(self, path):
-        target_path = path[7:]  # Strip '/proxy/'
+        target_path = path[7:]
         host = target_path.split("/")[0]
 
         if host not in ALLOWED_HOSTS:
@@ -116,9 +119,74 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
         return f"https://{target_path}", None
 
+    def get_fx_rate(self, from_ccy, to_ccy):
+        """Get exchange rate from one currency to another using yfinance with caching"""
+        import yfinance as yf
+        import time
+
+        if from_ccy == to_ccy:
+            return 1.0
+
+        cache_key = f"{from_ccy}{to_ccy}"
+        current_time = time.time()
+
+        if current_time - self._fx_cache_timestamp > self._fx_cache_ttl:
+            logger.info("FX rate cache expired, clearing")
+            self._fx_rate_cache.clear()
+            self._fx_cache_timestamp = current_time
+
+        if cache_key in self._fx_rate_cache:
+            rate = self._fx_rate_cache[cache_key]
+            logger.debug(f"FX rate {cache_key}: {rate} (cached)")
+            return rate
+
+        pair = f"{from_ccy}{to_ccy}=X"
+        try:
+            ticker = yf.Ticker(pair)
+            rate = ticker.fast_info.last_price
+            if rate and rate > 0:
+                logger.info(f"FX rate {pair}: {rate} (fetched)")
+                self._fx_rate_cache[cache_key] = rate
+                return rate
+        except Exception as e:
+            logger.debug(f"Direct FX pair {pair} failed: {e}")
+
+        pair = f"{to_ccy}{from_ccy}=X"
+        try:
+            ticker = yf.Ticker(pair)
+            rate = ticker.fast_info.last_price
+            if rate and rate > 0:
+                inverted = 1.0 / rate
+                logger.info(f"FX rate {pair} (inverted): {inverted} (fetched)")
+                self._fx_rate_cache[cache_key] = inverted
+                return inverted
+        except Exception as e:
+            logger.debug(f"Inverse FX pair {pair} failed: {e}")
+
+        logger.warning(f"Could not get FX rate for {from_ccy} to {to_ccy}")
+        return None
+
+    def convert_price(self, price, from_ccy, to_ccy):
+        """Convert price from one currency to another"""
+        if not price or price <= 0:
+            return price
+
+        if from_ccy == to_ccy:
+            return price
+
+        rate = self.get_fx_rate(from_ccy, to_ccy)
+        if rate is None:
+            logger.error(f"Cannot convert {from_ccy} to {to_ccy}, returning unconverted price")
+            return price
+
+        converted = price * rate
+        logger.info(f"Converted {price:.4f} {from_ccy} -> {converted:.4f} {to_ccy} (rate: {rate:.6f})")
+        return converted
+
     def handle_stock_request(self, client_ip):
         import yfinance as yf
         import re
+        from urllib.parse import parse_qs, urlparse
 
         # LSE tickers that need .L suffix for Yahoo Finance
         LSE_TICKERS = {
@@ -136,7 +204,14 @@ class ProxyHandler(BaseHTTPRequestHandler):
             "VUKE", "ISF", "IUKD",
         }
 
-        symbol = self.path[8:].split("?")[0].upper()
+        parsed = urlparse(self.path)
+        symbol = parsed.path[8:].upper()
+        query_params = parse_qs(parsed.query)
+        target_currency = query_params.get('currency', [None])[0]
+
+        if target_currency:
+            target_currency = target_currency.upper()
+            logger.debug(f"Target currency requested: {target_currency}")
 
         if not symbol or not re.match(r'^[A-Z0-9]+(\.[A-Z]+)?$', symbol):
             self.send_json_response(400, {"error": "Invalid symbol"})
@@ -149,13 +224,28 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
         try:
             ticker = yf.Ticker(symbol)
-            info = ticker.fast_info
-            current = info.last_price
-            prev_close = info.previous_close
+            fast_info = ticker.fast_info
+            current = fast_info.last_price
+            prev_close = fast_info.previous_close
 
             if current is None or prev_close is None:
                 self.send_json_response(404, {"error": f"No data for symbol '{symbol}'"})
                 return
+
+            # Get the stock's native currency
+            stock_currency = ticker.info.get('currency', 'USD')
+            logger.info(f"Stock {symbol} native currency: {stock_currency}")
+
+            if target_currency and target_currency != stock_currency:
+                logger.info(f"Converting from {stock_currency} to {target_currency}")
+                current = self.convert_price(current, stock_currency, target_currency)
+                prev_close = self.convert_price(prev_close, stock_currency, target_currency)
+
+                if current is None or prev_close is None:
+                    self.send_json_response(500, {
+                        "error": f"Currency conversion failed from {stock_currency} to {target_currency}"
+                    })
+                    return
 
             # Matches Kraken's format so the Pico-side parser works unchanged:
             #   "c": ["price"] -> ticker_parse_price_from_array

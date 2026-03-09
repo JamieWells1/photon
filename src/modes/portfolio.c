@@ -1,6 +1,7 @@
 #include <portfolio.h>
 
 #include <const.h>
+#include <currency.h>
 #include <error.h>
 #include <flash_memory.h>
 #include <glyphs.h>
@@ -96,14 +97,18 @@ static void portfolio_fetch_prices(Matrix* mtrx)
 {
     if (!wifi_is_connected() || g_portfolio_count == 0) return;
 
-    debug(INFO, "Starting portfolio data fetch");
+    device_config_t config;
+    flash_memory_read(&config);
+    const char* currency = currency_get_name(config.currency);
+
+    debug(INFO, "Starting portfolio data fetch (currency: %s)", currency);
 
     while (g_ticker_to_fetch_index < g_portfolio_count)
     {
         const char* ticker = g_positions[g_ticker_to_fetch_index].ticker;
 
         char path[256];
-        snprintf(path, sizeof(path), "/stocks/%s", ticker);
+        snprintf(path, sizeof(path), "/stocks/%s?currency=%s", ticker, currency);
 
         debug(INFO, "Fetching %s via proxy: %s:%s%s", ticker, PROXY_HOST, PROXY_PORT, path);
 
@@ -191,6 +196,10 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
     int winner_idx, loser_idx;
     portfolio_calculate_metrics(&total_pl, &total_pct, &winner_idx, &loser_idx, &total_value);
 
+    device_config_t config;
+    flash_memory_read(&config);
+    const char* currency_symbol = currency_get_symbol(config.currency);
+
     char label_str[32] = "";
     char value_str[32] = "";
     const RGB* value_color = &DEFAULT_COLOUR;
@@ -274,7 +283,7 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
 
         case METRIC_TOTAL_VALUE:
             snprintf(label_str, sizeof(label_str), "  TOTAL");
-            snprintf(value_str, sizeof(value_str), "$%.2f %+.2f%%", total_value, total_pct);
+            snprintf(value_str, sizeof(value_str), "%s%.2f %+.2f%%", currency_symbol, total_value, total_pct);
             if (total_pct == 0.0f)
                 value_color = &DEFAULT_COLOUR;
             else

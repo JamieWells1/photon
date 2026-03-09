@@ -32,5 +32,6 @@ typedef enum
 } Currency;
 
 const char* currency_get_name(Currency ccy);
+const char* currency_get_symbol(Currency ccy);
 
 #endif  // CURRENCY_H
