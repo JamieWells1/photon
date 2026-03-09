@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Jamie Wells. All Rights Reserved.
+# Proprietary and Confidential - Unauthorized copying or distribution prohibited.
+
 """
 Configuration constants for HTTPS proxy
 """

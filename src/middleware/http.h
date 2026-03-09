@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Jamie Wells. All Rights Reserved.
+ * Proprietary and Confidential - Unauthorized copying or distribution prohibited.
+ */
+
 #ifndef HTTP_H
 #define HTTP_H
 

@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Jamie Wells. All Rights Reserved.
+# Proprietary and Confidential - Unauthorized copying or distribution prohibited.
+
 #!/usr/bin/env python3
 """
 Integration tests for Photon Proxy Stock API

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Jamie Wells. All Rights Reserved.
+ * Proprietary and Confidential - Unauthorized copying or distribution prohibited.
+ */
+
 // Find size of array
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 

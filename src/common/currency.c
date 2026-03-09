@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Jamie Wells. All Rights Reserved.
+ * Proprietary and Confidential - Unauthorized copying or distribution prohibited.
+ */
+
 #include <currency.h>
 
 const char* currency_get_name(Currency ccy)
