@@ -418,4 +418,13 @@ def run_proxy(port=PROXY_PORT, bind_address=BIND_ADDRESS):
 
 
 if __name__ == "__main__":
-    run_proxy()
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Photon HTTPS Proxy')
+    parser.add_argument('--port', type=int, default=PROXY_PORT,
+                       help=f'Port to listen on (default: {PROXY_PORT})')
+    parser.add_argument('--bind', default=BIND_ADDRESS,
+                       help=f'Bind address (default: {BIND_ADDRESS})')
+    args = parser.parse_args()
+
+    run_proxy(port=args.port, bind_address=args.bind)
