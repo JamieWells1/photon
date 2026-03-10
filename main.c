@@ -263,6 +263,7 @@ int main(void)
 
     bool menu_active = false;
     static uint32_t power_log_tick = 0;
+
     while (true)
     {
         input_update(buttons, rotator);
@@ -290,11 +291,6 @@ int main(void)
                 wait_count++;
             }
 
-            if (wait_count >= max_wait)
-            {
-                debug(WARN, "Button release timeout, proceeding anyway");
-            }
-
             input_update(buttons, rotator);
             menu_active = true;
         }
@@ -304,7 +300,6 @@ int main(void)
             menu_main_start(buttons, rotator, mtrx);
         }
 
-        // Log power stats every 30 seconds
         if (power_log_tick % 3000 == 0)
         {
             power_log_stats(TRACE, config.brightness);
