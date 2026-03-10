@@ -1,30 +1,24 @@
 #!/bin/bash
-# Deployment script for multi-instance Photon Proxy
-# Run on your Digital Ocean VM
 
 set -e
 
-NUM_INSTANCES=3  # Adjust this number as needed
+NUM_INSTANCES=3
 
 echo "======================================"
 echo "Photon Proxy Multi-Instance Deployment"
 echo "======================================"
 
-# Copy service template
 echo "Copying service template..."
 sudo cp photon-proxy@.service /etc/systemd/system/
 
-# Reload systemd
 echo "Reloading systemd daemon..."
 sudo systemctl daemon-reload
 
-# Stop existing instances (if any)
 echo "Stopping existing instances..."
 for i in $(seq 0 $((NUM_INSTANCES - 1))); do
     sudo systemctl stop photon-proxy@$i 2>/dev/null || true
 done
 
-# Enable and start instances
 echo "Starting $NUM_INSTANCES instances..."
 for i in $(seq 0 $((NUM_INSTANCES - 1))); do
     PORT=$((8080 + i))
@@ -33,10 +27,8 @@ for i in $(seq 0 $((NUM_INSTANCES - 1))); do
     sudo systemctl start photon-proxy@$i
 done
 
-# Wait a moment for services to start
 sleep 2
 
-# Check status
 echo ""
 echo "Service Status:"
 echo "---------------"
@@ -49,7 +41,6 @@ for i in $(seq 0 $((NUM_INSTANCES - 1))); do
     fi
 done
 
-# Setup nginx (optional)
 if command -v nginx &> /dev/null; then
     echo ""
     read -p "Setup nginx load balancer? (y/N) " -n 1 -r
