@@ -52,10 +52,10 @@ void input_rtr_update(Rotator* rtr)
     if (new_state != rtr->state && (now - rtr->last_change_time) > DEBOUNCE_TIME_US)
     {
         static const int8_t transition_table[4][4] = {
-            {0, -1, 1, 0},   // From state 0 (00)
-            {1, 0, 0, -1},   // From state 1 (01)
-            {-1, 0, 0, 1},   // From state 2 (10)
-            {0, 1, -1, 0}    // From state 3 (11)
+            {0, -1, 1, 0},  // From state 0 (00)
+            {1, 0, 0, -1},  // From state 1 (01)
+            {-1, 0, 0, 1},  // From state 2 (10)
+            {0, 1, -1, 0}   // From state 3 (11)
         };
 
         int8_t dir = transition_table[rtr->state][new_state];

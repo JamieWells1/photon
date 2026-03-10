@@ -175,19 +175,52 @@ int main(void)
         if (RC_SUCCESS(rc))
         {
             debug(INFO, "WiFi connected successfully");
-            debug(INFO, "To access web interface:");
-            debug(INFO, "  1. Use rotary encoder to navigate to CONFIG menu");
-            debug(INFO, "  2. Press button to enter CONFIG mode");
-            debug(INFO, "  3. Access http://photon.local in browser");
+
+            wifi_start_mdns();
+            http_server_start();
+
+            debug(INFO, "Web interface available at: http://photon.local");
+            debug(INFO, "Access anytime from your browser to configure device");
             wifi_ready = true;
         }
         else
         {
             debug(WARN, "WiFi connection failed: %s", rc_to_string(rc));
-            matrix_clear(mtrx);
-            matrix_display_word_icon_pair("FAIL", &RED, NULL, 0);
-            matrix_show(mtrx);
-            sleep_ms(2000);
+
+            if (rc == RC_WIFI_BAD_AUTH || rc == RC_WIFI_NO_NETWORK)
+            {
+                const char* word1 = (rc == RC_WIFI_BAD_AUTH) ? "BAD" : "WRONG";
+                const char* word2 = (rc == RC_WIFI_BAD_AUTH) ? "AUTH" : "SSID";
+
+                bool blink_state = true;
+                int iterations = 0;
+
+                while (iterations < 8)
+                {
+                    matrix_clear(mtrx);
+                    if (blink_state)
+                    {
+                        matrix_display_word_icon_pair(word1, &RED, &ICONS_ARR[WIFI], 0);
+                    }
+                    else
+                    {
+                        matrix_display_word_icon_pair(word2, &RED, &ICONS_ARR[WIFI], 0);
+                    }
+                    matrix_show(mtrx);
+
+                    blink_state = !blink_state;
+                    iterations++;
+                    sleep_ms(500);
+                }
+            }
+            else
+            {
+                matrix_clear(mtrx);
+                matrix_display_word_icon_pair("FAIL", &RED, NULL, 0);
+                matrix_show(mtrx);
+                sleep_ms(2000);
+            }
+
             flash_memory_erase();
         }
     }
@@ -298,6 +331,11 @@ int main(void)
         if (menu_active)
         {
             menu_main_start(buttons, rotator, mtrx);
+        }
+
+        if (wifi_ready)
+        {
+            cyw43_arch_poll();
         }
 
         if (power_log_tick % 3000 == 0)

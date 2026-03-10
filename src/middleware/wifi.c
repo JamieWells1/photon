@@ -100,6 +100,9 @@ ReturnCode wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
 
         int link_status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
 
+        debug(TRACE, "WiFi link status: %d (attempt %d/%d)", link_status, attempts,
+              MAX_WIFI_CONNECTION_ATTEMPTS);
+
         if (link_status == CYW43_LINK_UP)
         {
             debug(INFO, "WiFi connected successfully");
@@ -118,38 +121,20 @@ ReturnCode wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
         }
         else if (link_status == CYW43_LINK_BADAUTH)
         {
-            debug(ERROR, "WiFi bad authentication");
+            debug(ERROR, "WiFi bad authentication (link_status=%d)", link_status);
             connected = false;
-
-            matrix_clear(mtrx);
-            matrix_display_word_icon_pair("BAD AUTH", &RED, NULL, 0);
-            matrix_show(mtrx);
-            sleep_ms(1000);
-
             return RC_WIFI_BAD_AUTH;
         }
         else if (link_status == CYW43_LINK_NONET)
         {
-            debug(ERROR, "WiFi network not found");
+            debug(ERROR, "WiFi network not found (link_status=%d)", link_status);
             connected = false;
-
-            matrix_clear(mtrx);
-            matrix_display_word_icon_pair("NO NET", &RED, NULL, 0);
-            matrix_show(mtrx);
-            sleep_ms(1000);
-
             return RC_WIFI_NO_NETWORK;
         }
         else if (link_status == CYW43_LINK_FAIL)
         {
-            debug(ERROR, "WiFi connection failed");
+            debug(ERROR, "WiFi connection failed (link_status=%d)", link_status);
             connected = false;
-
-            matrix_clear(mtrx);
-            matrix_display_word_icon_pair("FAILED", &RED, NULL, 0);
-            matrix_show(mtrx);
-            sleep_ms(1000);
-
             return RC_WIFI_CONNECT_FAILED;
         }
 
@@ -159,12 +144,6 @@ ReturnCode wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
 
     debug(ERROR, "WiFi connection timeout");
     connected = false;
-
-    matrix_clear(mtrx);
-    matrix_display_word_icon_pair("TIMEOUT", &RED, NULL, 0);
-    matrix_show(mtrx);
-    sleep_ms(1000);
-
     return RC_WIFI_TIMEOUT;
 }
 

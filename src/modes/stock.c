@@ -34,7 +34,6 @@ static volatile uint64_t g_next_fetch_time_ms = 0;
 static unsigned int g_stk_to_fetch_index = 0;
 static int g_scroll_offset = 0;
 static int g_url_scroll_offset = 0;
-static bool g_server_started = false;
 
 uint8_t stock_get_count(void)
 {
@@ -44,6 +43,8 @@ uint8_t stock_get_count(void)
         flash_memory_read(&config);
 
         g_stock_count = 0;
+
+        // Load portfolio tickers first
         if (config.portfolio_count > 0)
         {
             for (uint8_t i = 0; i < config.portfolio_count && i < MAX_STOCK_TICKERS; i++)
@@ -55,16 +56,34 @@ uint8_t stock_get_count(void)
             }
             g_enabled_mask = config.stocks ? config.stocks : ((1ULL << g_stock_count) - 1);
         }
-        else if (config.stock_ticker_count > 0)
+
+        // Also load manual tickers (can coexist with portfolio)
+        if (config.stock_ticker_count > 0 && g_stock_count < MAX_STOCK_TICKERS)
         {
-            for (uint8_t i = 0; i < config.stock_ticker_count && i < 10; i++)
+            uint8_t manual_start_index = g_stock_count;
+            for (uint8_t i = 0; i < config.stock_ticker_count && g_stock_count < MAX_STOCK_TICKERS;
+                 i++)
             {
                 strncpy(g_stocks[g_stock_count].ticker, config.stock_tickers[i], 10);
                 g_stocks[g_stock_count].current_price = 0.0f;
                 g_stocks[g_stock_count].open_price = 0.0f;
                 g_stock_count++;
             }
-            g_enabled_mask = config.stocks ? config.stocks : ((1ULL << g_stock_count) - 1);
+
+            // Manual tickers are always enabled
+            if (config.portfolio_count == 0)
+            {
+                // No portfolio: enabled mask covers manual tickers only
+                g_enabled_mask = config.stocks ? config.stocks : ((1ULL << g_stock_count) - 1);
+            }
+            else
+            {
+                // Has portfolio: enable manual ticker bits (after portfolio ticker bits)
+                for (uint8_t i = manual_start_index; i < g_stock_count; i++)
+                {
+                    g_enabled_mask |= (1ULL << i);
+                }
+            }
         }
 
         g_tickers_loaded = true;
@@ -79,10 +98,7 @@ const char* stock_get_ticker(int idx)
     return g_stocks[idx].ticker;
 }
 
-void stock_set_enabled_mask(uint64_t mask)
-{
-    g_enabled_mask = mask;
-}
+void stock_set_enabled_mask(uint64_t mask) { g_enabled_mask = mask; }
 
 static bool stock_is_enabled(int idx)
 {
@@ -101,12 +117,46 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
     if (!body || len == 0)
     {
         debug(ERROR, "Empty response for stock index %u", g_stk_to_fetch_index);
-        uint64_t ms_until_retry = 60 * 1000;
-        g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
+
+        // Check if this is the first failure (prices not yet set to -1.0f)
+        bool first_failure = (g_stocks[g_stk_to_fetch_index].current_price != -1.0f);
+
+        g_stocks[g_stk_to_fetch_index].current_price = -1.0f;
+        g_stocks[g_stk_to_fetch_index].open_price = -1.0f;
+
+        // Only set 60s retry on first failure, then accept it and use 15min cycle
+        if (first_failure && g_next_fetch_time_ms == 0)
+        {
+            uint64_t ms_until_retry = 60 * 1000;
+            g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
+            debug(INFO, "First failure for ticker, will retry in 60s");
+        }
         return;
     }
 
     debug(DEBUG, "Received stock response: %.*s", (int)len, body);
+
+    // Check if response contains an error
+    if (strstr(body, "\"error\""))
+    {
+        debug(ERROR, "Proxy returned error for stock index %u: %.*s", g_stk_to_fetch_index,
+              (int)len, body);
+
+        // Check if this is the first failure (prices not yet set to -1.0f)
+        bool first_failure = (g_stocks[g_stk_to_fetch_index].current_price != -1.0f);
+
+        g_stocks[g_stk_to_fetch_index].current_price = -1.0f;
+        g_stocks[g_stk_to_fetch_index].open_price = -1.0f;
+
+        // Only set 60s retry on first failure, then accept it and use 15min cycle
+        if (first_failure && g_next_fetch_time_ms == 0)
+        {
+            uint64_t ms_until_retry = 60 * 1000;
+            g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
+            debug(INFO, "First failure for ticker, will retry in 60s");
+        }
+        return;
+    }
 
     float current_price = parse_price_from_json_array(body, "\"c\":");
     float open_price = parse_price_from_json_string(body, "\"o\":");
@@ -120,17 +170,52 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
         g_stocks[g_stk_to_fetch_index].open_price = open_price;
         g_data_fetched = true;
 
-        uint64_t ms_until_next_fetch = 15 * 60 * 1000;
+        // Count enabled tickers for throttling
+        uint8_t enabled_count = 0;
+        for (uint8_t i = 0; i < g_stock_count; i++)
+        {
+            if (stock_is_enabled(i)) enabled_count++;
+        }
+
+        // Throttle fetch interval based on number of enabled tickers
+        uint64_t fetch_interval_minutes;
+        if (enabled_count >= 30)
+        {
+            fetch_interval_minutes = 60;  // 1 hour for large ticker lists (30+ tickers)
+        }
+        else if (enabled_count >= 10)
+        {
+            fetch_interval_minutes = 30;  // 30 minutes for medium ticker lists (10-29 tickers)
+        }
+        else
+        {
+            fetch_interval_minutes = 15;  // 15 minutes for small ticker lists (<10 tickers)
+        }
+
+        uint64_t ms_until_next_fetch = fetch_interval_minutes * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
 
         debug(INFO, "Parsed current: $%.2f, open: $%.2f", current_price, open_price);
-        debug(TRACE, "Next fetch scheduled in 15 minutes");
+        debug(TRACE, "Next fetch scheduled in %llu minutes (%u enabled tickers)",
+              fetch_interval_minutes, enabled_count);
     }
     else
     {
         debug(ERROR, "Failed to parse stock data for index %u", g_stk_to_fetch_index);
-        uint64_t ms_until_retry = 60 * 1000;
-        g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
+
+        // Check if this is the first failure (prices not yet set to -1.0f)
+        bool first_failure = (g_stocks[g_stk_to_fetch_index].current_price != -1.0f);
+
+        g_stocks[g_stk_to_fetch_index].current_price = -1.0f;
+        g_stocks[g_stk_to_fetch_index].open_price = -1.0f;
+
+        // Only set 60s retry on first failure, then accept it and use 15min cycle
+        if (first_failure && g_next_fetch_time_ms == 0)
+        {
+            uint64_t ms_until_retry = 60 * 1000;
+            g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
+            debug(INFO, "First failure for ticker, will retry in 60s");
+        }
     }
 }
 
@@ -177,43 +262,6 @@ void stock_display(Matrix* mtrx, int* offset)
     // No tickers available — show portfolio upload URL
     if (g_stock_count == 0)
     {
-        if (!g_server_started)
-        {
-            if (!wifi_is_connected())
-            {
-                debug(INFO, "WiFi not connected, reconnecting for stock upload...");
-
-                device_config_t config;
-                if (!flash_memory_read(&config))
-                {
-                    debug(ERROR, "Failed to read WiFi config from flash");
-                    matrix_clear(mtrx);
-                    matrix_display_word_icon_pair("NO WIFI", &RED, &ICONS_ARR[WIFI], 0);
-                    matrix_show(mtrx);
-                    return;
-                }
-
-                ReturnCode rc = wifi_connect(config.ssid, config.password, mtrx);
-                if (RC_FAILED(rc))
-                {
-                    debug(ERROR, "Failed to reconnect WiFi: %s", rc_to_string(rc));
-                    matrix_clear(mtrx);
-                    matrix_display_word_icon_pair("NO WIFI", &RED, &ICONS_ARR[WIFI], 0);
-                    matrix_show(mtrx);
-                    return;
-                }
-            }
-
-            wifi_start_mdns();
-            http_server_start();
-            g_server_started = true;
-            debug(INFO, "======================================");
-            debug(INFO, "STOCK UPLOAD MODE ACTIVE");
-            debug(INFO, "Upload portfolio at:");
-            debug(INFO, "  http://photon.local/portfolio");
-            debug(INFO, "======================================");
-        }
-
         stock_display_url(mtrx);
         g_url_scroll_offset++;
         int url_width =
@@ -223,7 +271,6 @@ void stock_display(Matrix* mtrx, int* offset)
             g_url_scroll_offset = 0;
         }
 
-        cyw43_arch_poll();
         return;
     }
 
@@ -287,18 +334,31 @@ void stock_display(Matrix* mtrx, int* offset)
             float current = stk->current_price;
             float open = stk->open_price;
 
-            float change_perc = (open > 0.0f) ? ((current - open) / open) * 100 : 0.0f;
+            int width;
 
-            char price_str[16];
-            snprintf(price_str, sizeof(price_str), "%.2f", current);
+            // Check if ticker has invalid data (error response)
+            if (current < 0.0f || open < 0.0f)
+            {
+                // Calculate width for "TICKER NO DATA" display
+                width = matrix_calculate_word_width_with_space(stk->ticker) + 3 +
+                        matrix_calculate_word_width_with_space("NO DATA") + 12;
+            }
+            else
+            {
+                // Calculate width for normal display with price and percentage
+                float change_perc = (open > 0.0f) ? ((current - open) / open) * 100 : 0.0f;
 
-            char change_perc_str[16];
-            snprintf(change_perc_str, sizeof(change_perc_str), "%+.1f%%", change_perc);
+                char price_str[16];
+                snprintf(price_str, sizeof(price_str), "%.2f", current);
 
-            int width = matrix_calculate_word_width_with_space(stk->ticker) + 3 +
-                        matrix_calculate_word_width_with_space(price_str) +
-                        ICONS_ARR[TKR_UP].width +
-                        matrix_calculate_word_width_with_space(change_perc_str) + 12;
+                char change_perc_str[16];
+                snprintf(change_perc_str, sizeof(change_perc_str), "%+.1f%%", change_perc);
+
+                width = matrix_calculate_word_width_with_space(stk->ticker) + 3 +
+                            matrix_calculate_word_width_with_space(price_str) +
+                            ICONS_ARR[TKR_UP].width +
+                            matrix_calculate_word_width_with_space(change_perc_str) + 12;
+            }
 
             stock_widths[i] = width;
             total_width += width;
@@ -316,33 +376,52 @@ void stock_display(Matrix* mtrx, int* offset)
             float current = stk->current_price;
             float open = stk->open_price;
 
-            float change_perc = ((current - open) / open) * 100;
-            bool is_up = (change_perc >= 0.0f);
-
-            const Glyph* icon = is_up ? &ICONS_ARR[TKR_UP] : &ICONS_ARR[TKR_DOWN];
-            const RGB* colour = is_up ? &GREEN : &RED;
-
-            char price_str[16];
-            snprintf(price_str, sizeof(price_str), "%.2f", current);
-
-            char change_perc_str[16];
-            snprintf(change_perc_str, sizeof(change_perc_str), "%+.1f%%", change_perc);
-
             int base_x = current_x - *offset;
 
-            for (int wrap = 0; wrap < 2; wrap++)
+            // Check if ticker has invalid data
+            if (current < 0.0f || open < 0.0f)
             {
-                int stk_x = base_x + (wrap * total_width) + 2;
-                int price_x = stk_x + matrix_calculate_word_width_with_space(stk->ticker) + 3;
-                int icon_x = price_x + matrix_calculate_word_width_with_space(price_str);
-                int perc_diff_x = icon_x + icon->width + 4;
+                // Display ticker name with "NO DATA" message
+                for (int wrap = 0; wrap < 2; wrap++)
+                {
+                    int stk_x = base_x + (wrap * total_width) + 2;
+                    int no_data_x = stk_x + matrix_calculate_word_width_with_space(stk->ticker) + 3;
 
-                const unsigned int y = 1;
+                    const unsigned int y = 1;
 
-                matrix_display_word(stk->ticker, stk_x, y, &LABEL_ORANGE);
-                matrix_display_word(price_str, price_x, y, colour);
-                matrix_display_icon(icon, icon_x, y, colour);
-                matrix_display_word(change_perc_str, perc_diff_x, y, colour);
+                    matrix_display_word(stk->ticker, stk_x, y, &LABEL_ORANGE);
+                    matrix_display_word("NO DATA", no_data_x, y, &RED);
+                }
+            }
+            else
+            {
+                // Display normal ticker with price and percentage
+                float change_perc = ((current - open) / open) * 100;
+                bool is_up = (change_perc >= 0.0f);
+
+                const Glyph* icon = is_up ? &ICONS_ARR[TKR_UP] : &ICONS_ARR[TKR_DOWN];
+                const RGB* colour = is_up ? &GREEN : &RED;
+
+                char price_str[16];
+                snprintf(price_str, sizeof(price_str), "%.2f", current);
+
+                char change_perc_str[16];
+                snprintf(change_perc_str, sizeof(change_perc_str), "%+.1f%%", change_perc);
+
+                for (int wrap = 0; wrap < 2; wrap++)
+                {
+                    int stk_x = base_x + (wrap * total_width) + 2;
+                    int price_x = stk_x + matrix_calculate_word_width_with_space(stk->ticker) + 3;
+                    int icon_x = price_x + matrix_calculate_word_width_with_space(price_str);
+                    int perc_diff_x = icon_x + icon->width + 4;
+
+                    const unsigned int y = 1;
+
+                    matrix_display_word(stk->ticker, stk_x, y, &LABEL_ORANGE);
+                    matrix_display_word(price_str, price_x, y, colour);
+                    matrix_display_icon(icon, icon_x, y, colour);
+                    matrix_display_word(change_perc_str, perc_diff_x, y, colour);
+                }
             }
 
             current_x += stock_widths[i];
@@ -394,12 +473,6 @@ void stock_validate_pending_ticker(Matrix* mtrx)
 
 void stock_cleanup(void)
 {
-    if (g_server_started)
-    {
-        http_server_stop();
-        debug(INFO, "Stock upload server stopped");
-    }
-
     g_data_fetched = false;
     g_next_fetch_time_ms = 0;
     g_stk_to_fetch_index = 0;
@@ -408,5 +481,4 @@ void stock_cleanup(void)
     g_stock_count = 0;
     g_tickers_loaded = false;
     g_enabled_mask = 0;
-    g_server_started = false;
 }
