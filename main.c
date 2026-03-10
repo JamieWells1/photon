@@ -26,42 +26,6 @@
 #include <pico/stdlib.h>
 #include <ws2812.pio.h>
 
-void debug_inputs(Button* btns, Rotator* rtr)
-{
-    if (input_btn_pressed(&btns[0]))
-    {
-        debug(DEBUG, "Left button pressed");
-    }
-    if (input_btn_pressed(&btns[1]))
-    {
-        debug(DEBUG, "Right button pressed");
-    }
-    if (input_btn_released(&btns[0]))
-    {
-        debug(DEBUG, "Left button released");
-    }
-    if (input_btn_released(&btns[1]))
-    {
-        debug(DEBUG, "Right button released");
-    }
-    if (rtr->rotation_count > 0)
-    {
-        debug(DEBUG, "Rotator clockwise (count: %d)", rtr->rotation_count);
-    }
-    if (rtr->rotation_count < 0)
-    {
-        debug(DEBUG, "Rotator anti-clockwise (count: %d)", rtr->rotation_count);
-    }
-    if (input_rtr_pressed(rtr))
-    {
-        debug(DEBUG, "Rotator pressed");
-    }
-    if (input_rtr_released(rtr))
-    {
-        debug(DEBUG, "Rotator released");
-    }
-}
-
 Button* main_init_buttons(void)
 {
     static Button buttons[2] = {{.pin = BUTTON_LEFT_PIN}, {.pin = BUTTON_RIGHT_PIN}};
@@ -300,10 +264,6 @@ int main(void)
     while (true)
     {
         input_update(buttons, rotator);
-        if (LOG_LEVEL >= DEBUG)
-        {
-            debug_inputs(buttons, rotator);
-        }
 
         if (!menu_active)
         {

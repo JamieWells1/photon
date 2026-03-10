@@ -154,6 +154,7 @@ static void portfolio_fetch_prices(Matrix* mtrx)
     }
 
     g_ticker_to_fetch_index = 0;
+    g_data_fetched = true;
     debug(INFO, "Portfolio fetch complete");
 }
 
@@ -343,8 +344,8 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
             else
             {
                 snprintf(label_str, sizeof(label_str), "  TOTAL");
-                snprintf(value_str, sizeof(value_str), "%s%.2f %+.2f%%", currency_symbol, total_value,
-                         total_pct);
+                snprintf(value_str, sizeof(value_str), "%s%.2f %+.2f%%", currency_symbol,
+                         total_value, total_pct);
                 if (total_pct == 0.0f)
                     value_color = &DEFAULT_COLOUR;
                 else
@@ -476,7 +477,7 @@ void portfolio_display(Matrix* mtrx, int* offset)
         if (http_server_portfolio_parse_failed())
         {
             matrix_clear(mtrx);
-            matrix_display_word("ERROR", 4, 1, &RED);
+            matrix_display_word("ERROR", 1, 1, &RED);
             matrix_show(mtrx);
         }
         else
@@ -498,7 +499,7 @@ void portfolio_display(Matrix* mtrx, int* offset)
     else
     {
         matrix_clear(mtrx);
-        matrix_display_word("LOADING", 4, 1, &DEFAULT_COLOUR);
+        matrix_display_word("LOADING", 1, 1, &DEFAULT_COLOUR);
         matrix_show(mtrx);
     }
 }

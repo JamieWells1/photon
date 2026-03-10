@@ -99,10 +99,6 @@ ReturnCode wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
         display_frame_counter++;
 
         int link_status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
-
-        debug(TRACE, "WiFi link status: %d (attempt %d/%d)", link_status, attempts,
-              MAX_WIFI_CONNECTION_ATTEMPTS);
-
         if (link_status == CYW43_LINK_UP)
         {
             debug(INFO, "WiFi connected successfully");

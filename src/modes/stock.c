@@ -312,6 +312,7 @@ void stock_display(Matrix* mtrx, int* offset)
             }
 
             g_stk_to_fetch_index = 0;
+            g_data_fetched = true;
             debug(INFO, "Stock fetch complete");
         }
         else
@@ -355,9 +356,9 @@ void stock_display(Matrix* mtrx, int* offset)
                 snprintf(change_perc_str, sizeof(change_perc_str), "%+.1f%%", change_perc);
 
                 width = matrix_calculate_word_width_with_space(stk->ticker) + 3 +
-                            matrix_calculate_word_width_with_space(price_str) +
-                            ICONS_ARR[TKR_UP].width +
-                            matrix_calculate_word_width_with_space(change_perc_str) + 12;
+                        matrix_calculate_word_width_with_space(price_str) +
+                        ICONS_ARR[TKR_UP].width +
+                        matrix_calculate_word_width_with_space(change_perc_str) + 12;
             }
 
             stock_widths[i] = width;

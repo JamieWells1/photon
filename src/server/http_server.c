@@ -41,6 +41,17 @@ typedef struct
     bool request_processed;
 } http_request_state_t;
 
+typedef struct
+{
+    const char* data;
+    size_t total_len;
+    size_t sent;
+    bool should_close;
+} http_send_state_t;
+
+// Forward declarations
+static err_t http_close_conn(struct tcp_pcb* pcb);
+
 static int hex_to_int(char c)
 {
     if (c >= '0' && c <= '9') return c - '0';
@@ -233,47 +244,112 @@ static void http_err_callback(void* arg, err_t err)
     }
 }
 
+static err_t http_continue_sending(struct tcp_pcb* pcb, http_send_state_t* send_state)
+{
+    const size_t max_chunk = 1024;
+
+    while (send_state->sent < send_state->total_len)
+    {
+        u16_t available = tcp_sndbuf(pcb);
+
+        debug(TRACE, "Continue send: offset %zu/%zu, available buffer = %u bytes", send_state->sent,
+              send_state->total_len, available);
+
+        if (available < 256)
+        {
+            debug(TRACE, "Waiting for more buffer space (available: %u)", available);
+            tcp_output(pcb);
+            return ERR_OK;  // Will continue in sent callback
+        }
+
+        size_t to_send = send_state->total_len - send_state->sent;
+        if (to_send > max_chunk) to_send = max_chunk;
+        if (to_send > available) to_send = available;
+
+        err_t err =
+            tcp_write(pcb, send_state->data + send_state->sent, to_send, TCP_WRITE_FLAG_COPY);
+        if (err != ERR_OK)
+        {
+            debug(ERROR, "tcp_write failed at offset %zu: %d", send_state->sent, err);
+            return err;
+        }
+
+        send_state->sent += to_send;
+        tcp_output(pcb);
+    }
+
+    debug(DEBUG, "Send complete: %zu bytes", send_state->sent);
+    return ERR_OK;
+}
+
+static err_t http_sent_callback_with_continuation(void* arg, struct tcp_pcb* pcb, u16_t len)
+{
+    http_send_state_t* send_state = (http_send_state_t*)arg;
+
+    debug(TRACE, "Sent callback: %u bytes ACKed, %zu/%zu total sent", len, send_state->sent,
+          send_state->total_len);
+
+    if (send_state->sent < send_state->total_len)
+    {
+        // Continue sending remaining data
+        err_t err = http_continue_sending(pcb, send_state);
+        if (err != ERR_OK)
+        {
+            debug(ERROR, "Continue sending failed: %d", err);
+            free(send_state);
+            tcp_arg(pcb, NULL);
+            http_close_conn(pcb);
+            return err;
+        }
+    }
+    else
+    {
+        // All data sent, clean up and close if needed
+        debug(DEBUG, "All data transmitted and ACKed");
+        bool should_close = send_state->should_close;
+        free(send_state);
+        tcp_arg(pcb, NULL);
+
+        if (should_close)
+        {
+            http_close_conn(pcb);
+        }
+    }
+
+    return ERR_OK;
+}
+
 static err_t http_send_data(struct tcp_pcb* pcb, const char* data, size_t len,
                             http_request_state_t* state)
 {
-    debug(DEBUG, "Sending %zu bytes", len);
+    debug(DEBUG, "Sending %zu bytes with continuation support", len);
 
-    if (len <= 2048)
+    // Allocate send state for continuation
+    http_send_state_t* send_state = (http_send_state_t*)malloc(sizeof(http_send_state_t));
+    if (!send_state)
     {
-        err_t err = tcp_write(pcb, data, len, 0);
-        if (err != ERR_OK)
-        {
-            debug(ERROR, "tcp_write failed: %d", err);
-            return err;
-        }
-        return ERR_OK;
+        debug(ERROR, "Failed to allocate send state");
+        return ERR_MEM;
     }
 
-    const size_t chunk_size = 2048;
-    size_t sent = 0;
+    send_state->data = data;
+    send_state->total_len = len;
+    send_state->sent = 0;
+    send_state->should_close = true;
 
-    while (sent < len)
+    // Set up sent callback for continuation
+    tcp_arg(pcb, send_state);
+    tcp_sent(pcb, http_sent_callback_with_continuation);
+
+    // Start sending
+    err_t err = http_continue_sending(pcb, send_state);
+    if (err != ERR_OK)
     {
-        size_t to_send = (len - sent) > chunk_size ? chunk_size : (len - sent);
-        err_t err = tcp_write(pcb, data + sent, to_send, TCP_WRITE_FLAG_COPY);
-        if (err != ERR_OK)
-        {
-            debug(ERROR, "tcp_write failed at offset %zu: %d", sent, err);
-            return err;
-        }
-
-        // Flush after each chunk to avoid buffer overflow
-        err = tcp_output(pcb);
-        if (err != ERR_OK)
-        {
-            debug(ERROR, "tcp_output failed at offset %zu: %d", sent, err);
-            return err;
-        }
-
-        sent += to_send;
+        free(send_state);
+        tcp_arg(pcb, NULL);
+        return err;
     }
 
-    debug(DEBUG, "Successfully sent %zu bytes in chunks", sent);
     return ERR_OK;
 }
 
@@ -299,7 +375,7 @@ static err_t http_close_conn(struct tcp_pcb* pcb)
     return ERR_OK;
 }
 
-static err_t http_sent_callback(void* arg, struct tcp_pcb* pcb, u16_t len)
+static err_t http_sent_callback_simple(void* arg, struct tcp_pcb* pcb, u16_t len)
 {
     if (arg)
     {
@@ -569,7 +645,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                 }
             }
 
-            tcp_sent(pcb, http_sent_callback);
+            tcp_sent(pcb, http_sent_callback_simple);
             return ERR_OK;
         }
     }
@@ -668,7 +744,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
             tcp_write(pcb, html_get_success_page(), strlen(html_get_success_page()), 0);
             tcp_output(pcb);
-            tcp_sent(pcb, http_sent_callback);
+            tcp_sent(pcb, http_sent_callback_simple);
 
             return ERR_OK;
         }
@@ -722,21 +798,20 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
         debug(DEBUG, "Sending device page: %zu bytes", page_len);
 
-        err_t err = http_send_data(pcb, page, page_len, state);
+        // Free request state before sending (send will use its own state)
+        if (state)
+        {
+            free(state);
+        }
+
+        err_t err = http_send_data(pcb, page, page_len, NULL);
         if (err != ERR_OK)
         {
-            if (state)
-            {
-                free(state);
-                tcp_arg(pcb, NULL);
-            }
             http_close_conn(pcb);
             return ERR_ABRT;
         }
 
-        tcp_output(pcb);
-        tcp_sent(pcb, http_sent_callback);
-
+        // http_send_data sets up its own sent callback
         return ERR_OK;
     }
     else if (strncmp(request, "GET /watchlist", 14) == 0 ||
@@ -749,21 +824,20 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
         debug(DEBUG, "Sending watchlist page: %zu bytes", page_len);
 
-        err_t err = http_send_data(pcb, page, page_len, state);
+        // Free request state before sending (send will use its own state)
+        if (state)
+        {
+            free(state);
+        }
+
+        err_t err = http_send_data(pcb, page, page_len, NULL);
         if (err != ERR_OK)
         {
-            if (state)
-            {
-                free(state);
-                tcp_arg(pcb, NULL);
-            }
             http_close_conn(pcb);
             return ERR_ABRT;
         }
 
-        tcp_output(pcb);
-        tcp_sent(pcb, http_sent_callback);
-
+        // http_send_data sets up its own sent callback
         return ERR_OK;
     }
     else if (strncmp(request, "GET /portfolio", 14) == 0 ||
@@ -776,29 +850,28 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
         debug(DEBUG, "Sending portfolio page: %zu bytes", page_len);
 
-        err_t err = http_send_data(pcb, page, page_len, state);
+        // Free request state before sending (send will use its own state)
+        if (state)
+        {
+            free(state);
+        }
+
+        err_t err = http_send_data(pcb, page, page_len, NULL);
         if (err != ERR_OK)
         {
-            if (state)
-            {
-                free(state);
-                tcp_arg(pcb, NULL);
-            }
             http_close_conn(pcb);
             return ERR_ABRT;
         }
 
-        tcp_output(pcb);
-        tcp_sent(pcb, http_sent_callback);
-
-        debug(DEBUG, "Portfolio page sent successfully");
+        // http_send_data sets up its own sent callback
+        debug(DEBUG, "Portfolio page send initiated");
         return ERR_OK;
     }
     else
     {
         tcp_write(pcb, html_get_wifi_form(), strlen(html_get_wifi_form()), 0);
         tcp_output(pcb);
-        tcp_sent(pcb, http_sent_callback);
+        tcp_sent(pcb, http_sent_callback_simple);
 
         return ERR_OK;
     }
