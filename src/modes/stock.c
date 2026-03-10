@@ -10,6 +10,7 @@
 #include <flash_memory.h>
 #include <glyphs.h>
 #include <http.h>
+#include <http_server.h>
 #include <macro.h>
 #include <matrix.h>
 #include <utils.h>
@@ -19,27 +20,74 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <hardware/watchdog.h>
+#include <pico/cyw43_arch.h>
 #include <pico/time.h>
 
-Stock STK_ARR[STK_COUNT] = {
-    {AAPL, STK_AAPL, 0.0f, 0.0f}, {MSFT, STK_MSFT, 0.0f, 0.0f}, {GOOGL, STK_GOOGL, 0.0f, 0.0f},
-    {AMZN, STK_AMZN, 0.0f, 0.0f}, {TSLA, STK_TSLA, 0.0f, 0.0f}, {NVDA, STK_NVDA, 0.0f, 0.0f},
-    {META, STK_META, 0.0f, 0.0f}, {JPM, STK_JPM, 0.0f, 0.0f},   {V, STK_V, 0.0f, 0.0f},
-    {DIS, STK_DIS, 0.0f, 0.0f},
-};
+static Stock g_stocks[MAX_STOCK_TICKERS];
+static uint8_t g_stock_count = 0;
+static uint64_t g_enabled_mask = 0;
+static bool g_tickers_loaded = false;
 
 static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
 static unsigned int g_stk_to_fetch_index = 0;
 static int g_scroll_offset = 0;
-static uint16_t g_enabled_mask = DEFAULT_STOCKS;
+static int g_url_scroll_offset = 0;
+static bool g_server_started = false;
 
-bool stock_is_enabled(StockIndex idx) { return (g_enabled_mask & (1 << idx)) != 0; }
-
-void stock_set_enabled_mask(uint16_t mask)
+uint8_t stock_get_count(void)
 {
-    if (mask == 0) mask = DEFAULT_STOCKS;
+    if (!g_tickers_loaded)
+    {
+        device_config_t config;
+        flash_memory_read(&config);
+
+        g_stock_count = 0;
+        if (config.portfolio_count > 0)
+        {
+            for (uint8_t i = 0; i < config.portfolio_count && i < MAX_STOCK_TICKERS; i++)
+            {
+                strncpy(g_stocks[g_stock_count].ticker, config.portfolio_tickers[i], 10);
+                g_stocks[g_stock_count].current_price = 0.0f;
+                g_stocks[g_stock_count].open_price = 0.0f;
+                g_stock_count++;
+            }
+            g_enabled_mask = config.stocks ? config.stocks : ((1ULL << g_stock_count) - 1);
+        }
+        else if (config.stock_ticker_count > 0)
+        {
+            for (uint8_t i = 0; i < config.stock_ticker_count && i < 10; i++)
+            {
+                strncpy(g_stocks[g_stock_count].ticker, config.stock_tickers[i], 10);
+                g_stocks[g_stock_count].current_price = 0.0f;
+                g_stocks[g_stock_count].open_price = 0.0f;
+                g_stock_count++;
+            }
+            g_enabled_mask = config.stocks ? config.stocks : ((1ULL << g_stock_count) - 1);
+        }
+
+        g_tickers_loaded = true;
+    }
+
+    return g_stock_count;
+}
+
+const char* stock_get_ticker(int idx)
+{
+    if (idx < 0 || idx >= g_stock_count) return "";
+    return g_stocks[idx].ticker;
+}
+
+void stock_set_enabled_mask(uint64_t mask)
+{
     g_enabled_mask = mask;
+}
+
+static bool stock_is_enabled(int idx)
+{
+    if (idx < 0 || idx >= g_stock_count) return false;
+    return (g_enabled_mask & (1ULL << idx)) != 0;
 }
 
 // Display logic
@@ -68,8 +116,8 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
 
     if (current_price > 0.0f && open_price > 0.0f)
     {
-        STK_ARR[g_stk_to_fetch_index].current_price = current_price;
-        STK_ARR[g_stk_to_fetch_index].open_price = open_price;
+        g_stocks[g_stk_to_fetch_index].current_price = current_price;
+        g_stocks[g_stk_to_fetch_index].open_price = open_price;
         g_data_fetched = true;
 
         uint64_t ms_until_next_fetch = 15 * 60 * 1000;
@@ -86,11 +134,100 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
     }
 }
 
+static void stock_display_url(Matrix* mtrx)
+{
+    const char* url_text = "    http://photon.local/portfolio";
+    int total_width = matrix_calculate_word_width_with_space(url_text) + 4;
+
+    matrix_clear(mtrx);
+
+    for (int wrap = 0; wrap < 2; wrap++)
+    {
+        int text_x = (wrap * total_width) - g_url_scroll_offset;
+        int text_y = 1;
+        matrix_display_word(url_text, text_x, text_y, &BLUE);
+    }
+
+    matrix_show(mtrx);
+}
+
 void stock_display(Matrix* mtrx, int* offset)
 {
     ASSERT_NOT_NULL(mtrx);
     ASSERT_NOT_NULL(offset);
 
+    // Handle config save reboot
+    if (http_server_config_saved())
+    {
+        debug(INFO, "Config saved, rebooting...");
+
+        matrix_clear(mtrx);
+        matrix_display_word_icon_pair("REBOOT...", &ORANGE, NULL, 0);
+        matrix_show(mtrx);
+
+        sleep_ms(2000);
+
+        watchdog_enable(1, 1);
+        while (1);
+    }
+
+    // Load tickers if not yet loaded
+    stock_get_count();
+
+    // No tickers available — show portfolio upload URL
+    if (g_stock_count == 0)
+    {
+        if (!g_server_started)
+        {
+            if (!wifi_is_connected())
+            {
+                debug(INFO, "WiFi not connected, reconnecting for stock upload...");
+
+                device_config_t config;
+                if (!flash_memory_read(&config))
+                {
+                    debug(ERROR, "Failed to read WiFi config from flash");
+                    matrix_clear(mtrx);
+                    matrix_display_word_icon_pair("NO WIFI", &RED, &ICONS_ARR[WIFI], 0);
+                    matrix_show(mtrx);
+                    return;
+                }
+
+                ReturnCode rc = wifi_connect(config.ssid, config.password, mtrx);
+                if (RC_FAILED(rc))
+                {
+                    debug(ERROR, "Failed to reconnect WiFi: %s", rc_to_string(rc));
+                    matrix_clear(mtrx);
+                    matrix_display_word_icon_pair("NO WIFI", &RED, &ICONS_ARR[WIFI], 0);
+                    matrix_show(mtrx);
+                    return;
+                }
+            }
+
+            wifi_start_mdns();
+            http_server_start();
+            g_server_started = true;
+            debug(INFO, "======================================");
+            debug(INFO, "STOCK UPLOAD MODE ACTIVE");
+            debug(INFO, "Upload portfolio at:");
+            debug(INFO, "  http://photon.local/portfolio");
+            debug(INFO, "======================================");
+        }
+
+        stock_display_url(mtrx);
+        g_url_scroll_offset++;
+        int url_width =
+            matrix_calculate_word_width_with_space("    http://photon.local/portfolio") + 4;
+        if (g_url_scroll_offset >= url_width)
+        {
+            g_url_scroll_offset = 0;
+        }
+
+        cyw43_arch_poll();
+        return;
+    }
+
+    // Fetch stock data
     uint64_t current_time_ms = get_current_time_ms();
     bool should_fetch = (g_next_fetch_time_ms == 0) || (current_time_ms >= g_next_fetch_time_ms);
 
@@ -100,11 +237,7 @@ void stock_display(Matrix* mtrx, int* offset)
 
         if (wifi_is_connected())
         {
-            device_config_t config;
-            flash_memory_read(&config);
-            stock_set_enabled_mask(config.stocks);
-
-            while (g_stk_to_fetch_index < STK_COUNT)
+            while (g_stk_to_fetch_index < g_stock_count)
             {
                 if (!stock_is_enabled(g_stk_to_fetch_index))
                 {
@@ -112,7 +245,7 @@ void stock_display(Matrix* mtrx, int* offset)
                     continue;
                 }
 
-                const char* stk_to_fetch = STK_ARR[g_stk_to_fetch_index].to_str;
+                const char* stk_to_fetch = g_stocks[g_stk_to_fetch_index].ticker;
 
                 char path[256];
                 snprintf(path, sizeof(path), "/stocks/%s", stk_to_fetch);
@@ -143,17 +276,14 @@ void stock_display(Matrix* mtrx, int* offset)
     if (g_data_fetched)
     {
         int total_width = 0;
-        int stock_widths[STK_COUNT];
+        int stock_widths[MAX_STOCK_TICKERS];
         memset(stock_widths, 0, sizeof(stock_widths));
 
-        for (unsigned int i = 0; i < STK_COUNT; i++)
+        for (int i = 0; i < g_stock_count; i++)
         {
-            if (!stock_is_enabled(i))
-            {
-                continue;
-            }
+            if (!stock_is_enabled(i)) continue;
 
-            const Stock* stk = &STK_ARR[i];
+            const Stock* stk = &g_stocks[i];
             float current = stk->current_price;
             float open = stk->open_price;
 
@@ -165,7 +295,7 @@ void stock_display(Matrix* mtrx, int* offset)
             char change_perc_str[16];
             snprintf(change_perc_str, sizeof(change_perc_str), "%+.1f%%", change_perc);
 
-            int width = matrix_calculate_word_width_with_space(stk->to_str) + 3 +
+            int width = matrix_calculate_word_width_with_space(stk->ticker) + 3 +
                         matrix_calculate_word_width_with_space(price_str) +
                         ICONS_ARR[TKR_UP].width +
                         matrix_calculate_word_width_with_space(change_perc_str) + 12;
@@ -177,14 +307,11 @@ void stock_display(Matrix* mtrx, int* offset)
         matrix_clear(mtrx);
 
         int current_x = 0;
-        for (unsigned int i = 0; i < STK_COUNT; i++)
+        for (int i = 0; i < g_stock_count; i++)
         {
-            if (!stock_is_enabled(i))
-            {
-                continue;
-            }
+            if (!stock_is_enabled(i)) continue;
 
-            const Stock* stk = &STK_ARR[i];
+            const Stock* stk = &g_stocks[i];
 
             float current = stk->current_price;
             float open = stk->open_price;
@@ -206,13 +333,13 @@ void stock_display(Matrix* mtrx, int* offset)
             for (int wrap = 0; wrap < 2; wrap++)
             {
                 int stk_x = base_x + (wrap * total_width) + 2;
-                int price_x = stk_x + matrix_calculate_word_width_with_space(stk->to_str) + 3;
+                int price_x = stk_x + matrix_calculate_word_width_with_space(stk->ticker) + 3;
                 int icon_x = price_x + matrix_calculate_word_width_with_space(price_str);
                 int perc_diff_x = icon_x + icon->width + 4;
 
                 const unsigned int y = 1;
 
-                matrix_display_word(stk->to_str, stk_x, y, &LABEL_ORANGE);
+                matrix_display_word(stk->ticker, stk_x, y, &LABEL_ORANGE);
                 matrix_display_word(price_str, price_x, y, colour);
                 matrix_display_icon(icon, icon_x, y, colour);
                 matrix_display_word(change_perc_str, perc_diff_x, y, colour);
@@ -233,8 +360,19 @@ void stock_display(Matrix* mtrx, int* offset)
 
 void stock_cleanup(void)
 {
+    if (g_server_started)
+    {
+        http_server_stop();
+        debug(INFO, "Stock upload server stopped");
+    }
+
     g_data_fetched = false;
     g_next_fetch_time_ms = 0;
     g_stk_to_fetch_index = 0;
     g_scroll_offset = 0;
+    g_url_scroll_offset = 0;
+    g_stock_count = 0;
+    g_tickers_loaded = false;
+    g_enabled_mask = 0;
+    g_server_started = false;
 }

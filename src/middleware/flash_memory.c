@@ -39,6 +39,7 @@ static void flash_memory_set_defaults(device_config_t* config)
     config->currency = DEFAULT_CURRENCY;
     config->crypto = DEFAULT_CRYPTO;
     config->stocks = DEFAULT_STOCKS;
+    config->stock_ticker_count = 0;
     config->portfolio_count = 0;
 }
 
@@ -77,11 +78,6 @@ bool flash_memory_read(device_config_t* config)
     if (config->crypto == 0)
     {
         config->crypto = DEFAULT_CRYPTO;
-    }
-
-    if (config->stocks == 0)
-    {
-        config->stocks = DEFAULT_STOCKS;
     }
 
     return true;

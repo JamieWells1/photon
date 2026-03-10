@@ -93,11 +93,17 @@ class ProxyHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         logger.info(f"{self.address_string()} - {format % args}")
 
+    def send_cors_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
     def send_json_response(self, code, data):
         response = json.dumps(data).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", len(response))
+        self.send_cors_headers()
         self.end_headers()
         self.wfile.write(response)
 
@@ -270,6 +276,11 @@ class ProxyHandler(BaseHTTPRequestHandler):
             logger.error(f"yfinance error for {symbol} ({client_ip}): {e}")
             self.send_json_response(500, {"error": f"Failed to fetch data for '{symbol}'"})
 
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_cors_headers()
+        self.end_headers()
+
     def do_GET(self):
         client_ip = self.client_address[0]
 
@@ -317,6 +328,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-Type", response.headers.get("Content-Type", "application/json"))
                 self.send_header("Content-Length", len(data))
+                self.send_cors_headers()
                 self.end_headers()
                 self.wfile.write(data)
 

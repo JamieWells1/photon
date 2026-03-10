@@ -130,14 +130,24 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                  "pointer;margin-top:10px}"
                  ".g{display:grid;grid-template-columns:1fr 1fr;gap:5px}"
                  ".g label{margin:0}.g input{width:auto}"
+                 ".tl{list-style:none;padding:0;margin:5px 0}"
+                 ".tl li{display:flex;justify-content:space-between;align-items:center;padding:4px "
+                 "0;border-bottom:1px solid #eee}"
+                 ".tl .rm{color:#e74c3c;cursor:pointer;border:none;background:none;font-size:16px;"
+                 "padding:0 4px}"
+                 ".row{display:flex;gap:5px}.row input{flex:1}.row button{width:auto;margin:0;"
+                 "padding:6px 12px}"
+                 ".err{color:#e74c3c;font-size:12px;margin:3px 0;display:none}"
                  "</style></head><body><div class=c><h1>Photon</h1>"
                  "<div class=tabs>"
                  "<button class=\"tab%s\" onclick=s(0)>Device</button>"
-                 "<button class=\"tab%s\" onclick=s(1)>Tickers</button>"
+                 "<button class=\"tab%s\" onclick=s(1)>Watchlist</button>"
                  "<button class=\"tab%s\" onclick=s(2)>Portfolio</button>"
                  "</div><form method=POST action=/save-config>",
                  strcmp(active_tab, "device") == 0 ? " active" : "",
-                 strcmp(active_tab, "tickers") == 0 ? " active" : "",
+                 strcmp(active_tab, "watchlist") == 0 || strcmp(active_tab, "tickers") == 0
+                     ? " active"
+                     : "",
                  strcmp(active_tab, "portfolio") == 0 ? " active" : "");
 
     // Device tab
@@ -171,23 +181,62 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
     }
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</select></div>");
 
-    // Tickers tab
+    // Watchlist tab
+    bool watchlist_active = (strcmp(active_tab, "watchlist") == 0 ||
+                             strcmp(active_tab, "tickers") == 0);
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                    "<div class=\"t%s\" id=t1><label>Crypto</label><div class=g>",
-                    strcmp(active_tab, "tickers") == 0 ? " active" : "");
+                    "<div class=\"t%s\" id=t1>",
+                    watchlist_active ? " active" : "");
+
+    // Stocks section
+    if (config->portfolio_count > 0)
+    {
+        // Portfolio user: show portfolio tickers as checkboxes
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                        "<label>Stocks (%d from portfolio)</label><div class=g>",
+                        config->portfolio_count);
+        for (int i = 0; i < config->portfolio_count && i < 50; i++)
+        {
+            pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                            "<label><input type=checkbox name=stk_%d value=1%s>%s</label>", i,
+                            (config->stocks & (1ULL << i)) ? " checked" : "",
+                            config->portfolio_tickers[i]);
+        }
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div>");
+    }
+    else
+    {
+        // Non-portfolio user: show manual ticker input
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                        "<label>Stocks</label>"
+                        "<div class=row>"
+                        "<input type=text id=ti placeholder=\"e.g. AAPL\" maxlength=9>"
+                        "<button type=button onclick=addTicker()>Add</button>"
+                        "</div>"
+                        "<p class=err id=te></p>"
+                        "<ul class=tl id=sl>");
+
+        // Render existing manual tickers
+        for (int i = 0; i < config->stock_ticker_count && i < 10; i++)
+        {
+            pos += snprintf(
+                config_html_buf + pos, sizeof(config_html_buf) - pos,
+                "<li><span>%s</span><input type=hidden name=stk_t_%d value=\"%s\">"
+                "<button type=button class=rm onclick=rmTicker(this)>X</button></li>",
+                config->stock_tickers[i], i, config->stock_tickers[i]);
+        }
+
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</ul>");
+    }
+
+    // Crypto section (unchanged)
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                    "<label>Crypto</label><div class=g>");
     for (int i = 0; i < CRYPTO_COUNT; i++)
     {
         pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                         "<label><input type=checkbox name=crypto_%d value=1%s>%s</label>", i,
                         (config->crypto & (1 << i)) ? " checked" : "", CRYPTO_ARR[i].to_str);
-    }
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                    "</div><label>Stocks</label><div class=g>");
-    for (int i = 0; i < STK_COUNT; i++)
-    {
-        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<label><input type=checkbox name=stk_%d value=1%s>%s</label>", i,
-                        (config->stocks & (1 << i)) ? " checked" : "", STK_ARR[i].to_str);
     }
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div></div>");
 
@@ -227,29 +276,56 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                     config->portfolio_mode == 1 ? " selected" : "", config->brightness,
                     config->location, config->currency);
 
+    // JavaScript
     pos += snprintf(
         config_html_buf + pos, sizeof(config_html_buf) - pos,
         "</div><script>"
+        "var px='http://%s:%s';"
+        "function addTicker(){"
+        "var t=ti.value.trim().toUpperCase();"
+        "if(!t)return;"
+        "var n=sl.querySelectorAll('li').length;"
+        "if(n>=10){te.textContent='Max 10 tickers';te.style.display='block';return}"
+        "ti.disabled=true;"
+        "te.style.display='none';"
+        "var c=new AbortController();"
+        "var tm=setTimeout(function(){c.abort()},3000);"
+        "fetch(px+'/stocks/'+t,{signal:c.signal})"
+        ".then(function(r){clearTimeout(tm);ti.disabled=false;"
+        "if(r.ok){"
+        "var li=document.createElement('li');"
+        "li.innerHTML='<span>'+t+'</span>"
+        "<input type=hidden name=stk_t_'+n+' value=\"'+t+'\">"
+        "<button type=button class=rm onclick=rmTicker(this)>X</button>';"
+        "sl.appendChild(li);ti.value='';te.style.display='none'}"
+        "else{te.textContent='ticker not recognised : '+t;te.style.display='block'}})"
+        ".catch(function(){clearTimeout(tm);ti.disabled=false;"
+        "te.textContent='validation failed - check connection';te.style.display='block'})}"
+        "function rmTicker(b){b.parentElement.remove();"
+        "sl.querySelectorAll('input[type=hidden]').forEach(function(e,i){"
+        "e.name='stk_t_'+i})}"
         "function a(){"
         "B.value=document.querySelector('[name=brightness]').value;"
         "L.value=document.querySelector('[name=location]').value;"
         "C.value=document.querySelector('[name=currency]').value;"
         "K.innerHTML='';"
-        "document.querySelectorAll('[name^=crypto_]:checked').forEach(e=>{"
+        "document.querySelectorAll('[name^=crypto_]:checked').forEach(function(e){"
         "var "
         "h=document.createElement('input');h.type='hidden';h.name=e.name;h.value='1';K.appendChild("
         "h)});"
-        "document.querySelectorAll('[name^=stk_]:checked').forEach(e=>{"
+        "document.querySelectorAll('[name^=stk_]:checked').forEach(function(e){"
         "var "
         "h=document.createElement('input');h.type='hidden';h.name=e.name;h.value='1';K.appendChild("
         "h)});"
         "return true}"
         "function s(i){"
-        "document.querySelectorAll('.tab').forEach((t,j)=>t.className=j==i?'tab active':'tab');"
-        "document.querySelectorAll('.t').forEach((t,j)=>t.className=j==i?'t active':'t');"
+        "document.querySelectorAll('.tab').forEach(function(t,j){t.className=j==i?'tab "
+        "active':'tab'});"
+        "document.querySelectorAll('.t').forEach(function(t,j){t.className=j==i?'t active':'t'});"
         "sv.style.display=i==2?'none':'block';"
         "pf.style.display=i==2?'block':'none'}"
-        "</script></body></html>");
+        "</script></body></html>",
+        PROXY_HOST, PROXY_PORT);
 
     debug(DEBUG, "Generated HTML page: %d bytes (buffer size: %d)", pos,
           (int)sizeof(config_html_buf));

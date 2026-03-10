@@ -512,24 +512,20 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                             }
                             if (crypto) config.crypto = crypto;
 
-                            // Parse stock checkboxes
-                            uint16_t stocks = 0;
-                            for (int i = 0; i < STK_COUNT; i++)
-                            {
-                                char key[20];
-                                snprintf(key, sizeof(key), "name=\"stk_%d\"", i);
-                                if (strstr(body, key)) stocks |= (1 << i);
-                            }
-                            if (stocks) config.stocks = stocks;
-
                             debug(INFO,
                                   "Upload - Brightness: %d%%, Location: %d, Currency: %d, Mode: %d, "
-                                  "Crypto: 0x%04X, Stocks: 0x%04X",
+                                  "Crypto: 0x%04X",
                                   config.brightness, config.location, config.currency,
-                                  config.portfolio_mode, config.crypto, config.stocks);
+                                  config.portfolio_mode, config.crypto);
 
                             if (parse_csv_portfolio(csv_data, &config))
                             {
+                                // Enable all portfolio tickers for stocks display
+                                config.stocks = (config.portfolio_count > 0)
+                                    ? ((1ULL << config.portfolio_count) - 1)
+                                    : 0;
+                                // Clear manual tickers since portfolio is the source
+                                config.stock_ticker_count = 0;
                                 flash_memory_write(&config);
                                 portfolio_parse_failed = false;
 
@@ -591,20 +587,78 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             }
             config.crypto = crypto ? crypto : DEFAULT_CRYPTO;
 
-            uint16_t stocks = 0;
-            for (int i = 0; i < STK_COUNT; i++)
+            // Parse stock tickers — either portfolio checkboxes (stk_N) or manual tickers (stk_t_N)
+            bool has_manual_tickers = (strstr(body, "stk_t_") != NULL);
+
+            if (has_manual_tickers)
             {
-                char key[8];
-                snprintf(key, sizeof(key), "stk_%d=", i);
-                if (strstr(body, key)) stocks |= (1 << i);
+                // Manual ticker mode: parse stk_t_0=AAPL&stk_t_1=TSLA...
+                config.stock_ticker_count = 0;
+                for (int i = 0; i < 10; i++)
+                {
+                    char key[12];
+                    snprintf(key, sizeof(key), "stk_t_%d=", i);
+                    const char* found = strstr(body, key);
+                    if (found)
+                    {
+                        found += strlen(key);
+                        const char* end = strchr(found, '&');
+                        if (!end) end = found + strlen(found);
+                        size_t ticker_len = end - found;
+                        if (ticker_len > 0 && ticker_len < 10)
+                        {
+                            // URL-decode the ticker value
+                            char raw[10] = {0};
+                            strncpy(raw, found, ticker_len);
+                            raw[ticker_len] = '\0';
+                            // Strip surrounding quotes if present
+                            char* start = raw;
+                            size_t len = strlen(start);
+                            if (len >= 2 && start[0] == '"' && start[len - 1] == '"')
+                            {
+                                start[len - 1] = '\0';
+                                start++;
+                            }
+                            // URL decode %22 (double quote) artifacts
+                            char decoded[10] = {0};
+                            url_decode(decoded, start, sizeof(decoded));
+                            if (decoded[0] != '\0')
+                            {
+                                strncpy(config.stock_tickers[config.stock_ticker_count], decoded,
+                                        10);
+                                config.stock_ticker_count++;
+                                debug(DEBUG, "Parsed manual ticker %d: %s",
+                                      config.stock_ticker_count - 1, decoded);
+                            }
+                        }
+                    }
+                }
+                // Enable all manual tickers
+                config.stocks =
+                    config.stock_ticker_count > 0
+                        ? ((1ULL << config.stock_ticker_count) - 1)
+                        : 0;
             }
-            config.stocks = stocks ? stocks : DEFAULT_STOCKS;
+            else
+            {
+                // Portfolio checkbox mode: parse stk_N=1 bitmask
+                uint64_t stocks = 0;
+                int max_stk = (config.portfolio_count > 0) ? config.portfolio_count : 10;
+                if (max_stk > 50) max_stk = 50;
+                for (int i = 0; i < max_stk; i++)
+                {
+                    char key[12];
+                    snprintf(key, sizeof(key), "stk_%d=", i);
+                    if (strstr(body, key)) stocks |= (1ULL << i);
+                }
+                config.stocks = stocks;
+            }
 
             debug(INFO,
                   "Parsed config - Brightness: %d%%, Location: %d, Currency: %d, Crypto: 0x%04X, "
-                  "Stocks: 0x%04X",
+                  "Stocks: 0x%llX, ManualTickers: %d",
                   config.brightness, config.location, config.currency, config.crypto,
-                  config.stocks);
+                  (unsigned long long)config.stocks, config.stock_ticker_count);
 
             flash_memory_write(&config);
             matrix_set_brightness(config.brightness);
@@ -683,14 +737,15 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
         return ERR_OK;
     }
-    else if (strncmp(request, "GET /tickers", 12) == 0)
+    else if (strncmp(request, "GET /watchlist", 14) == 0 ||
+             strncmp(request, "GET /tickers", 12) == 0)
     {
         device_config_t config;
         flash_memory_read(&config);
-        const char* page = html_build_config_page(&config, "tickers");
+        const char* page = html_build_config_page(&config, "watchlist");
         size_t page_len = strlen(page);
 
-        debug(DEBUG, "Sending tickers page: %zu bytes", page_len);
+        debug(DEBUG, "Sending watchlist page: %zu bytes", page_len);
 
         err_t err = http_send_data(pcb, page, page_len, state);
         if (err != ERR_OK)
