@@ -30,4 +30,6 @@ void stock_set_enabled_mask(uint64_t mask);
 void stock_display(Matrix* mtrx, int* offset);
 void stock_cleanup(void);
 
+void stock_validate_pending_ticker(Matrix* mtrx);
+
 #endif  // STOCK_H

@@ -28,6 +28,10 @@ static bool credentials_saved = false;
 static bool config_saved = false;
 static bool portfolio_parse_failed = false;
 
+// Ticker validation state: 0=idle, 1=pending, 2=valid, 3=invalid
+static int8_t g_validation_state = 0;
+static char g_pending_ticker[10] = {0};
+
 typedef struct
 {
     char buffer[8192];
@@ -507,7 +511,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                             for (int i = 0; i < CRYPTO_COUNT; i++)
                             {
                                 char key[20];
-                                snprintf(key, sizeof(key), "name=\"crypto_%d\"", i);
+                                snprintf(key, sizeof(key), "name=\"c%d\"", i);
                                 if (strstr(body, key)) crypto |= (1 << i);
                             }
                             if (crypto) config.crypto = crypto;
@@ -520,10 +524,13 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
                             if (parse_csv_portfolio(csv_data, &config))
                             {
-                                // Enable all portfolio tickers for stocks display
-                                config.stocks = (config.portfolio_count > 0)
-                                    ? ((1ULL << config.portfolio_count) - 1)
-                                    : 0;
+                                // Default first 10 portfolio tickers enabled
+                                {
+                                    int default_count =
+                                        config.portfolio_count < 10 ? config.portfolio_count : 10;
+                                    config.stocks =
+                                        default_count > 0 ? ((1ULL << default_count) - 1) : 0;
+                                }
                                 // Clear manual tickers since portfolio is the source
                                 config.stock_ticker_count = 0;
                                 flash_memory_write(&config);
@@ -582,73 +589,20 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             for (int i = 0; i < CRYPTO_COUNT; i++)
             {
                 char key[12];
-                snprintf(key, sizeof(key), "crypto_%d=", i);
+                snprintf(key, sizeof(key), "c%d=", i);
                 if (strstr(body, key)) crypto |= (1 << i);
             }
             config.crypto = crypto ? crypto : DEFAULT_CRYPTO;
 
-            // Parse stock tickers — either portfolio checkboxes (stk_N) or manual tickers (stk_t_N)
-            bool has_manual_tickers = (strstr(body, "stk_t_") != NULL);
-
-            if (has_manual_tickers)
+            // Parse stock checkboxes (sN=on) for portfolio users
+            // Manual tickers are managed via /add-ticker and /remove-ticker endpoints
+            if (config.portfolio_count > 0)
             {
-                // Manual ticker mode: parse stk_t_0=AAPL&stk_t_1=TSLA...
-                config.stock_ticker_count = 0;
-                for (int i = 0; i < 10; i++)
-                {
-                    char key[12];
-                    snprintf(key, sizeof(key), "stk_t_%d=", i);
-                    const char* found = strstr(body, key);
-                    if (found)
-                    {
-                        found += strlen(key);
-                        const char* end = strchr(found, '&');
-                        if (!end) end = found + strlen(found);
-                        size_t ticker_len = end - found;
-                        if (ticker_len > 0 && ticker_len < 10)
-                        {
-                            // URL-decode the ticker value
-                            char raw[10] = {0};
-                            strncpy(raw, found, ticker_len);
-                            raw[ticker_len] = '\0';
-                            // Strip surrounding quotes if present
-                            char* start = raw;
-                            size_t len = strlen(start);
-                            if (len >= 2 && start[0] == '"' && start[len - 1] == '"')
-                            {
-                                start[len - 1] = '\0';
-                                start++;
-                            }
-                            // URL decode %22 (double quote) artifacts
-                            char decoded[10] = {0};
-                            url_decode(decoded, start, sizeof(decoded));
-                            if (decoded[0] != '\0')
-                            {
-                                strncpy(config.stock_tickers[config.stock_ticker_count], decoded,
-                                        10);
-                                config.stock_ticker_count++;
-                                debug(DEBUG, "Parsed manual ticker %d: %s",
-                                      config.stock_ticker_count - 1, decoded);
-                            }
-                        }
-                    }
-                }
-                // Enable all manual tickers
-                config.stocks =
-                    config.stock_ticker_count > 0
-                        ? ((1ULL << config.stock_ticker_count) - 1)
-                        : 0;
-            }
-            else
-            {
-                // Portfolio checkbox mode: parse stk_N=1 bitmask
                 uint64_t stocks = 0;
-                int max_stk = (config.portfolio_count > 0) ? config.portfolio_count : 10;
-                if (max_stk > 50) max_stk = 50;
-                for (int i = 0; i < max_stk; i++)
+                for (int i = 0; i < config.portfolio_count && i < 50; i++)
                 {
                     char key[12];
-                    snprintf(key, sizeof(key), "stk_%d=", i);
+                    snprintf(key, sizeof(key), "s%d=", i);
                     if (strstr(body, key)) stocks |= (1ULL << i);
                 }
                 config.stocks = stocks;
@@ -656,9 +610,9 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
             debug(INFO,
                   "Parsed config - Brightness: %d%%, Location: %d, Currency: %d, Crypto: 0x%04X, "
-                  "Stocks: 0x%llX, ManualTickers: %d",
+                  "Stocks: 0x%llX",
                   config.brightness, config.location, config.currency, config.crypto,
-                  (unsigned long long)config.stocks, config.stock_ticker_count);
+                  (unsigned long long)config.stocks);
 
             flash_memory_write(&config);
             matrix_set_brightness(config.brightness);
@@ -792,6 +746,159 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         debug(DEBUG, "Portfolio page sent successfully");
         return ERR_OK;
     }
+    else if (strncmp(request, "GET /add-ticker", 15) == 0)
+    {
+        // Parse ticker from query string: /add-ticker?t=AAPL
+        char ticker[10] = {0};
+        const char* t_param = strstr(request, "?t=");
+        if (t_param)
+        {
+            t_param += 3;
+            const char* end = t_param;
+            while (*end && *end != ' ' && *end != '&' && *end != '\r' && (end - t_param) < 9)
+            {
+                end++;
+            }
+            size_t len = end - t_param;
+            if (len > 0 && len < 10)
+            {
+                strncpy(ticker, t_param, len);
+                ticker[len] = '\0';
+            }
+        }
+
+        if (ticker[0] != '\0')
+        {
+            // Check max limit
+            device_config_t config;
+            flash_memory_read(&config);
+            if (config.stock_ticker_count >= 10)
+            {
+                const char* page = html_build_ticker_error_page("MAX 10 TICKERS");
+                tcp_write(pcb, page, strlen(page), 0);
+            }
+            else
+            {
+                // Check for duplicate
+                bool duplicate = false;
+                for (int i = 0; i < config.stock_ticker_count; i++)
+                {
+                    if (strncmp(config.stock_tickers[i], ticker, 10) == 0)
+                    {
+                        duplicate = true;
+                        break;
+                    }
+                }
+
+                if (duplicate)
+                {
+                    const char* response =
+                        "HTTP/1.1 302 Found\r\nLocation: /watchlist\r\nConnection: close\r\n\r\n";
+                    tcp_write(pcb, response, strlen(response), 0);
+                }
+                else
+                {
+                    // Store pending ticker and start validation
+                    strncpy(g_pending_ticker, ticker, sizeof(g_pending_ticker));
+                    g_validation_state = 1;
+
+                    debug(INFO, "Ticker validation requested: %s", ticker);
+
+                    const char* page = html_build_ticker_checking_page(ticker);
+                    tcp_write(pcb, page, strlen(page), 0);
+                }
+            }
+        }
+        else
+        {
+            const char* response =
+                "HTTP/1.1 302 Found\r\nLocation: /watchlist\r\nConnection: close\r\n\r\n";
+            tcp_write(pcb, response, strlen(response), 0);
+        }
+
+        tcp_output(pcb);
+        tcp_sent(pcb, http_sent_callback);
+        return ERR_OK;
+    }
+    else if (strncmp(request, "GET /ticker-result", 18) == 0)
+    {
+        if (g_validation_state == 2)
+        {
+            // Valid — save ticker to config and redirect to watchlist
+            device_config_t config;
+            flash_memory_read(&config);
+
+            if (config.stock_ticker_count < 10)
+            {
+                strncpy(config.stock_tickers[config.stock_ticker_count], g_pending_ticker, 10);
+                config.stock_ticker_count++;
+                config.stocks = (1ULL << config.stock_ticker_count) - 1;
+                flash_memory_write(&config);
+                debug(INFO, "Ticker %s validated and saved (total: %d)", g_pending_ticker,
+                      config.stock_ticker_count);
+            }
+
+            g_validation_state = 0;
+            g_pending_ticker[0] = '\0';
+
+            const char* response =
+                "HTTP/1.1 302 Found\r\nLocation: /watchlist\r\nConnection: close\r\n\r\n";
+            tcp_write(pcb, response, strlen(response), 0);
+        }
+        else if (g_validation_state == 3)
+        {
+            // Invalid
+            const char* page = html_build_ticker_error_page(g_pending_ticker);
+            tcp_write(pcb, page, strlen(page), 0);
+
+            g_validation_state = 0;
+            g_pending_ticker[0] = '\0';
+        }
+        else
+        {
+            // Still pending — tell browser to retry
+            const char* page = html_get_ticker_still_checking();
+            tcp_write(pcb, page, strlen(page), 0);
+        }
+
+        tcp_output(pcb);
+        tcp_sent(pcb, http_sent_callback);
+        return ERR_OK;
+    }
+    else if (strncmp(request, "GET /remove-ticker", 18) == 0)
+    {
+        // Parse index from query string: /remove-ticker?i=2
+        const char* i_param = strstr(request, "?i=");
+        if (i_param)
+        {
+            int idx = atoi(i_param + 3);
+            device_config_t config;
+            flash_memory_read(&config);
+
+            if (idx >= 0 && idx < config.stock_ticker_count)
+            {
+                debug(INFO, "Removing ticker %d: %s", idx, config.stock_tickers[idx]);
+
+                // Shift remaining tickers down
+                for (int i = idx; i < config.stock_ticker_count - 1; i++)
+                {
+                    strncpy(config.stock_tickers[i], config.stock_tickers[i + 1], 10);
+                }
+                config.stock_ticker_count--;
+                config.stocks = config.stock_ticker_count > 0
+                                    ? ((1ULL << config.stock_ticker_count) - 1)
+                                    : 0;
+                flash_memory_write(&config);
+            }
+        }
+
+        const char* response =
+            "HTTP/1.1 302 Found\r\nLocation: /watchlist\r\nConnection: close\r\n\r\n";
+        tcp_write(pcb, response, strlen(response), 0);
+        tcp_output(pcb);
+        tcp_sent(pcb, http_sent_callback);
+        return ERR_OK;
+    }
     else
     {
         tcp_write(pcb, html_get_wifi_form(), strlen(html_get_wifi_form()), 0);
@@ -835,6 +942,8 @@ void http_server_start(void)
     credentials_saved = false;
     config_saved = false;
     portfolio_parse_failed = false;
+    g_validation_state = 0;
+    g_pending_ticker[0] = '\0';
 
     http_pcb = tcp_new();
     if (!http_pcb)
@@ -873,3 +982,9 @@ bool http_server_credentials_saved(void) { return credentials_saved; }
 bool http_server_config_saved(void) { return config_saved; }
 
 bool http_server_portfolio_parse_failed(void) { return portfolio_parse_failed; }
+
+bool http_server_has_pending_validation(void) { return g_validation_state == 1; }
+
+const char* http_server_get_pending_ticker(void) { return g_pending_ticker; }
+
+void http_server_set_validation_result(bool valid) { g_validation_state = valid ? 2 : 3; }

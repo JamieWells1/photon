@@ -358,6 +358,40 @@ void stock_display(Matrix* mtrx, int* offset)
     }
 }
 
+static void validation_response_callback(const char* body, size_t len, bool complete)
+{
+    if (!complete) return;
+
+    bool valid = false;
+    if (body && len > 0)
+    {
+        float price = parse_price_from_json_array(body, "\"c\":");
+        valid = (price > 0.0f);
+    }
+
+    http_server_set_validation_result(valid);
+    debug(INFO, "Ticker validation result: %s", valid ? "valid" : "invalid");
+}
+
+void stock_validate_pending_ticker(Matrix* mtrx)
+{
+    const char* ticker = http_server_get_pending_ticker();
+    if (!ticker || ticker[0] == '\0') return;
+
+    char path[256];
+    snprintf(path, sizeof(path), "/stocks/%s", ticker);
+
+    debug(INFO, "Validating ticker %s via proxy", ticker);
+
+    uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
+    ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, validation_response_callback, mtrx);
+    if (RC_FAILED(rc))
+    {
+        debug(ERROR, "Ticker validation request failed for %s: %s", ticker, rc_to_string(rc));
+        http_server_set_validation_result(false);
+    }
+}
+
 void stock_cleanup(void)
 {
     if (g_server_started)

@@ -14,4 +14,8 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
 const char* html_get_portfolio_success(void);
 const char* html_get_portfolio_error(void);
 
+const char* html_build_ticker_checking_page(const char* ticker);
+const char* html_build_ticker_error_page(const char* ticker);
+const char* html_get_ticker_still_checking(void);
+
 #endif  // HTML_H

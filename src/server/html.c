@@ -97,6 +97,7 @@ static const char* html_portfolio_error =
     "Failed to parse CSV";
 
 static char config_html_buf[16384];
+static char ticker_page_buf[512];
 
 const char* html_get_wifi_form(void) { return html_wifi_form; }
 
@@ -106,49 +107,83 @@ const char* html_get_portfolio_success(void) { return html_portfolio_success; }
 
 const char* html_get_portfolio_error(void) { return html_portfolio_error; }
 
+const char* html_build_ticker_checking_page(const char* ticker)
+{
+    snprintf(ticker_page_buf, sizeof(ticker_page_buf),
+             "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n"
+             "<!DOCTYPE html><html><head>"
+             "<meta name=viewport content=width=device-width>"
+             "<meta http-equiv=refresh content=5;url=/ticker-result>"
+             "<title>Checking</title>"
+             "<style>body{font:16px sans-serif;background:#4A90E2;color:#fff;"
+             "display:flex;justify-content:center;align-items:center;height:100vh;margin:0}"
+             "</style></head><body>Checking %s...</body></html>",
+             ticker);
+    return ticker_page_buf;
+}
+
+const char* html_build_ticker_error_page(const char* ticker)
+{
+    snprintf(ticker_page_buf, sizeof(ticker_page_buf),
+             "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n"
+             "<!DOCTYPE html><html><head>"
+             "<meta name=viewport content=width=device-width>"
+             "<title>Error</title>"
+             "<style>body{font:16px sans-serif;background:#4A90E2;color:#fff;"
+             "display:flex;flex-direction:column;justify-content:center;align-items:center;"
+             "height:100vh;margin:0}a{color:#fff;margin-top:20px}</style>"
+             "</head><body>ticker not recognised : %s"
+             "<a href=/watchlist>Back</a></body></html>",
+             ticker);
+    return ticker_page_buf;
+}
+
+static const char* html_ticker_still_checking =
+    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n"
+    "<!DOCTYPE html><html><head>"
+    "<meta name=viewport content=width=device-width>"
+    "<meta http-equiv=refresh content=2;url=/ticker-result>"
+    "<title>Checking</title>"
+    "<style>body{font:16px sans-serif;background:#4A90E2;color:#fff;"
+    "display:flex;justify-content:center;align-items:center;height:100vh;margin:0}"
+    "</style></head><body>Still checking...</body></html>";
+
+const char* html_get_ticker_still_checking(void) { return html_ticker_still_checking; }
+
 const char* html_build_config_page(const device_config_t* config, const char* active_tab)
 {
     int pos = 0;
 
     // HTTP headers + minimal HTML/CSS start
-    pos +=
-        snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                 "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n"
-                 "<!DOCTYPE html><html><head><meta name=viewport content=width=device-width>"
-                 "<title>Photon</title><style>"
-                 "body{background:#4A90E2;margin:0;padding:10px;font:14px sans-serif}"
-                 ".c{background:#fff;padding:15px;max-width:400px;margin:0 auto}"
-                 "h1{margin:0 0 10px;font-size:20px}"
-                 ".tabs{display:flex;border-bottom:1px solid #ddd}"
-                 ".tab{flex:1;padding:8px;text-align:center;cursor:pointer;border:none;background:"
-                 "none;color:#888}"
-                 ".tab.active{color:#4A90E2;border-bottom:2px solid #4A90E2}"
-                 ".t{display:none}.t.active{display:block}"
-                 "label{display:block;margin:10px 0 3px}"
-                 "input,select{width:100%%;padding:6px;border:1px solid #ddd;box-sizing:border-box}"
-                 "button{width:100%%;background:#4A90E2;color:#fff;border:none;padding:10px;cursor:"
-                 "pointer;margin-top:10px}"
-                 ".g{display:grid;grid-template-columns:1fr 1fr;gap:5px}"
-                 ".g label{margin:0}.g input{width:auto}"
-                 ".tl{list-style:none;padding:0;margin:5px 0}"
-                 ".tl li{display:flex;justify-content:space-between;align-items:center;padding:4px "
-                 "0;border-bottom:1px solid #eee}"
-                 ".tl .rm{color:#e74c3c;cursor:pointer;border:none;background:none;font-size:16px;"
-                 "padding:0 4px}"
-                 ".row{display:flex;gap:5px}.row input{flex:1}.row button{width:auto;margin:0;"
-                 "padding:6px 12px}"
-                 ".err{color:#e74c3c;font-size:12px;margin:3px 0;display:none}"
-                 "</style></head><body><div class=c><h1>Photon</h1>"
-                 "<div class=tabs>"
-                 "<button class=\"tab%s\" onclick=s(0)>Device</button>"
-                 "<button class=\"tab%s\" onclick=s(1)>Watchlist</button>"
-                 "<button class=\"tab%s\" onclick=s(2)>Portfolio</button>"
-                 "</div><form method=POST action=/save-config>",
-                 strcmp(active_tab, "device") == 0 ? " active" : "",
-                 strcmp(active_tab, "watchlist") == 0 || strcmp(active_tab, "tickers") == 0
-                     ? " active"
-                     : "",
-                 strcmp(active_tab, "portfolio") == 0 ? " active" : "");
+    pos += snprintf(
+        config_html_buf + pos, sizeof(config_html_buf) - pos,
+        "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n"
+        "<!DOCTYPE html><html><head><meta name=viewport content=width=device-width>"
+        "<title>Photon</title><style>"
+        "*{box-sizing:border-box;margin:0}body{background:#4A90E2;padding:10px;font:14px sans-serif}"
+        ".c{background:#fff;padding:12px;max-width:400px;margin:0 auto}"
+        "h1{margin:0 0 8px;font-size:20px}"
+        ".tabs{display:flex;border-bottom:1px solid #ddd}"
+        ".tab{flex:1;padding:6px;text-align:center;cursor:pointer;border:none;background:none}"
+        ".tab.a{color:#4A90E2;border-bottom:2px solid #4A90E2}"
+        ".t{display:none}.t.a{display:block}"
+        "label{display:block;margin:8px 0 2px}"
+        "input,select{width:100%%;padding:5px;border:1px solid #ddd}"
+        "button{width:100%%;background:#4A90E2;color:#fff;border:none;padding:8px;margin-top:8px}"
+        ".g{display:grid;grid-template-columns:1fr 1fr;gap:4px}"
+        ".g label{margin:0}.g input{width:auto}"
+        ".tl{list-style:none;padding:0}.tl li{display:flex;justify-content:space-between;padding:3px 0}"
+        ".rm{color:red;text-decoration:none}"
+        ".row{display:flex;gap:4px}.row input{flex:1}.row button{width:auto;margin:0;padding:5px 10px}"
+        "</style></head><body><div class=c><h1>Photon</h1>"
+        "<div class=tabs>"
+        "<button class=\"tab%s\" onclick=s(0)>Device</button>"
+        "<button class=\"tab%s\" onclick=s(1)>Watchlist</button>"
+        "<button class=\"tab%s\" onclick=s(2)>Portfolio</button>"
+        "</div><form method=POST action=/save-config>",
+        strcmp(active_tab, "device") == 0 ? " a" : "",
+        strcmp(active_tab, "watchlist") == 0 || strcmp(active_tab, "tickers") == 0 ? " a" : "",
+        strcmp(active_tab, "portfolio") == 0 ? " a" : "");
 
     // Device tab
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
@@ -156,7 +191,7 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                     "<label>Bright: <span id=v>%d%%</span></label>"
                     "<input type=range name=brightness min=1 max=20 value=%d "
                     "oninput=v.textContent=this.value+'%%'>",
-                    strcmp(active_tab, "device") == 0 ? " active" : "", config->brightness,
+                    strcmp(active_tab, "device") == 0 ? " a" : "", config->brightness,
                     config->brightness);
 
     // Location select
@@ -182,51 +217,65 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</select></div>");
 
     // Watchlist tab
-    bool watchlist_active = (strcmp(active_tab, "watchlist") == 0 ||
-                             strcmp(active_tab, "tickers") == 0);
+    bool watchlist_active =
+        (strcmp(active_tab, "watchlist") == 0 || strcmp(active_tab, "tickers") == 0);
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                    "<div class=\"t%s\" id=t1>",
-                    watchlist_active ? " active" : "");
+                    "<div class=\"t%s\" id=t1>", watchlist_active ? " a" : "");
 
     // Stocks section
     if (config->portfolio_count > 0)
     {
-        // Portfolio user: show portfolio tickers as checkboxes
-        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<label>Stocks (%d from portfolio)</label><div class=g>",
-                        config->portfolio_count);
-        for (int i = 0; i < config->portfolio_count && i < 50; i++)
+        // Portfolio user: show all tickers as checkboxes, max 10 selected
+        int checked_count = 0;
+        for (int i = 0; i < config->portfolio_count && i < MAX_STOCK_TICKERS; i++)
         {
+            if (config->stocks & (1ULL << i)) checked_count++;
+        }
+
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                        "<label>Stocks <span id=sc>(%d/10)</span></label>"
+                        "<div class=g id=sg onchange=ck()>",
+                        checked_count);
+        for (int i = 0; i < config->portfolio_count && i < MAX_STOCK_TICKERS; i++)
+        {
+            bool checked = (config->stocks & (1ULL << i)) != 0;
+            bool disabled = !checked && checked_count >= 10;
             pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                            "<label><input type=checkbox name=stk_%d value=1%s>%s</label>", i,
-                            (config->stocks & (1ULL << i)) ? " checked" : "",
+                            "<label><input type=checkbox name=s%d%s%s>%s</label>",
+                            i, checked ? " checked" : "", disabled ? " disabled" : "",
                             config->portfolio_tickers[i]);
         }
         pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div>");
     }
     else
     {
-        // Non-portfolio user: show manual ticker input
+        // No portfolio: show message + upload button + manual ticker input
         pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<label>Stocks</label>"
+                        "<p style=color:#888;margin:8px 0>No portfolio uploaded</p>"
+                        "<button type=button onclick=s(2)>Upload Portfolio</button>"
+                        "<label>Or add manually</label>"
                         "<div class=row>"
                         "<input type=text id=ti placeholder=\"e.g. AAPL\" maxlength=9>"
-                        "<button type=button onclick=addTicker()>Add</button>"
+                        "<button type=button onclick=\"var t=ti.value.trim().toUpperCase();"
+                        "if(t)window.location='/add-ticker?t='+encodeURIComponent(t)\">Add</button>"
                         "</div>"
-                        "<p class=err id=te></p>"
-                        "<ul class=tl id=sl>");
+                        "<ul class=tl>");
 
-        // Render existing manual tickers
         for (int i = 0; i < config->stock_ticker_count && i < 10; i++)
         {
-            pos += snprintf(
-                config_html_buf + pos, sizeof(config_html_buf) - pos,
-                "<li><span>%s</span><input type=hidden name=stk_t_%d value=\"%s\">"
-                "<button type=button class=rm onclick=rmTicker(this)>X</button></li>",
-                config->stock_tickers[i], i, config->stock_tickers[i]);
+            pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                            "<li><span>%s</span>"
+                            "<a href=\"/remove-ticker?i=%d\" class=rm>X</a></li>",
+                            config->stock_tickers[i], i);
         }
 
         pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</ul>");
+
+        if (config->stock_ticker_count >= 10)
+        {
+            pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                            "<p style=font-size:11px;color:#888>Max 10 tickers</p>");
+        }
     }
 
     // Crypto section (unchanged)
@@ -235,7 +284,7 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
     for (int i = 0; i < CRYPTO_COUNT; i++)
     {
         pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<label><input type=checkbox name=crypto_%d value=1%s>%s</label>", i,
+                        "<label><input type=checkbox name=c%d%s>%s</label>", i,
                         (config->crypto & (1 << i)) ? " checked" : "", CRYPTO_ARR[i].to_str);
     }
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div></div>");
@@ -244,7 +293,7 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                     "<div class=\"t%s\" id=t2><label>Portfolio</label>"
                     "<p style=color:#888;font-size:12px>T212 CSV</p>",
-                    strcmp(active_tab, "portfolio") == 0 ? " active" : "");
+                    strcmp(active_tab, "portfolio") == 0 ? " a" : "");
 
     if (config->portfolio_count > 0)
     {
@@ -280,52 +329,25 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
     pos += snprintf(
         config_html_buf + pos, sizeof(config_html_buf) - pos,
         "</div><script>"
-        "var px='http://%s:%s';"
-        "function addTicker(){"
-        "var t=ti.value.trim().toUpperCase();"
-        "if(!t)return;"
-        "var n=sl.querySelectorAll('li').length;"
-        "if(n>=10){te.textContent='Max 10 tickers';te.style.display='block';return}"
-        "ti.disabled=true;"
-        "te.style.display='none';"
-        "var c=new AbortController();"
-        "var tm=setTimeout(function(){c.abort()},3000);"
-        "fetch(px+'/stocks/'+t,{signal:c.signal})"
-        ".then(function(r){clearTimeout(tm);ti.disabled=false;"
-        "if(r.ok){"
-        "var li=document.createElement('li');"
-        "li.innerHTML='<span>'+t+'</span>"
-        "<input type=hidden name=stk_t_'+n+' value=\"'+t+'\">"
-        "<button type=button class=rm onclick=rmTicker(this)>X</button>';"
-        "sl.appendChild(li);ti.value='';te.style.display='none'}"
-        "else{te.textContent='ticker not recognised : '+t;te.style.display='block'}})"
-        ".catch(function(){clearTimeout(tm);ti.disabled=false;"
-        "te.textContent='validation failed - check connection';te.style.display='block'})}"
-        "function rmTicker(b){b.parentElement.remove();"
-        "sl.querySelectorAll('input[type=hidden]').forEach(function(e,i){"
-        "e.name='stk_t_'+i})}"
+        "function q(s){return document.querySelectorAll(s)}"
+        "function ck(){"
+        "var n=q('#sg [type=checkbox]:checked').length;"
+        "q('#sg [type=checkbox]').forEach(function(e){if(!e.checked)e.disabled=n>=10});"
+        "var sc=document.getElementById('sc');if(sc)sc.textContent='('+n+'/10)'}"
         "function a(){"
-        "B.value=document.querySelector('[name=brightness]').value;"
-        "L.value=document.querySelector('[name=location]').value;"
-        "C.value=document.querySelector('[name=currency]').value;"
+        "B.value=q('[name=brightness]')[0].value;"
+        "L.value=q('[name=location]')[0].value;"
+        "C.value=q('[name=currency]')[0].value;"
         "K.innerHTML='';"
-        "document.querySelectorAll('[name^=crypto_]:checked').forEach(function(e){"
-        "var "
-        "h=document.createElement('input');h.type='hidden';h.name=e.name;h.value='1';K.appendChild("
-        "h)});"
-        "document.querySelectorAll('[name^=stk_]:checked').forEach(function(e){"
-        "var "
-        "h=document.createElement('input');h.type='hidden';h.name=e.name;h.value='1';K.appendChild("
-        "h)});"
-        "return true}"
+        "q('[name^=c]:checked,[name^=s]:checked').forEach(function(e){"
+        "var h=document.createElement('input');h.type='hidden';h.name=e.name;h.value='1';"
+        "K.appendChild(h)});return true}"
         "function s(i){"
-        "document.querySelectorAll('.tab').forEach(function(t,j){t.className=j==i?'tab "
-        "active':'tab'});"
-        "document.querySelectorAll('.t').forEach(function(t,j){t.className=j==i?'t active':'t'});"
+        "q('.tab').forEach(function(t,j){t.className=j==i?'tab a':'tab'});"
+        "q('.t').forEach(function(t,j){t.className=j==i?'t a':'t'});"
         "sv.style.display=i==2?'none':'block';"
         "pf.style.display=i==2?'block':'none'}"
-        "</script></body></html>",
-        PROXY_HOST, PROXY_PORT);
+        "</script></body></html>");
 
     debug(DEBUG, "Generated HTML page: %d bytes (buffer size: %d)", pos,
           (int)sizeof(config_html_buf));

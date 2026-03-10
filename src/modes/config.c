@@ -12,6 +12,7 @@
 #include <http_server.h>
 #include <macro.h>
 #include <matrix.h>
+#include <stock.h>
 #include <wifi.h>
 
 #include <stdio.h>
@@ -75,6 +76,13 @@ void config_display(Matrix* mtrx)
         debug(INFO, "  http://photon.local");
         debug(INFO, "  (or use IP address shown above)");
         debug(INFO, "======================================");
+    }
+
+    // Handle pending ticker validation (blocking http_get to proxy)
+    if (http_server_has_pending_validation())
+    {
+        stock_validate_pending_ticker(mtrx);
+        return;
     }
 
     const char* url_text = "    http://photon.local";
