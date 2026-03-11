@@ -8,7 +8,7 @@ High-performance async version with better concurrency
 """
 
 from fastapi import FastAPI, Request, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 import httpx
 import asyncio
 import logging
@@ -699,7 +699,11 @@ async def proxy_request(full_path: str, request: Request):
             status_code=400, detail=f"Host '{host}' not in allowed list"
         )
 
+    # Build URL with query parameters from original request
     https_url = f"https://{target_path}"
+    if request.url.query:
+        https_url = f"{https_url}?{request.url.query}"
+
     logger.info(f"Proxying: {path} -> {https_url}")
 
     try:
@@ -711,15 +715,11 @@ async def proxy_request(full_path: str, request: Request):
 
             logger.info(f"Proxied {len(response.content)} bytes to {client_ip}")
 
-            return JSONResponse(
-                content=(
-                    response.json()
-                    if response.headers.get("content-type", "").startswith(
-                        "application/json"
-                    )
-                    else response.text
-                ),
+            # Return raw response without parsing/re-serializing to preserve format
+            return Response(
+                content=response.content,
                 status_code=response.status_code,
+                headers=dict(response.headers),
             )
 
     except httpx.HTTPStatusError as e:
