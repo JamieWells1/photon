@@ -22,7 +22,10 @@ typedef struct
     uint8_t currency;
 
     uint16_t crypto;
-    uint16_t stocks;
+    uint64_t stocks;
+
+    uint8_t stock_ticker_count;
+    char stock_tickers[10][10];
 
     uint8_t portfolio_count;
     uint8_t portfolio_mode;

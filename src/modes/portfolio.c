@@ -53,7 +53,6 @@ static unsigned int g_ticker_to_fetch_index = 0;
 static int g_scroll_offset = 0;
 static int g_url_scroll_offset = 0;
 static PortfolioMetric g_current_metric = METRIC_PL_ABSOLUTE;
-static bool g_server_started = false;
 
 static void portfolio_response_callback(const char* body, size_t len, bool complete)
 {
@@ -71,6 +70,18 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
 
     debug(DEBUG, "Received portfolio response: %.*s", (int)len, body);
 
+    // Check if response contains an error
+    if (strstr(body, "\"error\""))
+    {
+        debug(ERROR, "Proxy returned error for portfolio ticker index %u: %.*s",
+              g_ticker_to_fetch_index, (int)len, body);
+        g_positions[g_ticker_to_fetch_index].current_price = -1.0f;
+        g_positions[g_ticker_to_fetch_index].prev_close = -1.0f;
+        uint64_t ms_until_retry = 60 * 1000;
+        g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
+        return;
+    }
+
     float current_price = parse_price_from_json_array(body, "\"c\":");
     float prev_close = parse_price_from_json_string(body, "\"o\":");
 
@@ -83,12 +94,27 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
         g_positions[g_ticker_to_fetch_index].prev_close = prev_close;
         g_data_fetched = true;
 
-        uint64_t ms_until_next_fetch = 15 * 60 * 1000;
+        // Throttle fetch interval based on portfolio size
+        uint64_t fetch_interval_minutes;
+        if (g_portfolio_count >= 30)
+        {
+            fetch_interval_minutes = 60;  // 1 hour for large portfolios (30+ tickers)
+        }
+        else if (g_portfolio_count >= 10)
+        {
+            fetch_interval_minutes = 30;  // 30 minutes for medium portfolios (10-29 tickers)
+        }
+        else
+        {
+            fetch_interval_minutes = 15;  // 15 minutes for small portfolios (<10 tickers)
+        }
+
+        uint64_t ms_until_next_fetch = fetch_interval_minutes * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
 
         debug(INFO, "Parsed %s price: current=%.2f, prev_close=%.2f",
               g_positions[g_ticker_to_fetch_index].ticker, current_price, prev_close);
-        debug(TRACE, "Next fetch scheduled in 15 minutes");
+        debug(TRACE, "Next fetch scheduled in %llu minutes", fetch_interval_minutes);
     }
     else
     {
@@ -128,6 +154,7 @@ static void portfolio_fetch_prices(Matrix* mtrx)
     }
 
     g_ticker_to_fetch_index = 0;
+    g_data_fetched = true;
     debug(INFO, "Portfolio fetch complete");
 }
 
@@ -168,7 +195,8 @@ static void portfolio_calculate_metrics(float* total_pl, float* total_pct, int* 
 
     for (uint8_t i = 0; i < g_portfolio_count; i++)
     {
-        if (g_positions[i].current_price == 0.0f) continue;
+        // Skip positions with no valid data (error response or not yet fetched)
+        if (g_positions[i].current_price <= 0.0f) continue;
 
         float baseline_price = daily_mode ? g_positions[i].prev_close : g_positions[i].avg_price;
 
@@ -210,26 +238,45 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
     const RGB* value_color = &DEFAULT_COLOUR;
     bool has_label = false;
 
+    // Check if all tickers are invalid (no valid positions)
+    bool all_invalid = (winner_idx == -1 && loser_idx == -1);
+
     switch (metric)
     {
         case METRIC_PL_ABSOLUTE:
-            snprintf(label_str, sizeof(label_str), "  P/L");
-            snprintf(value_str, sizeof(value_str), " %.2f", total_pl);
-            if (total_pl == 0.0f)
-                value_color = &DEFAULT_COLOUR;
+            if (all_invalid)
+            {
+                snprintf(value_str, sizeof(value_str), "NO DATA");
+                has_label = false;
+            }
             else
-                value_color = (total_pl > 0) ? &GREEN : &RED;
-            has_label = true;
+            {
+                snprintf(label_str, sizeof(label_str), "  P/L");
+                snprintf(value_str, sizeof(value_str), " %.2f", total_pl);
+                if (total_pl == 0.0f)
+                    value_color = &DEFAULT_COLOUR;
+                else
+                    value_color = (total_pl > 0) ? &GREEN : &RED;
+                has_label = true;
+            }
             break;
 
         case METRIC_PL_PERCENTAGE:
-            snprintf(label_str, sizeof(label_str), "  P/L");
-            snprintf(value_str, sizeof(value_str), " %.2f%%", total_pct);
-            if (total_pct == 0.0f)
-                value_color = &DEFAULT_COLOUR;
+            if (all_invalid)
+            {
+                snprintf(value_str, sizeof(value_str), "NO DATA");
+                has_label = false;
+            }
             else
-                value_color = (total_pct > 0) ? &GREEN : &RED;
-            has_label = true;
+            {
+                snprintf(label_str, sizeof(label_str), "  P/L");
+                snprintf(value_str, sizeof(value_str), " %.2f%%", total_pct);
+                if (total_pct == 0.0f)
+                    value_color = &DEFAULT_COLOUR;
+                else
+                    value_color = (total_pct > 0) ? &GREEN : &RED;
+                has_label = true;
+            }
             break;
 
         case METRIC_BIGGEST_WINNER:
@@ -238,7 +285,8 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
                 device_config_t config;
                 flash_memory_read(&config);
                 bool daily_mode = (config.portfolio_mode == 1);
-                float baseline = daily_mode ? g_positions[winner_idx].prev_close : g_positions[winner_idx].avg_price;
+                float baseline = daily_mode ? g_positions[winner_idx].prev_close
+                                            : g_positions[winner_idx].avg_price;
 
                 float cost = g_positions[winner_idx].quantity * baseline;
                 float current_value =
@@ -265,7 +313,8 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
                 device_config_t config;
                 flash_memory_read(&config);
                 bool daily_mode = (config.portfolio_mode == 1);
-                float baseline = daily_mode ? g_positions[loser_idx].prev_close : g_positions[loser_idx].avg_price;
+                float baseline = daily_mode ? g_positions[loser_idx].prev_close
+                                            : g_positions[loser_idx].avg_price;
 
                 float cost = g_positions[loser_idx].quantity * baseline;
                 float current_value =
@@ -287,13 +336,22 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
             break;
 
         case METRIC_TOTAL_VALUE:
-            snprintf(label_str, sizeof(label_str), "  TOTAL");
-            snprintf(value_str, sizeof(value_str), "%s%.2f %+.2f%%", currency_symbol, total_value, total_pct);
-            if (total_pct == 0.0f)
-                value_color = &DEFAULT_COLOUR;
+            if (all_invalid)
+            {
+                snprintf(value_str, sizeof(value_str), "NO DATA");
+                has_label = false;
+            }
             else
-                value_color = (total_pct > 0) ? &GREEN : &RED;
-            has_label = true;
+            {
+                snprintf(label_str, sizeof(label_str), "  TOTAL");
+                snprintf(value_str, sizeof(value_str), "%s%.2f %+.2f%%", currency_symbol,
+                         total_value, total_pct);
+                if (total_pct == 0.0f)
+                    value_color = &DEFAULT_COLOUR;
+                else
+                    value_color = (total_pct > 0) ? &GREEN : &RED;
+                has_label = true;
+            }
             break;
 
         default:
@@ -416,48 +474,10 @@ void portfolio_display(Matrix* mtrx, int* offset)
 
     if (g_portfolio_count == 0)
     {
-        if (!g_server_started)
-        {
-            if (!wifi_is_connected())
-            {
-                debug(INFO, "WiFi not connected, reconnecting for portfolio upload...");
-
-                device_config_t config;
-                if (!flash_memory_read(&config))
-                {
-                    debug(ERROR, "Failed to read WiFi config from flash");
-                    matrix_clear(mtrx);
-                    matrix_display_word_icon_pair("NO WIFI", &RED, &ICONS_ARR[WIFI], 0);
-                    matrix_show(mtrx);
-                    return;
-                }
-
-                ReturnCode rc = wifi_connect(config.ssid, config.password, mtrx);
-                if (RC_FAILED(rc))
-                {
-                    debug(ERROR, "Failed to reconnect WiFi for portfolio upload: %s",
-                          rc_to_string(rc));
-                    matrix_clear(mtrx);
-                    matrix_display_word_icon_pair("NO WIFI", &RED, &ICONS_ARR[WIFI], 0);
-                    matrix_show(mtrx);
-                    return;
-                }
-            }
-
-            wifi_start_mdns();
-            http_server_start();
-            g_server_started = true;
-            debug(INFO, "======================================");
-            debug(INFO, "PORTFOLIO UPLOAD MODE ACTIVE");
-            debug(INFO, "Web interface available at:");
-            debug(INFO, "  http://photon.local/portfolio");
-            debug(INFO, "======================================");
-        }
-
         if (http_server_portfolio_parse_failed())
         {
             matrix_clear(mtrx);
-            matrix_display_word("ERROR", 4, 1, &RED);
+            matrix_display_word("ERROR", 1, 1, &RED);
             matrix_show(mtrx);
         }
         else
@@ -471,8 +491,6 @@ void portfolio_display(Matrix* mtrx, int* offset)
                 g_url_scroll_offset = 0;
             }
         }
-
-        cyw43_arch_poll();
     }
     else if (g_data_fetched)
     {
@@ -481,7 +499,7 @@ void portfolio_display(Matrix* mtrx, int* offset)
     else
     {
         matrix_clear(mtrx);
-        matrix_display_word("LOADING", 4, 1, &DEFAULT_COLOUR);
+        matrix_display_word("LOADING", 1, 1, &DEFAULT_COLOUR);
         matrix_show(mtrx);
     }
 }
@@ -533,18 +551,11 @@ void portfolio_prev_metric(Matrix* mtrx)
 
 void portfolio_cleanup(void)
 {
-    if (g_server_started)
-    {
-        http_server_stop();
-        debug(INFO, "HTTP server stopped");
-    }
-
     g_data_fetched = false;
     g_next_fetch_time_ms = 0;
     g_ticker_to_fetch_index = 0;
     g_scroll_offset = 0;
     g_url_scroll_offset = 0;
     g_current_metric = METRIC_PL_ABSOLUTE;
-    g_server_started = false;
     debug(TRACE, "Portfolio cleanup called");
 }

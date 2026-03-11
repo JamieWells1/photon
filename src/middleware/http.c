@@ -315,7 +315,7 @@ ReturnCode http_get(const char* host_url, uint16_t port, const char* url_sub_pat
 
     while (!g_http_state->complete)
     {
-        if (display_frame_counter % 4 == 0)
+        if (display_frame_counter % 3 == 0)
         {
             http_display_status(mtrx, dot_counter);
             dot_counter++;

@@ -588,26 +588,26 @@ static const Pixel ICON_STOCKS_CANDLE[17] = {
 // =================
 
 static const Glyph ICONS_ARR[ICON_COUNT] = {
-    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},                    // 0: PHOTON
-    {ICON_STOCKS, ARRAY_SIZE(ICON_STOCKS), 5, 5},                    // 1: STOCKS
-    {ICON_TKR_UP, ARRAY_SIZE(ICON_TKR_UP), 5, 5},                    // 2: TKR_UP
-    {ICON_TKR_DOWN, ARRAY_SIZE(ICON_TKR_DOWN), 5, 5},                // 3: TKR_DOWN
-    {ICON_GAMES, ARRAY_SIZE(ICON_GAMES), 5, 5},                      // 4: GAMES
-    {ICON_TETRIS, ARRAY_SIZE(ICON_TETRIS), 5, 5},                    // 5: TETRIS
-    {ICON_SUNNY_CLOUDY, ARRAY_SIZE(ICON_SUNNY_CLOUDY), 5, 5},        // 6: WEATHER
-    {ICON_SUNNY, ARRAY_SIZE(ICON_SUNNY), 5, 5},                      // 7: SUNNY
-    {ICON_SUNNY_CLOUDY, ARRAY_SIZE(ICON_SUNNY_CLOUDY), 5, 5},        // 8: SUNNY_CLOUDY
-    {ICON_CLOUDY, ARRAY_SIZE(ICON_CLOUDY), 5, 5},                    // 9: CLOUDY
-    {ICON_RAIN, ARRAY_SIZE(ICON_RAIN), 5, 5},                        // 10: RAIN
-    {ICON_LIGHTNING, ARRAY_SIZE(ICON_LIGHTNING), 5, 5},              // 11: LIGHTNING
-    {ICON_SNOW, ARRAY_SIZE(ICON_SNOW), 5, 5},                        // 12: SNOW
-    {ICON_MOON, ARRAY_SIZE(ICON_MOON), 5, 5},                        // 13: MOON
-    {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                        // 14: WIFI
-    {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                        // 15: DATA
-    {ICON_POWER, ARRAY_SIZE(ICON_POWER), 5, 5},                      // 16: POWER
-    {ICON_CRYPTO, ARRAY_SIZE(ICON_CRYPTO), 5, 5},                    // 17: CRYPTO
-    {ICON_INVEST, ARRAY_SIZE(ICON_INVEST), 5, 5},                    // 18: INVEST
-    {ICON_STOCKS_CANDLE, ARRAY_SIZE(ICON_STOCKS_CANDLE), 5, 5},      // 19: STOCKS_CANDLE
+    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},                // 0: PHOTON
+    {ICON_STOCKS, ARRAY_SIZE(ICON_STOCKS), 5, 5},                // 1: STOCKS
+    {ICON_TKR_UP, ARRAY_SIZE(ICON_TKR_UP), 5, 5},                // 2: TKR_UP
+    {ICON_TKR_DOWN, ARRAY_SIZE(ICON_TKR_DOWN), 5, 5},            // 3: TKR_DOWN
+    {ICON_GAMES, ARRAY_SIZE(ICON_GAMES), 5, 5},                  // 4: GAMES
+    {ICON_TETRIS, ARRAY_SIZE(ICON_TETRIS), 5, 5},                // 5: TETRIS
+    {ICON_SUNNY_CLOUDY, ARRAY_SIZE(ICON_SUNNY_CLOUDY), 5, 5},    // 6: WEATHER
+    {ICON_SUNNY, ARRAY_SIZE(ICON_SUNNY), 5, 5},                  // 7: SUNNY
+    {ICON_SUNNY_CLOUDY, ARRAY_SIZE(ICON_SUNNY_CLOUDY), 5, 5},    // 8: SUNNY_CLOUDY
+    {ICON_CLOUDY, ARRAY_SIZE(ICON_CLOUDY), 5, 5},                // 9: CLOUDY
+    {ICON_RAIN, ARRAY_SIZE(ICON_RAIN), 5, 5},                    // 10: RAIN
+    {ICON_LIGHTNING, ARRAY_SIZE(ICON_LIGHTNING), 5, 5},          // 11: LIGHTNING
+    {ICON_SNOW, ARRAY_SIZE(ICON_SNOW), 5, 5},                    // 12: SNOW
+    {ICON_MOON, ARRAY_SIZE(ICON_MOON), 5, 5},                    // 13: MOON
+    {ICON_WIFI, ARRAY_SIZE(ICON_WIFI), 5, 5},                    // 14: WIFI
+    {ICON_DATA, ARRAY_SIZE(ICON_DATA), 5, 5},                    // 15: DATA
+    {ICON_POWER, ARRAY_SIZE(ICON_POWER), 5, 5},                  // 16: POWER
+    {ICON_CRYPTO, ARRAY_SIZE(ICON_CRYPTO), 5, 5},                // 17: CRYPTO
+    {ICON_INVEST, ARRAY_SIZE(ICON_INVEST), 5, 5},                // 18: INVEST
+    {ICON_STOCKS_CANDLE, ARRAY_SIZE(ICON_STOCKS_CANDLE), 5, 5},  // 19: STOCKS_CANDLE
 };
 
 #endif  // DISPLAYS_H

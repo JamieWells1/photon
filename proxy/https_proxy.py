@@ -108,7 +108,9 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 logger.warning(f"Blocked suspicious request: {path}")
                 return False, "Suspicious request pattern detected"
 
-        if REQUIRE_PROXY_PREFIX and not (path.startswith("/proxy/") or path.startswith("/stocks/")):
+        if REQUIRE_PROXY_PREFIX and not (
+            path.startswith("/proxy/") or path.startswith("/stocks/")
+        ):
             return False, "Path must start with /proxy/ or /stocks/"
 
         return True, None
@@ -179,11 +181,15 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
         rate = self.get_fx_rate(from_ccy, to_ccy)
         if rate is None:
-            logger.error(f"Cannot convert {from_ccy} to {to_ccy}, returning unconverted price")
+            logger.error(
+                f"Cannot convert {from_ccy} to {to_ccy}, returning unconverted price"
+            )
             return price
 
         converted = price * rate
-        logger.info(f"Converted {price:.4f} {from_ccy} -> {converted:.4f} {to_ccy} (rate: {rate:.6f})")
+        logger.info(
+            f"Converted {price:.4f} {from_ccy} -> {converted:.4f} {to_ccy} (rate: {rate:.6f})"
+        )
         return converted
 
     def handle_stock_request(self, client_ip):
@@ -194,34 +200,49 @@ class ProxyHandler(BaseHTTPRequestHandler):
         # LSE tickers that need .L suffix for Yahoo Finance
         LSE_TICKERS = {
             # Vanguard S&P 500 UCITS
-            "VUAG", "VUSA",
+            "VUAG",
+            "VUSA",
             # Vanguard Global/Regional
-            "VWRL", "VWRP", "VNRG", "VEUA", "VFEG", "VJPB", "VDPG",
+            "VWRL",
+            "VWRP",
+            "VNRG",
+            "VEUA",
+            "VFEG",
+            "VJPB",
+            "VDPG",
             # Vanguard Bond & Dividend
-            "VAGS", "VHYL", "VEVE",
+            "VAGS",
+            "VHYL",
+            "VEVE",
             # iShares Core (popular in Europe)
-            "IWDA", "SWDA", "CSPX", "EQQQ", "EMIM",
+            "IWDA",
+            "SWDA",
+            "CSPX",
+            "EQQQ",
+            "EMIM",
             # Sector ETFs
             "IITU",
             # UK/FTSE ETFs
-            "VUKE", "ISF", "IUKD",
+            "VUKE",
+            "ISF",
+            "IUKD",
         }
 
         parsed = urlparse(self.path)
         symbol = parsed.path[8:].upper()
         query_params = parse_qs(parsed.query)
-        target_currency = query_params.get('currency', [None])[0]
+        target_currency = query_params.get("currency", [None])[0]
 
         if target_currency:
             target_currency = target_currency.upper()
             logger.debug(f"Target currency requested: {target_currency}")
 
-        if not symbol or not re.match(r'^[A-Z0-9]+(\.[A-Z]+)?$', symbol):
+        if not symbol or not re.match(r"^[A-Z0-9]+(\.[A-Z]+)?$", symbol):
             self.send_json_response(400, {"error": "Invalid symbol"})
             return
 
         original_symbol = symbol
-        if symbol in LSE_TICKERS and not symbol.endswith('.L'):
+        if symbol in LSE_TICKERS and not symbol.endswith(".L"):
             symbol = f"{symbol}.L"
             logger.info(f"Translated LSE ticker: {original_symbol} -> {symbol}")
 
@@ -232,22 +253,29 @@ class ProxyHandler(BaseHTTPRequestHandler):
             prev_close = fast_info.previous_close
 
             if current is None or prev_close is None:
-                self.send_json_response(404, {"error": f"No data for symbol '{symbol}'"})
+                self.send_json_response(
+                    404, {"error": f"No data for symbol '{symbol}'"}
+                )
                 return
 
             # Get the stock's native currency
-            stock_currency = ticker.info.get('currency', 'USD')
+            stock_currency = ticker.info.get("currency", "USD")
             logger.info(f"Stock {symbol} native currency: {stock_currency}")
 
             if target_currency and target_currency != stock_currency:
                 logger.info(f"Converting from {stock_currency} to {target_currency}")
                 current = self.convert_price(current, stock_currency, target_currency)
-                prev_close = self.convert_price(prev_close, stock_currency, target_currency)
+                prev_close = self.convert_price(
+                    prev_close, stock_currency, target_currency
+                )
 
                 if current is None or prev_close is None:
-                    self.send_json_response(500, {
-                        "error": f"Currency conversion failed from {stock_currency} to {target_currency}"
-                    })
+                    self.send_json_response(
+                        500,
+                        {
+                            "error": f"Currency conversion failed from {stock_currency} to {target_currency}"
+                        },
+                    )
                     return
 
             # Matches Kraken's format so the Pico-side parser works unchanged:
@@ -263,31 +291,41 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 }
             }
 
-            logger.info(f"Stock {symbol} for {client_ip}: current={current}, prev_close={prev_close}")
+            logger.info(
+                f"Stock {symbol} for {client_ip}: current={current}, prev_close={prev_close}"
+            )
             self.send_json_response(200, result)
 
         except Exception as e:
             logger.error(f"yfinance error for {symbol} ({client_ip}): {e}")
-            self.send_json_response(500, {"error": f"Failed to fetch data for '{symbol}'"})
+            self.send_json_response(
+                500, {"error": f"Failed to fetch data for '{symbol}'"}
+            )
 
     def do_GET(self):
         client_ip = self.client_address[0]
 
         try:
             if HEALTH_CHECK_ENABLED and self.path == HEALTH_CHECK_PATH:
-                self.send_json_response(200, {
-                    "status": "healthy",
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "version": "1.0.0",
-                })
+                self.send_json_response(
+                    200,
+                    {
+                        "status": "healthy",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "version": "1.0.0",
+                    },
+                )
                 return
 
             if not rate_limiter.is_allowed(client_ip):
                 logger.warning(f"Rate limit exceeded for {client_ip}")
-                self.send_json_response(429, {
-                    "error": "Rate limit exceeded",
-                    "retry_after": RATE_LIMIT_WINDOW,
-                })
+                self.send_json_response(
+                    429,
+                    {
+                        "error": "Rate limit exceeded",
+                        "retry_after": RATE_LIMIT_WINDOW,
+                    },
+                )
                 return
 
             valid, error = self.validate_request(self.path)
@@ -315,7 +353,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 data = response.read()
 
                 self.send_response(200)
-                self.send_header("Content-Type", response.headers.get("Content-Type", "application/json"))
+                self.send_header(
+                    "Content-Type",
+                    response.headers.get("Content-Type", "application/json"),
+                )
                 self.send_header("Content-Length", len(data))
                 self.end_headers()
                 self.wfile.write(data)
@@ -324,11 +365,15 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
         except urllib.error.HTTPError as e:
             logger.error(f"HTTP error for {client_ip}: {e.code} {e.reason}")
-            self.send_json_response(e.code, {"error": f"Upstream error: {e.reason}", "code": e.code})
+            self.send_json_response(
+                e.code, {"error": f"Upstream error: {e.reason}", "code": e.code}
+            )
 
         except urllib.error.URLError as e:
             logger.error(f"URL error for {client_ip}: {e.reason}")
-            self.send_json_response(502, {"error": "Bad Gateway", "details": str(e.reason)})
+            self.send_json_response(
+                502, {"error": "Bad Gateway", "details": str(e.reason)}
+            )
 
         except Exception as e:
             logger.error(f"Unexpected error for {client_ip}: {e}")
@@ -353,13 +398,17 @@ def run_proxy(port=PROXY_PORT, bind_address=BIND_ADDRESS):
 
         logger.info(f"Photon HTTPS Proxy listening on {bind_address}:{port}")
         logger.info(f"Allowed hosts: {', '.join(ALLOWED_HOSTS)}")
-        logger.info(f"Rate limit: {RATE_LIMIT_REQUESTS} req/{RATE_LIMIT_WINDOW}s per IP")
+        logger.info(
+            f"Rate limit: {RATE_LIMIT_REQUESTS} req/{RATE_LIMIT_WINDOW}s per IP"
+        )
 
         server.serve_forever()
 
     except KeyboardInterrupt:
         uptime = time.time() - server.start_time
-        logger.info(f"Shutting down. Uptime: {uptime:.1f}s, requests: {server.request_count}")
+        logger.info(
+            f"Shutting down. Uptime: {uptime:.1f}s, requests: {server.request_count}"
+        )
         server.shutdown()
 
     except Exception as e:

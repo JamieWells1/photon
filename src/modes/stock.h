@@ -7,55 +7,29 @@
 #define STOCK_H
 
 #include <matrix.h>
+#include <stdint.h>
 
 // ============
 // Stock Index
 // ============
 
-#define STK_AAPL "AAPL"
-#define STK_MSFT "MSFT"
-#define STK_GOOGL "GOOGL"
-#define STK_AMZN "AMZN"
-#define STK_TSLA "TSLA"
-#define STK_NVDA "NVDA"
-#define STK_META "META"
-#define STK_JPM "JPM"
-#define STK_V "V"
-#define STK_DIS "DIS"
-
-typedef enum
-{
-    AAPL = 0,
-    MSFT = 1,
-    GOOGL = 2,
-    AMZN = 3,
-    TSLA = 4,
-    NVDA = 5,
-    META = 6,
-    JPM = 7,
-    V = 8,
-    DIS = 9,
-    STK_COUNT
-} StockIndex;
-
-// =====
-// Price
-// =====
+#define MAX_STOCK_TICKERS 50
 
 typedef struct
 {
-    const StockIndex stk_idx;
-    const char* to_str;
+    char ticker[10];
     float current_price;
     float open_price;
 } Stock;
 
-extern Stock STK_ARR[STK_COUNT];
+uint8_t stock_get_count(void);
+const char* stock_get_ticker(int idx);
 
-bool stock_is_enabled(StockIndex idx);
-void stock_set_enabled_mask(uint16_t mask);
+void stock_set_enabled_mask(uint64_t mask);
 
 void stock_display(Matrix* mtrx, int* offset);
 void stock_cleanup(void);
+
+void stock_validate_pending_ticker(Matrix* mtrx);
 
 #endif  // STOCK_H

@@ -14,4 +14,9 @@ bool http_server_credentials_saved(void);
 bool http_server_config_saved(void);
 bool http_server_portfolio_parse_failed(void);
 
+// Ticker validation state: 0=idle, 1=pending, 2=valid, 3=invalid
+bool http_server_has_pending_validation(void);
+const char* http_server_get_pending_ticker(void);
+void http_server_set_validation_result(bool valid);
+
 #endif  // HTTP_SERVER_H

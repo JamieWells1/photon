@@ -23,7 +23,7 @@ typedef enum
 #define DEFAULT_LOCATION 0     // London
 #define DEFAULT_CURRENCY 0     // GBP
 #define DEFAULT_CRYPTO 0x0007  // XBT + ETH + SOL
-#define DEFAULT_STOCKS 0x0007  // AAPL + MSFT + GOOGL
+#define DEFAULT_STOCKS 0x0000  // No default stocks (dynamic tickers)
 
 // Brightness limits by power source
 #define MAX_BRIGHTNESS_USB 5
@@ -50,7 +50,7 @@ typedef enum
 #define MATRIX_DATA_FREQ 800000
 
 // Wifi
-#define MAX_WIFI_CONNECTION_ATTEMPTS 100
+#define MAX_WIFI_CONNECTION_ATTEMPTS 200
 
 // HTTP
 #define PROXY_HOST "138.68.190.163"

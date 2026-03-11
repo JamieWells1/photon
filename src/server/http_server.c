@@ -28,6 +28,10 @@ static bool credentials_saved = false;
 static bool config_saved = false;
 static bool portfolio_parse_failed = false;
 
+// Ticker validation state: 0=idle, 1=pending, 2=valid, 3=invalid
+static int8_t g_validation_state = 0;
+static char g_pending_ticker[10] = {0};
+
 typedef struct
 {
     char buffer[8192];
@@ -36,6 +40,17 @@ typedef struct
     bool headers_complete;
     bool request_processed;
 } http_request_state_t;
+
+typedef struct
+{
+    const char* data;
+    size_t total_len;
+    size_t sent;
+    bool should_close;
+} http_send_state_t;
+
+// Forward declarations
+static err_t http_close_conn(struct tcp_pcb* pcb);
 
 static int hex_to_int(char c)
 {
@@ -229,45 +244,112 @@ static void http_err_callback(void* arg, err_t err)
     }
 }
 
+static err_t http_continue_sending(struct tcp_pcb* pcb, http_send_state_t* send_state)
+{
+    const size_t max_chunk = 1024;
+
+    while (send_state->sent < send_state->total_len)
+    {
+        u16_t available = tcp_sndbuf(pcb);
+
+        debug(TRACE, "Continue send: offset %zu/%zu, available buffer = %u bytes", send_state->sent,
+              send_state->total_len, available);
+
+        if (available < 256)
+        {
+            debug(TRACE, "Waiting for more buffer space (available: %u)", available);
+            tcp_output(pcb);
+            return ERR_OK;  // Will continue in sent callback
+        }
+
+        size_t to_send = send_state->total_len - send_state->sent;
+        if (to_send > max_chunk) to_send = max_chunk;
+        if (to_send > available) to_send = available;
+
+        err_t err =
+            tcp_write(pcb, send_state->data + send_state->sent, to_send, TCP_WRITE_FLAG_COPY);
+        if (err != ERR_OK)
+        {
+            debug(ERROR, "tcp_write failed at offset %zu: %d", send_state->sent, err);
+            return err;
+        }
+
+        send_state->sent += to_send;
+        tcp_output(pcb);
+    }
+
+    debug(DEBUG, "Send complete: %zu bytes", send_state->sent);
+    return ERR_OK;
+}
+
+static err_t http_sent_callback_with_continuation(void* arg, struct tcp_pcb* pcb, u16_t len)
+{
+    http_send_state_t* send_state = (http_send_state_t*)arg;
+
+    debug(TRACE, "Sent callback: %u bytes ACKed, %zu/%zu total sent", len, send_state->sent,
+          send_state->total_len);
+
+    if (send_state->sent < send_state->total_len)
+    {
+        // Continue sending remaining data
+        err_t err = http_continue_sending(pcb, send_state);
+        if (err != ERR_OK)
+        {
+            debug(ERROR, "Continue sending failed: %d", err);
+            free(send_state);
+            tcp_arg(pcb, NULL);
+            http_close_conn(pcb);
+            return err;
+        }
+    }
+    else
+    {
+        // All data sent, clean up and close if needed
+        debug(DEBUG, "All data transmitted and ACKed");
+        bool should_close = send_state->should_close;
+        free(send_state);
+        tcp_arg(pcb, NULL);
+
+        if (should_close)
+        {
+            http_close_conn(pcb);
+        }
+    }
+
+    return ERR_OK;
+}
+
 static err_t http_send_data(struct tcp_pcb* pcb, const char* data, size_t len,
                             http_request_state_t* state)
 {
-    debug(DEBUG, "Sending %zu bytes", len);
+    debug(DEBUG, "Sending %zu bytes with continuation support", len);
 
-    if (len <= 2048)
+    // Allocate send state for continuation
+    http_send_state_t* send_state = (http_send_state_t*)malloc(sizeof(http_send_state_t));
+    if (!send_state)
     {
-        err_t err = tcp_write(pcb, data, len, 0);
-        if (err != ERR_OK)
-        {
-            debug(ERROR, "tcp_write failed: %d", err);
-            return err;
-        }
-        return ERR_OK;
+        debug(ERROR, "Failed to allocate send state");
+        return ERR_MEM;
     }
 
-    const size_t chunk_size = 2048;
-    size_t sent = 0;
+    send_state->data = data;
+    send_state->total_len = len;
+    send_state->sent = 0;
+    send_state->should_close = true;
 
-    while (sent < len)
-    {
-        size_t to_send = (len - sent) > chunk_size ? chunk_size : (len - sent);
-        err_t err = tcp_write(pcb, data + sent, to_send, TCP_WRITE_FLAG_COPY);
-        if (err != ERR_OK)
-        {
-            debug(ERROR, "tcp_write failed at offset %zu: %d", sent, err);
-            return err;
-        }
-        sent += to_send;
-    }
+    // Set up sent callback for continuation
+    tcp_arg(pcb, send_state);
+    tcp_sent(pcb, http_sent_callback_with_continuation);
 
-    err_t err = tcp_output(pcb);
+    // Start sending
+    err_t err = http_continue_sending(pcb, send_state);
     if (err != ERR_OK)
     {
-        debug(ERROR, "tcp_output failed: %d", err);
+        free(send_state);
+        tcp_arg(pcb, NULL);
         return err;
     }
 
-    debug(DEBUG, "Successfully sent %zu bytes in chunks", sent);
     return ERR_OK;
 }
 
@@ -293,7 +375,7 @@ static err_t http_close_conn(struct tcp_pcb* pcb)
     return ERR_OK;
 }
 
-static err_t http_sent_callback(void* arg, struct tcp_pcb* pcb, u16_t len)
+static err_t http_sent_callback_simple(void* arg, struct tcp_pcb* pcb, u16_t len)
 {
     if (arg)
     {
@@ -364,20 +446,29 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                 state->content_length = atoi(cl_header + 15);
             }
 
-            size_t header_len = (body_start + 4) - state->buffer;
-            size_t body_received = state->received - header_len;
-
-            debug(TRACE, "Headers complete. Content-Length: %zu, Body received: %zu",
-                  state->content_length, body_received);
-
-            if (body_received < state->content_length)
-            {
-                return ERR_OK;
-            }
+            debug(TRACE, "Headers complete. Content-Length: %zu", state->content_length);
         }
         else
         {
             return ERR_OK;
+        }
+    }
+
+    // Check if we have received the complete body (must be checked on every recv)
+    if (state->headers_complete && state->content_length > 0)
+    {
+        char* body_start = strstr(state->buffer, "\r\n\r\n");
+        if (body_start)
+        {
+            size_t header_len = (body_start + 4) - state->buffer;
+            size_t body_received = state->received - header_len;
+
+            debug(TRACE, "Body received: %zu / %zu", body_received, state->content_length);
+
+            if (body_received < state->content_length)
+            {
+                return ERR_OK;  // Wait for more body data
+            }
         }
     }
 
@@ -458,7 +549,8 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                                 {
                                     val += 4;
                                     uint8_t brightness = (uint8_t)atoi(val);
-                                    config.brightness = brightness ? brightness : DEFAULT_BRIGHTNESS;
+                                    config.brightness =
+                                        brightness ? brightness : DEFAULT_BRIGHTNESS;
                                     debug(DEBUG, "Parsed brightness: %d", config.brightness);
                                 }
                             }
@@ -498,7 +590,8 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                                 {
                                     val += 4;
                                     config.portfolio_mode = (uint8_t)atoi(val);
-                                    debug(DEBUG, "Parsed portfolio_mode: %d", config.portfolio_mode);
+                                    debug(DEBUG, "Parsed portfolio_mode: %d",
+                                          config.portfolio_mode);
                                 }
                             }
 
@@ -507,29 +600,29 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                             for (int i = 0; i < CRYPTO_COUNT; i++)
                             {
                                 char key[20];
-                                snprintf(key, sizeof(key), "name=\"crypto_%d\"", i);
+                                snprintf(key, sizeof(key), "name=\"c%d\"", i);
                                 if (strstr(body, key)) crypto |= (1 << i);
                             }
                             if (crypto) config.crypto = crypto;
 
-                            // Parse stock checkboxes
-                            uint16_t stocks = 0;
-                            for (int i = 0; i < STK_COUNT; i++)
-                            {
-                                char key[20];
-                                snprintf(key, sizeof(key), "name=\"stk_%d\"", i);
-                                if (strstr(body, key)) stocks |= (1 << i);
-                            }
-                            if (stocks) config.stocks = stocks;
-
-                            debug(INFO,
-                                  "Upload - Brightness: %d%%, Location: %d, Currency: %d, Mode: %d, "
-                                  "Crypto: 0x%04X, Stocks: 0x%04X",
-                                  config.brightness, config.location, config.currency,
-                                  config.portfolio_mode, config.crypto, config.stocks);
+                            debug(
+                                INFO,
+                                "Upload - Brightness: %d%%, Location: %d, Currency: %d, Mode: %d, "
+                                "Crypto: 0x%04X",
+                                config.brightness, config.location, config.currency,
+                                config.portfolio_mode, config.crypto);
 
                             if (parse_csv_portfolio(csv_data, &config))
                             {
+                                // Default first 10 portfolio tickers enabled
+                                {
+                                    int default_count =
+                                        config.portfolio_count < 10 ? config.portfolio_count : 10;
+                                    config.stocks =
+                                        default_count > 0 ? ((1ULL << default_count) - 1) : 0;
+                                }
+                                // Clear manual tickers since portfolio is the source
+                                config.stock_ticker_count = 0;
                                 flash_memory_write(&config);
                                 portfolio_parse_failed = false;
 
@@ -552,7 +645,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                 }
             }
 
-            tcp_sent(pcb, http_sent_callback);
+            tcp_sent(pcb, http_sent_callback_simple);
             return ERR_OK;
         }
     }
@@ -586,25 +679,64 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             for (int i = 0; i < CRYPTO_COUNT; i++)
             {
                 char key[12];
-                snprintf(key, sizeof(key), "crypto_%d=", i);
+                snprintf(key, sizeof(key), "c%d=", i);
                 if (strstr(body, key)) crypto |= (1 << i);
             }
             config.crypto = crypto ? crypto : DEFAULT_CRYPTO;
 
-            uint16_t stocks = 0;
-            for (int i = 0; i < STK_COUNT; i++)
+            // Parse stock checkboxes (sN=on) for portfolio users
+            if (config.portfolio_count > 0)
+            {
+                uint64_t stocks = 0;
+                for (int i = 0; i < config.portfolio_count && i < 50; i++)
+                {
+                    char key[12];
+                    snprintf(key, sizeof(key), "s%d=", i);
+                    if (strstr(body, key)) stocks |= (1ULL << i);
+                }
+                config.stocks = stocks;
+            }
+
+            // Always parse manual tickers (mt_N=TICKER)
+            config.stock_ticker_count = 0;
+            for (int i = 0; i < 10; i++)
             {
                 char key[8];
-                snprintf(key, sizeof(key), "stk_%d=", i);
-                if (strstr(body, key)) stocks |= (1 << i);
+                snprintf(key, sizeof(key), "mt_%d=", i);
+                const char* ticker_start = strstr(body, key);
+                if (ticker_start)
+                {
+                    ticker_start += strlen(key);
+                    const char* ticker_end = ticker_start;
+                    while (*ticker_end && *ticker_end != '&' && *ticker_end != '\r' &&
+                           (ticker_end - ticker_start) < 9)
+                    {
+                        ticker_end++;
+                    }
+                    size_t len = ticker_end - ticker_start;
+                    if (len > 0 && len < 10)
+                    {
+                        strncpy(config.stock_tickers[config.stock_ticker_count], ticker_start, len);
+                        config.stock_tickers[config.stock_ticker_count][len] = '\0';
+                        config.stock_ticker_count++;
+                        debug(DEBUG, "Parsed manual ticker %d: %s", config.stock_ticker_count - 1,
+                              config.stock_tickers[config.stock_ticker_count - 1]);
+                    }
+                }
             }
-            config.stocks = stocks ? stocks : DEFAULT_STOCKS;
+
+            // If no portfolio, enable all manual tickers
+            if (config.portfolio_count == 0 && config.stock_ticker_count > 0)
+            {
+                config.stocks = (1ULL << config.stock_ticker_count) - 1;
+            }
+            debug(INFO, "Parsed %d manual tickers", config.stock_ticker_count);
 
             debug(INFO,
                   "Parsed config - Brightness: %d%%, Location: %d, Currency: %d, Crypto: 0x%04X, "
-                  "Stocks: 0x%04X",
+                  "Stocks: 0x%llX, Stock count: %d",
                   config.brightness, config.location, config.currency, config.crypto,
-                  config.stocks);
+                  (unsigned long long)config.stocks, config.stock_ticker_count);
 
             flash_memory_write(&config);
             matrix_set_brightness(config.brightness);
@@ -612,7 +744,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
             tcp_write(pcb, html_get_success_page(), strlen(html_get_success_page()), 0);
             tcp_output(pcb);
-            tcp_sent(pcb, http_sent_callback);
+            tcp_sent(pcb, http_sent_callback_simple);
 
             return ERR_OK;
         }
@@ -666,47 +798,46 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
         debug(DEBUG, "Sending device page: %zu bytes", page_len);
 
-        err_t err = http_send_data(pcb, page, page_len, state);
+        // Free request state before sending (send will use its own state)
+        if (state)
+        {
+            free(state);
+        }
+
+        err_t err = http_send_data(pcb, page, page_len, NULL);
         if (err != ERR_OK)
         {
-            if (state)
-            {
-                free(state);
-                tcp_arg(pcb, NULL);
-            }
             http_close_conn(pcb);
             return ERR_ABRT;
         }
 
-        tcp_output(pcb);
-        tcp_sent(pcb, http_sent_callback);
-
+        // http_send_data sets up its own sent callback
         return ERR_OK;
     }
-    else if (strncmp(request, "GET /tickers", 12) == 0)
+    else if (strncmp(request, "GET /watchlist", 14) == 0 ||
+             strncmp(request, "GET /tickers", 12) == 0)
     {
         device_config_t config;
         flash_memory_read(&config);
-        const char* page = html_build_config_page(&config, "tickers");
+        const char* page = html_build_config_page(&config, "watchlist");
         size_t page_len = strlen(page);
 
-        debug(DEBUG, "Sending tickers page: %zu bytes", page_len);
+        debug(DEBUG, "Sending watchlist page: %zu bytes", page_len);
 
-        err_t err = http_send_data(pcb, page, page_len, state);
+        // Free request state before sending (send will use its own state)
+        if (state)
+        {
+            free(state);
+        }
+
+        err_t err = http_send_data(pcb, page, page_len, NULL);
         if (err != ERR_OK)
         {
-            if (state)
-            {
-                free(state);
-                tcp_arg(pcb, NULL);
-            }
             http_close_conn(pcb);
             return ERR_ABRT;
         }
 
-        tcp_output(pcb);
-        tcp_sent(pcb, http_sent_callback);
-
+        // http_send_data sets up its own sent callback
         return ERR_OK;
     }
     else if (strncmp(request, "GET /portfolio", 14) == 0 ||
@@ -719,29 +850,28 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
         debug(DEBUG, "Sending portfolio page: %zu bytes", page_len);
 
-        err_t err = http_send_data(pcb, page, page_len, state);
+        // Free request state before sending (send will use its own state)
+        if (state)
+        {
+            free(state);
+        }
+
+        err_t err = http_send_data(pcb, page, page_len, NULL);
         if (err != ERR_OK)
         {
-            if (state)
-            {
-                free(state);
-                tcp_arg(pcb, NULL);
-            }
             http_close_conn(pcb);
             return ERR_ABRT;
         }
 
-        tcp_output(pcb);
-        tcp_sent(pcb, http_sent_callback);
-
-        debug(DEBUG, "Portfolio page sent successfully");
+        // http_send_data sets up its own sent callback
+        debug(DEBUG, "Portfolio page send initiated");
         return ERR_OK;
     }
     else
     {
         tcp_write(pcb, html_get_wifi_form(), strlen(html_get_wifi_form()), 0);
         tcp_output(pcb);
-        tcp_sent(pcb, http_sent_callback);
+        tcp_sent(pcb, http_sent_callback_simple);
 
         return ERR_OK;
     }
@@ -780,6 +910,8 @@ void http_server_start(void)
     credentials_saved = false;
     config_saved = false;
     portfolio_parse_failed = false;
+    g_validation_state = 0;
+    g_pending_ticker[0] = '\0';
 
     http_pcb = tcp_new();
     if (!http_pcb)
@@ -818,3 +950,9 @@ bool http_server_credentials_saved(void) { return credentials_saved; }
 bool http_server_config_saved(void) { return config_saved; }
 
 bool http_server_portfolio_parse_failed(void) { return portfolio_parse_failed; }
+
+bool http_server_has_pending_validation(void) { return g_validation_state == 1; }
+
+const char* http_server_get_pending_ticker(void) { return g_pending_ticker; }
+
+void http_server_set_validation_result(bool valid) { g_validation_state = valid ? 2 : 3; }
