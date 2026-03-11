@@ -378,72 +378,6 @@ async def health_check():
     }
 
 
-@app.get("/stocks/{symbol}")
-async def get_stock(
-    symbol: str,
-    request: Request,
-    currency: Optional[str] = Query(
-        None, description="Target currency (e.g., USD, GBP)"
-    ),
-):
-    """Get stock price data"""
-    await check_rate_limit(request)
-    client_ip = await get_client_ip(request)
-
-    # Validate symbol
-    if not symbol or not symbol.replace(".", "").isalnum():
-        raise HTTPException(status_code=400, detail="Invalid symbol")
-
-    target_currency = currency.upper() if currency else None
-
-    try:
-        # Fetch stock data (with deduplication)
-        data = await fetch_stock_data(symbol, target_currency, client_ip)
-
-        current = data["current"]
-        prev_close = data["prev_close"]
-        stock_currency = data["currency"]
-        original_symbol = data["original_symbol"]
-
-        # Convert currency if requested
-        if target_currency and target_currency != stock_currency:
-            logger.info(f"Converting from {stock_currency} to {target_currency}")
-            current = await convert_price(current, stock_currency, target_currency)
-            prev_close = await convert_price(
-                prev_close, stock_currency, target_currency
-            )
-
-            if current is None or prev_close is None:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Currency conversion failed from {stock_currency} to {target_currency}",
-                )
-
-        # Return in Kraken-compatible format
-        result = {
-            "result": {
-                original_symbol: {
-                    "c": [str(current)],
-                    "o": str(prev_close),
-                }
-            }
-        }
-
-        logger.info(
-            f"Stock {symbol} for {client_ip}: current={current}, prev_close={prev_close}"
-        )
-        return result
-
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error fetching {symbol}: {e}")
-        logger.debug(traceback.format_exc())
-        raise HTTPException(
-            status_code=500, detail=f"Failed to fetch data for '{symbol}'"
-        )
-
-
 @app.get("/stocks/batch")
 async def get_stocks_batch(
     symbols: str = Query(
@@ -524,6 +458,72 @@ async def get_stocks_batch(
         logger.error(f"Batch request error from {client_ip}: {e}")
         logger.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Batch request failed: {str(e)}")
+
+
+@app.get("/stocks/{symbol}")
+async def get_stock(
+    symbol: str,
+    request: Request,
+    currency: Optional[str] = Query(
+        None, description="Target currency (e.g., USD, GBP)"
+    ),
+):
+    """Get stock price data"""
+    await check_rate_limit(request)
+    client_ip = await get_client_ip(request)
+
+    # Validate symbol
+    if not symbol or not symbol.replace(".", "").isalnum():
+        raise HTTPException(status_code=400, detail="Invalid symbol")
+
+    target_currency = currency.upper() if currency else None
+
+    try:
+        # Fetch stock data (with deduplication)
+        data = await fetch_stock_data(symbol, target_currency, client_ip)
+
+        current = data["current"]
+        prev_close = data["prev_close"]
+        stock_currency = data["currency"]
+        original_symbol = data["original_symbol"]
+
+        # Convert currency if requested
+        if target_currency and target_currency != stock_currency:
+            logger.info(f"Converting from {stock_currency} to {target_currency}")
+            current = await convert_price(current, stock_currency, target_currency)
+            prev_close = await convert_price(
+                prev_close, stock_currency, target_currency
+            )
+
+            if current is None or prev_close is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Currency conversion failed from {stock_currency} to {target_currency}",
+                )
+
+        # Return in Kraken-compatible format
+        result = {
+            "result": {
+                original_symbol: {
+                    "c": [str(current)],
+                    "o": str(prev_close),
+                }
+            }
+        }
+
+        logger.info(
+            f"Stock {symbol} for {client_ip}: current={current}, prev_close={prev_close}"
+        )
+        return result
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error fetching {symbol}: {e}")
+        logger.debug(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch data for '{symbol}'"
+        )
 
 
 def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
