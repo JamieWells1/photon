@@ -31,7 +31,6 @@ static bool g_tickers_loaded = false;
 
 static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
-static unsigned int g_stk_to_fetch_index = 0;
 static int g_scroll_offset = 0;
 static int g_url_scroll_offset = 0;
 
@@ -44,7 +43,6 @@ uint8_t stock_get_count(void)
 
         g_stock_count = 0;
 
-        // Load portfolio tickers first
         if (config.portfolio_count > 0)
         {
             for (uint8_t i = 0; i < config.portfolio_count && i < MAX_STOCK_TICKERS; i++)
@@ -57,7 +55,6 @@ uint8_t stock_get_count(void)
             g_enabled_mask = config.stocks ? config.stocks : ((1ULL << g_stock_count) - 1);
         }
 
-        // Also load manual tickers (can coexist with portfolio)
         if (config.stock_ticker_count > 0 && g_stock_count < MAX_STOCK_TICKERS)
         {
             uint8_t manual_start_index = g_stock_count;
@@ -70,15 +67,12 @@ uint8_t stock_get_count(void)
                 g_stock_count++;
             }
 
-            // Manual tickers are always enabled
             if (config.portfolio_count == 0)
             {
-                // No portfolio: enabled mask covers manual tickers only
                 g_enabled_mask = config.stocks ? config.stocks : ((1ULL << g_stock_count) - 1);
             }
             else
             {
-                // Has portfolio: enable manual ticker bits (after portfolio ticker bits)
                 for (uint8_t i = manual_start_index; i < g_stock_count; i++)
                 {
                     g_enabled_mask |= (1ULL << i);
@@ -106,8 +100,6 @@ static bool stock_is_enabled(int idx)
     return (g_enabled_mask & (1ULL << idx)) != 0;
 }
 
-// Display logic
-
 static void stock_response_callback(const char* body, size_t len, bool complete)
 {
     debug(TRACE, "stock_response_callback: len=%d, complete=%d", len, complete);
@@ -116,106 +108,100 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
 
     if (!body || len == 0)
     {
-        debug(ERROR, "Empty response for stock index %u", g_stk_to_fetch_index);
-
-        // Check if this is the first failure (prices not yet set to -1.0f)
-        bool first_failure = (g_stocks[g_stk_to_fetch_index].current_price != -1.0f);
-
-        g_stocks[g_stk_to_fetch_index].current_price = -1.0f;
-        g_stocks[g_stk_to_fetch_index].open_price = -1.0f;
-
-        // Only set 60s retry on first failure, then accept it and use 15min cycle
-        if (first_failure && g_next_fetch_time_ms == 0)
-        {
-            uint64_t ms_until_retry = 60 * 1000;
-            g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
-            debug(INFO, "First failure for ticker, will retry in 60s");
-        }
+        debug(ERROR, "Empty batch response");
+        uint64_t ms_until_retry = 60 * 1000;
+        g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
         return;
     }
 
-    debug(DEBUG, "Received stock response: %.*s", (int)len, body);
+    debug(DEBUG, "Received batch stock response: %.*s", (int)len, body);
 
-    // Check if response contains an error
     if (strstr(body, "\"error\""))
     {
-        debug(ERROR, "Proxy returned error for stock index %u: %.*s", g_stk_to_fetch_index,
-              (int)len, body);
-
-        // Check if this is the first failure (prices not yet set to -1.0f)
-        bool first_failure = (g_stocks[g_stk_to_fetch_index].current_price != -1.0f);
-
-        g_stocks[g_stk_to_fetch_index].current_price = -1.0f;
-        g_stocks[g_stk_to_fetch_index].open_price = -1.0f;
-
-        // Only set 60s retry on first failure, then accept it and use 15min cycle
-        if (first_failure && g_next_fetch_time_ms == 0)
-        {
-            uint64_t ms_until_retry = 60 * 1000;
-            g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
-            debug(INFO, "First failure for ticker, will retry in 60s");
-        }
+        debug(ERROR, "Proxy returned error: %.*s", (int)len, body);
+        uint64_t ms_until_retry = 60 * 1000;
+        g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
         return;
     }
 
-    float current_price = parse_price_from_json_array(body, "\"c\":");
-    float open_price = parse_price_from_json_string(body, "\"o\":");
-
-    if (!current_price) current_price = 0.0f;
-    if (!open_price) open_price = 0.0f;
-
-    if (current_price > 0.0f && open_price > 0.0f)
+    // Parse batch response - iterate through all stocks and extract their data
+    uint8_t parsed_count = 0;
+    for (uint8_t i = 0; i < g_stock_count; i++)
     {
-        g_stocks[g_stk_to_fetch_index].current_price = current_price;
-        g_stocks[g_stk_to_fetch_index].open_price = open_price;
+        if (!stock_is_enabled(i)) continue;
+
+        const char* ticker = g_stocks[i].ticker;
+
+        // Search for ticker key in JSON: "AAPL":
+        char ticker_search[32];
+        snprintf(ticker_search, sizeof(ticker_search), "\"%.10s\":", ticker);
+
+        const char* ticker_data = strstr(body, ticker_search);
+        if (!ticker_data)
+        {
+            debug(WARN, "Ticker %s not found in batch response", ticker);
+            g_stocks[i].current_price = -1.0f;
+            g_stocks[i].open_price = -1.0f;
+            continue;
+        }
+
+        // Parse current price and prev_close (using Kraken format: "c" and "o")
+        float current_price = parse_price_from_json_array(ticker_data, "\"c\":");
+        float open_price = parse_price_from_json_string(ticker_data, "\"o\":");
+
+        if (!current_price) current_price = 0.0f;
+        if (!open_price) open_price = 0.0f;
+
+        if (current_price > 0.0f && open_price > 0.0f)
+        {
+            g_stocks[i].current_price = current_price;
+            g_stocks[i].open_price = open_price;
+            parsed_count++;
+            debug(TRACE, "%s: current=$%.2f, open=$%.2f", ticker, current_price, open_price);
+        }
+        else
+        {
+            debug(WARN, "Failed to parse data for %s", ticker);
+            g_stocks[i].current_price = -1.0f;
+            g_stocks[i].open_price = -1.0f;
+        }
+    }
+
+    if (parsed_count > 0)
+    {
         g_data_fetched = true;
 
-        // Count enabled tickers for throttling
         uint8_t enabled_count = 0;
         for (uint8_t i = 0; i < g_stock_count; i++)
         {
             if (stock_is_enabled(i)) enabled_count++;
         }
 
-        // Throttle fetch interval based on number of enabled tickers
         uint64_t fetch_interval_minutes;
         if (enabled_count >= 30)
         {
-            fetch_interval_minutes = 60;  // 1 hour for large ticker lists (30+ tickers)
+            fetch_interval_minutes = 60;
         }
         else if (enabled_count >= 10)
         {
-            fetch_interval_minutes = 30;  // 30 minutes for medium ticker lists (10-29 tickers)
+            fetch_interval_minutes = 30;
         }
         else
         {
-            fetch_interval_minutes = 15;  // 15 minutes for small ticker lists (<10 tickers)
+            fetch_interval_minutes = 15;
         }
 
         uint64_t ms_until_next_fetch = fetch_interval_minutes * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
 
-        debug(INFO, "Parsed current: $%.2f, open: $%.2f", current_price, open_price);
-        debug(TRACE, "Next fetch scheduled in %llu minutes (%u enabled tickers)",
-              fetch_interval_minutes, enabled_count);
+        debug(INFO, "Batch fetch complete: %u/%u tickers parsed", parsed_count, enabled_count);
+        debug(TRACE, "Next fetch scheduled in %llu minutes", fetch_interval_minutes);
     }
     else
     {
-        debug(ERROR, "Failed to parse stock data for index %u", g_stk_to_fetch_index);
-
-        // Check if this is the first failure (prices not yet set to -1.0f)
-        bool first_failure = (g_stocks[g_stk_to_fetch_index].current_price != -1.0f);
-
-        g_stocks[g_stk_to_fetch_index].current_price = -1.0f;
-        g_stocks[g_stk_to_fetch_index].open_price = -1.0f;
-
-        // Only set 60s retry on first failure, then accept it and use 15min cycle
-        if (first_failure && g_next_fetch_time_ms == 0)
-        {
-            uint64_t ms_until_retry = 60 * 1000;
-            g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
-            debug(INFO, "First failure for ticker, will retry in 60s");
-        }
+        debug(ERROR, "Failed to parse any stock data from batch response");
+        uint64_t ms_until_retry = 60 * 1000;
+        g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
     }
 }
 
@@ -241,7 +227,6 @@ void stock_display(Matrix* mtrx, int* offset)
     ASSERT_NOT_NULL(mtrx);
     ASSERT_NOT_NULL(offset);
 
-    // Handle config save reboot
     if (http_server_config_saved())
     {
         debug(INFO, "Config saved, rebooting...");
@@ -256,16 +241,13 @@ void stock_display(Matrix* mtrx, int* offset)
         while (1);
     }
 
-    // Load tickers if not yet loaded
     stock_get_count();
 
-    // No tickers available — show portfolio upload URL
     if (g_stock_count == 0)
     {
         stock_display_url(mtrx);
         g_url_scroll_offset++;
-        int url_width =
-            matrix_calculate_word_width_with_space("    http://photon.local/portfolio") + 4;
+        int url_width = matrix_calculate_word_width_with_space("    http://photon.local/portfolio") + 4;
         if (g_url_scroll_offset >= url_width)
         {
             g_url_scroll_offset = 0;
@@ -274,46 +256,50 @@ void stock_display(Matrix* mtrx, int* offset)
         return;
     }
 
-    // Fetch stock data
     uint64_t current_time_ms = get_current_time_ms();
     bool should_fetch = (g_next_fetch_time_ms == 0) || (current_time_ms >= g_next_fetch_time_ms);
 
     if (should_fetch)
     {
-        debug(INFO, "Starting stock data fetch");
+        debug(INFO, "Starting batch stock data fetch");
 
         if (wifi_is_connected())
         {
-            while (g_stk_to_fetch_index < g_stock_count)
+            // Build comma-separated list of enabled tickers
+            char symbols[512] = "";
+            uint8_t ticker_count = 0;
+
+            for (uint8_t i = 0; i < g_stock_count; i++)
             {
-                if (!stock_is_enabled(g_stk_to_fetch_index))
+                if (!stock_is_enabled(i)) continue;
+
+                if (ticker_count > 0)
                 {
-                    g_stk_to_fetch_index++;
-                    continue;
+                    strcat(symbols, ",");
                 }
-
-                const char* stk_to_fetch = g_stocks[g_stk_to_fetch_index].ticker;
-
-                char path[256];
-                snprintf(path, sizeof(path), "/stocks/%s", stk_to_fetch);
-
-                debug(INFO, "Fetching %s via proxy: %s:%s%s", stk_to_fetch, PROXY_HOST, PROXY_PORT,
-                      path);
-
-                uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-                ReturnCode rc =
-                    http_get(PROXY_HOST, proxy_port, path, stock_response_callback, mtrx);
-                if (RC_FAILED(rc))
-                {
-                    debug(ERROR, "HTTP request failed for %s: %s", stk_to_fetch, rc_to_string(rc));
-                }
-
-                g_stk_to_fetch_index++;
+                strcat(symbols, g_stocks[i].ticker);
+                ticker_count++;
             }
 
-            g_stk_to_fetch_index = 0;
-            g_data_fetched = true;
-            debug(INFO, "Stock fetch complete");
+            if (ticker_count == 0)
+            {
+                debug(WARN, "No enabled stocks to fetch");
+                return;
+            }
+
+            // Build batch request path
+            char path[768];
+            snprintf(path, sizeof(path), "/stocks/batch?symbols=%s", symbols);
+
+            debug(INFO, "Fetching %u tickers via batch: %s:%s%s", ticker_count, PROXY_HOST,
+                  PROXY_PORT, path);
+
+            uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
+            ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, stock_response_callback, mtrx);
+            if (RC_FAILED(rc))
+            {
+                debug(ERROR, "Batch HTTP request failed: %s", rc_to_string(rc));
+            }
         }
         else
         {
@@ -337,16 +323,13 @@ void stock_display(Matrix* mtrx, int* offset)
 
             int width;
 
-            // Check if ticker has invalid data (error response)
             if (current < 0.0f || open < 0.0f)
             {
-                // Calculate width for "TICKER NO DATA" display
                 width = matrix_calculate_word_width_with_space(stk->ticker) + 3 +
                         matrix_calculate_word_width_with_space("NO DATA") + 12;
             }
             else
             {
-                // Calculate width for normal display with price and percentage
                 float change_perc = (open > 0.0f) ? ((current - open) / open) * 100 : 0.0f;
 
                 char price_str[16];
@@ -379,10 +362,8 @@ void stock_display(Matrix* mtrx, int* offset)
 
             int base_x = current_x - *offset;
 
-            // Check if ticker has invalid data
             if (current < 0.0f || open < 0.0f)
             {
-                // Display ticker name with "NO DATA" message
                 for (int wrap = 0; wrap < 2; wrap++)
                 {
                     int stk_x = base_x + (wrap * total_width) + 2;
@@ -396,7 +377,6 @@ void stock_display(Matrix* mtrx, int* offset)
             }
             else
             {
-                // Display normal ticker with price and percentage
                 float change_perc = ((current - open) / open) * 100;
                 bool is_up = (change_perc >= 0.0f);
 
@@ -476,7 +456,6 @@ void stock_cleanup(void)
 {
     g_data_fetched = false;
     g_next_fetch_time_ms = 0;
-    g_stk_to_fetch_index = 0;
     g_scroll_offset = 0;
     g_url_scroll_offset = 0;
     g_stock_count = 0;

@@ -311,6 +311,106 @@ class ProxyIntegrationTests:
         else:
             self.result.record_fail(test_name, "Health check failed")
 
+    def test_batch_basic(self):
+        """Test 11: Basic batch request with multiple US stocks"""
+        test_name = "Batch Endpoint - Basic (AAPL,MSFT,GOOGL)"
+        data = self._make_request("/stocks/batch", {"symbols": "AAPL,MSFT,GOOGL"})
+
+        if not data or "result" not in data:
+            self.result.record_fail(test_name, "Invalid response structure")
+            return
+
+        symbols = ["AAPL", "MSFT", "GOOGL"]
+        all_valid = True
+
+        for symbol in symbols:
+            if not self._validate_stock_response(data, symbol):
+                all_valid = False
+                break
+            price = float(data["result"][symbol]["c"][0])
+            logger.info(f"  {symbol}: ${price:.2f}")
+
+        if all_valid:
+            self.result.record_pass(test_name)
+        else:
+            self.result.record_fail(test_name, "One or more symbols invalid")
+
+    def test_batch_with_currency(self):
+        """Test 12: Batch request with currency conversion"""
+        test_name = "Batch Endpoint - Currency Conversion (GBP)"
+        data = self._make_request(
+            "/stocks/batch", {"symbols": "AAPL,MSFT", "currency": "GBP"}
+        )
+
+        if not data or "result" not in data:
+            self.result.record_fail(test_name, "Invalid response structure")
+            return
+
+        symbols = ["AAPL", "MSFT"]
+        all_valid = True
+
+        for symbol in symbols:
+            if not self._validate_stock_response(data, symbol):
+                all_valid = False
+                break
+            price = float(data["result"][symbol]["c"][0])
+            logger.info(f"  {symbol}: £{price:.2f}")
+
+        if all_valid:
+            self.result.record_pass(test_name)
+        else:
+            self.result.record_fail(test_name, "Currency conversion failed")
+
+    def test_batch_lse_tickers(self):
+        """Test 13: Batch request with LSE tickers"""
+        test_name = "Batch Endpoint - LSE Tickers (VUSA,VWRL,VUAG)"
+        data = self._make_request("/stocks/batch", {"symbols": "VUSA,VWRL,VUAG"})
+
+        if not data or "result" not in data:
+            self.result.record_fail(test_name, "Invalid response structure")
+            return
+
+        symbols = ["VUSA", "VWRL", "VUAG"]
+        all_valid = True
+
+        for symbol in symbols:
+            if not self._validate_stock_response(data, symbol):
+                all_valid = False
+                break
+            price = float(data["result"][symbol]["c"][0])
+            logger.info(f"  {symbol}: £{price:.2f}")
+
+        if all_valid:
+            self.result.record_pass(test_name)
+        else:
+            self.result.record_fail(test_name, "One or more LSE tickers invalid")
+
+    def test_batch_mixed_markets(self):
+        """Test 14: Batch request with mixed US and LSE stocks"""
+        test_name = "Batch Endpoint - Mixed Markets"
+        data = self._make_request(
+            "/stocks/batch", {"symbols": "AAPL,VUSA,MSFT", "currency": "GBP"}
+        )
+
+        if not data or "result" not in data:
+            self.result.record_fail(test_name, "Invalid response structure")
+            return
+
+        symbols = ["AAPL", "VUSA", "MSFT"]
+        all_valid = True
+
+        for symbol in symbols:
+            if not self._validate_stock_response(data, symbol):
+                all_valid = False
+                break
+            price = float(data["result"][symbol]["c"][0])
+            logger.info(f"  {symbol}: £{price:.2f}")
+
+        if all_valid:
+            self.result.record_pass(test_name)
+        else:
+            self.result.record_fail(test_name, "Failed to handle mixed markets")
+
     def run_all_tests(self):
         """Run all integration tests"""
         logger.info("=" * 60)
@@ -320,6 +420,7 @@ class ProxyIntegrationTests:
 
         self.result.start_time = datetime.now()
 
+        # Health and single stock tests
         self.test_health_check()
         self.test_basic_stock_fetch()
         self.test_usd_to_gbp_conversion()
@@ -330,6 +431,12 @@ class ProxyIntegrationTests:
         self.test_currency_conversion_accuracy()
         self.test_prev_close_included()
         self.test_invalid_symbol()
+
+        # Batch endpoint tests
+        self.test_batch_basic()
+        self.test_batch_with_currency()
+        self.test_batch_lse_tickers()
+        self.test_batch_mixed_markets()
 
         self.result.end_time = datetime.now()
 
