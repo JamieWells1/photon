@@ -897,10 +897,11 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         debug(INFO, "Update endpoint triggered - entering bootloader mode");
         update_triggered = true;
 
-        const char* response = "HTTP/1.1 200 OK\r\n"
-                               "Content-Type: text/plain\r\n"
-                               "Connection: close\r\n\r\n"
-                               "Entering bootloader mode...";
+        const char* response =
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/plain\r\n"
+            "Connection: close\r\n\r\n"
+            "Entering bootloader mode...";
 
         tcp_write(pcb, response, strlen(response), 0);
         tcp_output(pcb);

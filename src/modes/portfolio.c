@@ -102,7 +102,8 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
         {
             g_positions[i].current_price = current_price;
             g_positions[i].prev_close = prev_close;
-            debug(INFO, "Parsed %s: current=%.2f, prev_close=%.2f", ticker, current_price, prev_close);
+            debug(INFO, "Parsed %s: current=%.2f, prev_close=%.2f", ticker, current_price,
+                  prev_close);
         }
         else
         {

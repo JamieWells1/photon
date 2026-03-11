@@ -233,7 +233,8 @@ void stock_display(Matrix* mtrx, int* offset)
     {
         stock_display_url(mtrx);
         g_url_scroll_offset++;
-        int url_width = matrix_calculate_word_width_with_space("    http://photon.local/portfolio") + 4;
+        int url_width =
+            matrix_calculate_word_width_with_space("    http://photon.local/portfolio") + 4;
         if (g_url_scroll_offset >= url_width)
         {
             g_url_scroll_offset = 0;

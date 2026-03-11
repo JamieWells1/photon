@@ -72,7 +72,8 @@ ReturnCode update_check_version(Matrix* mtrx)
     g_version_response[0] = '\0';
     g_version_response_len = 0;
 
-    ReturnCode rc = http_get(PROXY_HOST, UPDATE_SERVER_PORT, UPDATE_VERSION_PATH, version_check_callback, mtrx);
+    ReturnCode rc =
+        http_get(PROXY_HOST, UPDATE_SERVER_PORT, UPDATE_VERSION_PATH, version_check_callback, mtrx);
 
     if (RC_FAILED(rc))
     {
