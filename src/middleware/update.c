@@ -18,7 +18,7 @@
 #include <pico/stdlib.h>
 
 #define UPDATE_VERSION_PATH "/firmware/version.txt"
-#define UPDATE_SERVER_PORT 8090  // Firmware files served on separate nginx port
+#define UPDATE_SERVER_PORT 8090
 
 static bool g_update_available = false;
 static char g_remote_version[9] = {0};

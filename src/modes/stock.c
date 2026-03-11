@@ -116,14 +116,6 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
 
     debug(DEBUG, "Received batch stock response: %.*s", (int)len, body);
 
-    if (strstr(body, "\"error\""))
-    {
-        debug(ERROR, "Proxy returned error: %.*s", (int)len, body);
-        uint64_t ms_until_retry = 60 * 1000;
-        g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
-        return;
-    }
-
     // Parse batch response - iterate through all stocks and extract their data
     uint8_t parsed_count = 0;
     for (uint8_t i = 0; i < g_stock_count; i++)
