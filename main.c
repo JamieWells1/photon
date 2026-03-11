@@ -387,6 +387,10 @@ int main(void)
                 sleep_ms(1000);
                 update_enter_bootloader_mode();
             }
+            else
+            {
+                debug(TRACE, "No update detected, continuing");
+            }
         }
 
         if (power_log_tick % 3000 == 0)
