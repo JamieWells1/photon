@@ -227,27 +227,14 @@ void stock_display(Matrix* mtrx, int* offset)
     ASSERT_NOT_NULL(mtrx);
     ASSERT_NOT_NULL(offset);
 
-    if (http_server_config_saved())
-    {
-        debug(INFO, "Config saved, rebooting...");
-
-        matrix_clear(mtrx);
-        matrix_display_word_icon_pair("REBOOT...", &ORANGE, NULL, 0);
-        matrix_show(mtrx);
-
-        sleep_ms(2000);
-
-        watchdog_enable(1, 1);
-        while (1);
-    }
-
     stock_get_count();
 
     if (g_stock_count == 0)
     {
         stock_display_url(mtrx);
         g_url_scroll_offset++;
-        int url_width = matrix_calculate_word_width_with_space("    http://photon.local/portfolio") + 4;
+        int url_width =
+            matrix_calculate_word_width_with_space("    http://photon.local/portfolio") + 4;
         if (g_url_scroll_offset >= url_width)
         {
             g_url_scroll_offset = 0;

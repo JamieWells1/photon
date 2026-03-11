@@ -15,11 +15,13 @@
 #include <matrix.h>
 #include <menu_main.h>
 #include <power.h>
+#include <update.h>
 #include <wifi.h>
 
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <hardware/watchdog.h>
 #include <pico/cyw43_arch.h>
@@ -129,6 +131,16 @@ int main(void)
     device_config_t config;
     bool wifi_ready = false;
     bool config_found = flash_memory_read(&config);
+
+    // Update stored version if it differs from build version
+    if (config_found && strcmp(config.firmware_version, BUILD_VERSION) != 0)
+    {
+        debug(INFO, "Updating firmware version: %s -> %s", config.firmware_version, BUILD_VERSION);
+        strncpy(config.firmware_version, BUILD_VERSION, sizeof(config.firmware_version) - 1);
+        config.firmware_version[8] = '\0';
+        flash_memory_write(&config);
+    }
+
     matrix_set_brightness(config.brightness);
     crypto_set_enabled_mask(config.crypto);
 
@@ -146,6 +158,87 @@ int main(void)
             debug(INFO, "Web interface available at: http://photon.local");
             debug(INFO, "Access anytime from your browser to configure device");
             wifi_ready = true;
+
+            // Check for firmware updates
+            debug(INFO, "Checking for firmware updates...");
+            ReturnCode update_rc = update_check_version(mtrx);
+            if (RC_SUCCESS(update_rc) && update_is_available())
+            {
+                debug(INFO, "Firmware update available: %s", update_get_remote_version());
+
+                // Display UPDATE with DATA icon - blocks until user clicks
+                matrix_clear(mtrx);
+                matrix_display_word_icon_pair("UPDATE", &YELLOW, &ICONS_ARR[DATA], 0);
+                matrix_show(mtrx);
+
+                // Wait for rotary encoder click
+                debug(INFO, "Waiting for user to acknowledge update notification...");
+                bool clicked = false;
+                while (!clicked)
+                {
+                    input_update(buttons, rotator);
+
+                    // Check if rotary encoder button was clicked (pressed and released)
+                    if (rotator->last_sw_state == false && rotator->current_sw_state == true)
+                    {
+                        clicked = true;
+                        debug(INFO, "User acknowledged update notification");
+                    }
+
+                    cyw43_arch_poll();  // Keep WiFi alive
+                    sleep_ms(10);
+                }
+
+                // Show scrolling update URL indefinitely until device reboots
+                debug(INFO, "Displaying update URL - will remain until device is rebooted");
+                const char* url_text = "    http://photon.local/update";
+                int url_width = matrix_calculate_word_width_with_space(url_text) + 4;
+                int scroll_offset = 0;
+                int scroll_frame = 0;
+
+                // Loop indefinitely, displaying scrolling URL until reboot
+                while (true)
+                {
+                    // Check if user triggered update via web interface
+                    cyw43_arch_poll();
+                    if (http_server_update_triggered())
+                    {
+                        debug(INFO, "Update triggered, entering bootloader mode");
+                        matrix_clear(mtrx);
+                        matrix_display_word_icon_pair("REBOOT...", &YELLOW, NULL, 0);
+                        matrix_show(mtrx);
+                        sleep_ms(1000);
+                        update_enter_bootloader_mode();
+                    }
+
+                    if (scroll_frame % 10 == 0)
+                    {
+                        matrix_clear(mtrx);
+
+                        for (int wrap = 0; wrap < 2; wrap++)
+                        {
+                            int text_x = (wrap * url_width) - scroll_offset;
+                            int text_y = 1;
+                            matrix_display_word(url_text, text_x, text_y, &BLUE);
+                        }
+
+                        matrix_show(mtrx);
+
+                        scroll_offset++;
+                        if (scroll_offset >= url_width)
+                        {
+                            scroll_offset = 0;
+                        }
+                    }
+
+                    scroll_frame++;
+                    sleep_ms(10);
+                }
+            }
+            else if (RC_FAILED(update_rc))
+            {
+                debug(WARN, "Update check failed, continuing normally");
+            }
         }
         else
         {
@@ -241,7 +334,7 @@ int main(void)
         matrix_show(mtrx);
         sleep_ms(200);
 
-        matrix_display_word_icon_pair("WAIT", &ORANGE, &ICONS_ARR[WIFI], 0);
+        matrix_display_word_icon_pair("WAIT...", &ORANGE, &ICONS_ARR[WIFI], 0);
         matrix_show(mtrx);
         sleep_ms(1000);
 
@@ -296,6 +389,27 @@ int main(void)
         if (wifi_ready)
         {
             cyw43_arch_poll();
+
+            if (http_server_update_triggered())
+            {
+                debug(INFO, "Update triggered, entering bootloader mode");
+                matrix_clear(mtrx);
+                matrix_display_word_icon_pair("REBOOT...", &YELLOW, NULL, 0);
+                matrix_show(mtrx);
+                sleep_ms(1000);
+                update_enter_bootloader_mode();
+            }
+
+            if (http_server_config_saved())
+            {
+                debug(INFO, "Config saved via web, rebooting...");
+                matrix_clear(mtrx);
+                matrix_display_word_icon_pair("REBOOT...", &ORANGE, NULL, 0);
+                matrix_show(mtrx);
+                sleep_ms(1000);
+                watchdog_enable(1, 1);
+                while (1) tight_loop_contents();
+            }
         }
 
         if (power_log_tick % 3000 == 0)

@@ -68,7 +68,7 @@ static const char* html_success =
     "24px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:"
     "center;font-size:40px;color:white}"
     "</style></head><body>"
-    "<div class=\"container\"><h1>Save Successful!</h1>"
+    "<div class=\"container\"><h1>Save Successful</h1>"
     "<p>Device is rebooting...<br>You can close this page</p></div></body></html>";
 
 static const char* html_portfolio_success =
@@ -98,6 +98,7 @@ static const char* html_portfolio_error =
 
 static char config_html_buf[16384];
 static char ticker_page_buf[512];
+static char update_html_buf[8192];
 
 const char* html_get_wifi_form(void) { return html_wifi_form; }
 
@@ -372,4 +373,107 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
     }
 
     return config_html_buf;
+}
+
+const char* html_build_update_page(bool update_available, const char* remote_version)
+{
+    int pos = 0;
+
+    pos += snprintf(
+        update_html_buf + pos, sizeof(update_html_buf) - pos,
+        "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n"
+        "<!DOCTYPE html><html><head><meta name=viewport content=width=device-width>"
+        "<title>Photon Update</title><style>"
+        "*{box-sizing:border-box;margin:0}body{background:#4A90E2;padding:20px;font:14px "
+        "sans-serif;color:#333}"
+        ".c{background:#fff;padding:20px;max-width:500px;margin:0 auto;border-radius:8px}"
+        "h1{margin:0 0 16px;font-size:24px}"
+        ".warn{background:#FFF3CD;border:1px solid "
+        "#FFC107;padding:12px;border-radius:4px;margin:16px "
+        "0}"
+        ".info{background:#D1ECF1;border:1px solid "
+        "#17A2B8;padding:12px;border-radius:4px;margin:16px "
+        "0}"
+        ".success{background:#D4EDDA;border:1px solid "
+        "#28A745;padding:12px;border-radius:4px;margin:16px "
+        "0}"
+        "button{width:100%%;background:#4A90E2;color:#fff;border:0;padding:12px;margin:8px "
+        "0;cursor:pointer;border-radius:4px;font-size:16px}"
+        "button:disabled{background:#ccc;cursor:not-allowed}"
+        ".progress{display:none;margin:16px 0;text-align:center}"
+        ".log{background:#f5f5f5;border:1px solid #ddd;padding:8px;margin:16px "
+        "0;font-family:monospace;font-size:11px;max-height:200px;overflow-y:auto}"
+        "</style></head><body><div class=c><h1>Software Update</h1>");
+
+    if (update_available && remote_version)
+    {
+        pos += snprintf(update_html_buf + pos, sizeof(update_html_buf) - pos,
+                        "<div class=info>New update available: Version %s</div>", remote_version);
+    }
+    else
+    {
+        pos += snprintf(update_html_buf + pos, sizeof(update_html_buf) - pos,
+                        "<div class=info>Your device is up to date</div>");
+    }
+
+    pos += snprintf(
+        update_html_buf + pos, sizeof(update_html_buf) - pos,
+        "<div class=info style='margin-bottom:16px'><strong>Update Process:</strong> When you "
+        "click Start Update, a file will download and your device will prepare for installation. "
+        "Simply drag the file onto your device when connected.</div>"
+        "<div id=status></div>"
+        "<button onclick=startUpdate() id=btn%s style='margin-bottom:16px'>Start Update</button>"
+        "<div id=steps "
+        "style='display:none;padding:16px;background:#f9f9f9;border-radius:8px;border:2px "
+        "solid #4A90E2'>"
+        "<div style='margin-bottom:12px;padding:12px;background:#D1ECF1;border-radius:4px'>"
+        "<strong>Download in progress...</strong><br>"
+        "<small>Check your downloads folder for photon-update.uf2</small></div>"
+        "<strong>Installation Steps:</strong>"
+        "<ol style='margin:12px 0 0 20px;line-height:1.8'>"
+        "<li><strong>Connect USB:</strong> If not already, plug your Photon device into your "
+        "computer with your USB "
+        "cable</li>"
+        "<li><strong>Find the Photon device:</strong> Your Photon device will appear as "
+        "<strong>RP2040</strong> in File Explorer on Windows, or Finder on macOS"
+        "</li>"
+        "<li><strong>Install:</strong> Click on RP2040, and drag the downloaded "
+        "<code>latest.uf2</code> file into "
+        "this area</li>"
+        "<li><strong>Wait:</strong> Your device will automatically restart with the new version "
+        "(takes "
+        "~10 seconds)</li>"
+        "</ol>"
+        "</div>"
+        "</div><script>"
+        "const s=document.getElementById('status'),"
+        "b=document.getElementById('btn'),"
+        "steps=document.getElementById('steps');"
+        "function show(msg,type){s.innerHTML='<div class='+(type||'info')+' "
+        "style=\"margin:16px 0\">'+msg+'</div>'}"
+        "async function startUpdate(){"
+        "b.disabled=true;"
+        "b.textContent='Starting...';"
+        "try{"
+        "show('Downloading update file...','info');"
+        "const link=document.createElement('a');"
+        "link.href='http://%s:8090/firmware/latest.uf2';"
+        "link.download='photon-update.uf2';"
+        "document.body.appendChild(link);"
+        "link.click();"
+        "document.body.removeChild(link);"
+        "await new Promise(r=>setTimeout(r,500));"
+        "show('Preparing device...','info');"
+        "await fetch('/update',{method:'POST'});"
+        "show('Device ready! Follow the steps below to complete installation.','success');"
+        "steps.style.display='block';"
+        "b.style.display='none';"
+        "}catch(e){"
+        "show('Error: '+e.message+' Please try again.','warn');"
+        "b.disabled=false;"
+        "b.textContent='Start Update'}}"
+        "</script></body></html>",
+        update_available ? "" : " disabled", PROXY_HOST);
+
+    return update_html_buf;
 }

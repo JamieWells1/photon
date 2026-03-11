@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/root/photon-proxy
-ExecStart=/usr/bin/python3 -m uvicorn https_proxy:app --host 0.0.0.0 --port 808%i --workers 1
+ExecStart=/root/.venv/bin/python -m uvicorn https_proxy:app --host 0.0.0.0 --port 808%i --workers 1
 Restart=always
 RestartSec=10
 

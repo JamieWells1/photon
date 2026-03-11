@@ -102,7 +102,8 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
         {
             g_positions[i].current_price = current_price;
             g_positions[i].prev_close = prev_close;
-            debug(INFO, "Parsed %s: current=%.2f, prev_close=%.2f", ticker, current_price, prev_close);
+            debug(INFO, "Parsed %s: current=%.2f, prev_close=%.2f", ticker, current_price,
+                  prev_close);
         }
         else
         {
@@ -454,20 +455,6 @@ void portfolio_display(Matrix* mtrx, int* offset)
 {
     ASSERT_NOT_NULL(mtrx);
     ASSERT_NOT_NULL(offset);
-
-    if (http_server_config_saved())
-    {
-        debug(INFO, "Config saved, rebooting...");
-
-        matrix_clear(mtrx);
-        matrix_display_word_icon_pair("REBOOT...", &ORANGE, NULL, 0);
-        matrix_show(mtrx);
-
-        sleep_ms(2000);
-
-        watchdog_enable(1, 1);
-        while (1);
-    }
 
     uint64_t current_time_ms = get_current_time_ms();
     bool should_fetch = (g_next_fetch_time_ms == 0) || (current_time_ms >= g_next_fetch_time_ms);

@@ -6,6 +6,10 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Generate build version timestamp
+string(TIMESTAMP BUILD_VERSION "%Y%m%d" UTC)
+message(STATUS "Build version: ${BUILD_VERSION}")
+
 # Initialise pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
 
@@ -84,6 +88,7 @@ set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
         src/middleware/http.c
         src/middleware/flash_memory.c
+        src/middleware/update.c
 )
 
 # Server (captive portal & config server)
@@ -144,12 +149,18 @@ target_compile_options(photon PRIVATE
         $<$<COMPILE_LANGUAGE:C>:-include assert.h>
 )
 
+# Reserve last 256KB of flash for persistent user data that survives firmware updates
+# Pico 2 W has 4MB flash: firmware uses 0x000000-0x3C0000 (3.75MB), config uses 0x3C0000-0x400000 (256KB)
+set(PICO_FLASH_SIZE_BYTES 0x3C0000)  # 3.75MB for firmware (reserves last 256KB)
+
 # lwIP configuration for larger TCP uploads (50 ticker portfolio support)
 target_compile_definitions(photon PRIVATE
         TCP_WND=8192              # TCP receive window: 8KB (allows larger uploads)
         TCP_SND_BUF=8192          # TCP send buffer: 8KB
         MEMP_NUM_TCP_SEG=32       # Number of TCP segments
         PBUF_POOL_SIZE=24         # Packet buffer pool size
+        BUILD_VERSION="${BUILD_VERSION}"  # Build timestamp for OTA updates
+        PICO_FLASH_SIZE_BYTES=${PICO_FLASH_SIZE_BYTES}  # Limit firmware size to reserve flash
 )
 
 target_link_libraries(photon
@@ -174,6 +185,7 @@ target_link_libraries(photon
         hardware_sync
         hardware_adc
         pico_cyw43_arch_lwip_threadsafe_background
+        pico_bootrom
         )
 
 pico_add_extra_outputs(photon)

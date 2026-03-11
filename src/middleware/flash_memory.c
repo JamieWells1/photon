@@ -41,6 +41,8 @@ static void flash_memory_set_defaults(device_config_t* config)
     config->stocks = DEFAULT_STOCKS;
     config->stock_ticker_count = 0;
     config->portfolio_count = 0;
+    strncpy(config->firmware_version, BUILD_VERSION, sizeof(config->firmware_version) - 1);
+    config->firmware_version[sizeof(config->firmware_version) - 1] = '\0';
 }
 
 bool flash_memory_read(device_config_t* config)
