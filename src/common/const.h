@@ -18,6 +18,11 @@ typedef enum
 
 #define LOG_LEVEL TRACE
 
+// Build version (injected by CMake)
+#ifndef BUILD_VERSION
+#define BUILD_VERSION "20260101"  // Fallback for IDE
+#endif
+
 // Device defaults
 #define DEFAULT_BRIGHTNESS 10  // 8%
 #define DEFAULT_LOCATION 0     // London

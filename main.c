@@ -15,11 +15,13 @@
 #include <matrix.h>
 #include <menu_main.h>
 #include <power.h>
+#include <update.h>
 #include <wifi.h>
 
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <hardware/watchdog.h>
 #include <pico/cyw43_arch.h>
@@ -129,6 +131,17 @@ int main(void)
     device_config_t config;
     bool wifi_ready = false;
     bool config_found = flash_memory_read(&config);
+
+    // Update stored version if it differs from build version
+    if (config_found && strcmp(config.firmware_version, BUILD_VERSION) != 0)
+    {
+        debug(INFO, "Updating firmware version: %s -> %s", config.firmware_version,
+              BUILD_VERSION);
+        strncpy(config.firmware_version, BUILD_VERSION, sizeof(config.firmware_version) - 1);
+        config.firmware_version[8] = '\0';
+        flash_memory_write(&config);
+    }
+
     matrix_set_brightness(config.brightness);
     crypto_set_enabled_mask(config.crypto);
 
@@ -146,6 +159,22 @@ int main(void)
             debug(INFO, "Web interface available at: http://photon.local");
             debug(INFO, "Access anytime from your browser to configure device");
             wifi_ready = true;
+
+            // Check for firmware updates
+            debug(INFO, "Checking for firmware updates...");
+            ReturnCode update_rc = update_check_version(mtrx);
+            if (RC_SUCCESS(update_rc) && update_is_available())
+            {
+                debug(INFO, "Firmware update available: %s", update_get_remote_version());
+                matrix_clear(mtrx);
+                matrix_display_word_icon_pair("UPDATE", &YELLOW, &ICONS_ARR[DATA], 0);
+                matrix_show(mtrx);
+                sleep_ms(3000);  // Show for 3 seconds
+            }
+            else if (RC_FAILED(update_rc))
+            {
+                debug(WARN, "Update check failed, continuing normally");
+            }
         }
         else
         {
@@ -296,6 +325,18 @@ int main(void)
         if (wifi_ready)
         {
             cyw43_arch_poll();
+
+            // Check if update was triggered via HTTP endpoint
+            if (http_server_update_triggered())
+            {
+                debug(INFO, "Update triggered, entering bootloader mode");
+                matrix_clear(mtrx);
+                matrix_display_word_icon_pair("REBOOT", &YELLOW, NULL, 0);
+                matrix_show(mtrx);
+                sleep_ms(1000);
+                update_enter_bootloader_mode();
+                // Does not return
+            }
         }
 
         if (power_log_tick % 3000 == 0)

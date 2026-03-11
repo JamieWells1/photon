@@ -6,6 +6,10 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Generate build version timestamp
+string(TIMESTAMP BUILD_VERSION "%Y%m%d" UTC)
+message(STATUS "Build version: ${BUILD_VERSION}")
+
 # Initialise pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
 
@@ -84,6 +88,7 @@ set(MIDDLEWARE_SOURCES
         src/middleware/wifi.c
         src/middleware/http.c
         src/middleware/flash_memory.c
+        src/middleware/update.c
 )
 
 # Server (captive portal & config server)
@@ -150,6 +155,7 @@ target_compile_definitions(photon PRIVATE
         TCP_SND_BUF=8192          # TCP send buffer: 8KB
         MEMP_NUM_TCP_SEG=32       # Number of TCP segments
         PBUF_POOL_SIZE=24         # Packet buffer pool size
+        BUILD_VERSION="${BUILD_VERSION}"  # Build timestamp for OTA updates
 )
 
 target_link_libraries(photon
@@ -174,6 +180,7 @@ target_link_libraries(photon
         hardware_sync
         hardware_adc
         pico_cyw43_arch_lwip_threadsafe_background
+        pico_bootrom
         )
 
 pico_add_extra_outputs(photon)

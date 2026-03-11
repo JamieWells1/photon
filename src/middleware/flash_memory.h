@@ -34,6 +34,8 @@ typedef struct
     float portfolio_avg_prices[50];
     float portfolio_csv_prices[50];
 
+    char firmware_version[9];  // YYYYMMDD format + null terminator
+
     uint32_t crc32;
 } device_config_t;
 

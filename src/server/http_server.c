@@ -12,6 +12,7 @@
 #include <macro.h>
 #include <matrix.h>
 #include <stock.h>
+#include <update.h>
 
 #include <ctype.h>
 #include <stdio.h>
@@ -27,6 +28,7 @@ static struct tcp_pcb* http_pcb = NULL;
 static bool credentials_saved = false;
 static bool config_saved = false;
 static bool portfolio_parse_failed = false;
+static bool update_triggered = false;
 
 // Ticker validation state: 0=idle, 1=pending, 2=valid, 3=invalid
 static int8_t g_validation_state = 0;
@@ -867,6 +869,45 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         debug(DEBUG, "Portfolio page send initiated");
         return ERR_OK;
     }
+    else if (strncmp(request, "GET /update", 11) == 0)
+    {
+        bool update_avail = update_is_available();
+        const char* remote_ver = update_get_remote_version();
+        const char* page = html_build_update_page(update_avail, remote_ver);
+        size_t page_len = strlen(page);
+
+        debug(DEBUG, "Sending update page: %zu bytes", page_len);
+
+        if (state)
+        {
+            free(state);
+        }
+
+        err_t err = http_send_data(pcb, page, page_len, NULL);
+        if (err != ERR_OK)
+        {
+            http_close_conn(pcb);
+            return ERR_ABRT;
+        }
+
+        return ERR_OK;
+    }
+    else if (strncmp(request, "POST /update", 12) == 0)
+    {
+        debug(INFO, "Update endpoint triggered - entering bootloader mode");
+        update_triggered = true;
+
+        const char* response = "HTTP/1.1 200 OK\r\n"
+                               "Content-Type: text/plain\r\n"
+                               "Connection: close\r\n\r\n"
+                               "Entering bootloader mode...";
+
+        tcp_write(pcb, response, strlen(response), 0);
+        tcp_output(pcb);
+        tcp_sent(pcb, http_sent_callback_simple);
+
+        return ERR_OK;
+    }
     else
     {
         tcp_write(pcb, html_get_wifi_form(), strlen(html_get_wifi_form()), 0);
@@ -910,6 +951,7 @@ void http_server_start(void)
     credentials_saved = false;
     config_saved = false;
     portfolio_parse_failed = false;
+    update_triggered = false;
     g_validation_state = 0;
     g_pending_ticker[0] = '\0';
 
@@ -950,6 +992,8 @@ bool http_server_credentials_saved(void) { return credentials_saved; }
 bool http_server_config_saved(void) { return config_saved; }
 
 bool http_server_portfolio_parse_failed(void) { return portfolio_parse_failed; }
+
+bool http_server_update_triggered(void) { return update_triggered; }
 
 bool http_server_has_pending_validation(void) { return g_validation_state == 1; }
 

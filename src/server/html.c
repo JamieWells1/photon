@@ -98,6 +98,7 @@ static const char* html_portfolio_error =
 
 static char config_html_buf[16384];
 static char ticker_page_buf[512];
+static char update_html_buf[8192];
 
 const char* html_get_wifi_form(void) { return html_wifi_form; }
 
@@ -372,4 +373,134 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
     }
 
     return config_html_buf;
+}
+
+const char* html_build_update_page(bool update_available, const char* remote_version)
+{
+    int pos = 0;
+
+    pos += snprintf(
+        update_html_buf + pos, sizeof(update_html_buf) - pos,
+        "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n"
+        "<!DOCTYPE html><html><head><meta name=viewport content=width=device-width>"
+        "<title>Photon Update</title><style>"
+        "*{box-sizing:border-box;margin:0}body{background:#4A90E2;padding:20px;font:14px "
+        "sans-serif;color:#333}"
+        ".c{background:#fff;padding:20px;max-width:500px;margin:0 auto;border-radius:8px}"
+        "h1{margin:0 0 16px;font-size:24px}"
+        ".warn{background:#FFF3CD;border:1px solid "
+        "#FFC107;padding:12px;border-radius:4px;margin:16px "
+        "0}"
+        ".info{background:#D1ECF1;border:1px solid "
+        "#17A2B8;padding:12px;border-radius:4px;margin:16px "
+        "0}"
+        "button{width:100%%;background:#4A90E2;color:#fff;border:0;padding:12px;margin:8px "
+        "0;cursor:pointer;border-radius:4px;font-size:16px}"
+        "button:disabled{background:#ccc;cursor:not-allowed}"
+        ".progress{display:none;margin:16px 0;text-align:center}"
+        ".log{background:#f5f5f5;border:1px solid #ddd;padding:8px;margin:16px "
+        "0;font-family:monospace;font-size:11px;max-height:200px;overflow-y:auto}"
+        "</style></head><body><div class=c><h1>Photon Firmware Update</h1>");
+
+    if (update_available && remote_version)
+    {
+        pos += snprintf(update_html_buf + pos, sizeof(update_html_buf) - pos,
+                        "<div class=info>Update available: Version %s</div>", remote_version);
+    }
+    else
+    {
+        pos += snprintf(update_html_buf + pos, sizeof(update_html_buf) - pos,
+                        "<div class=info>Your firmware is up to date</div>");
+    }
+
+    pos += snprintf(
+        update_html_buf + pos, sizeof(update_html_buf) - pos,
+        "<div class=warn><strong>Note:</strong> WebUSB automatic flashing works in Chrome/Edge. "
+        "For other browsers, the firmware will download and you can manually flash via USB.</div>"
+        "<div id=status></div>"
+        "<div class=progress id=prog style=display:none><div>Updating...</div></div>"
+        "<div class=log id=log style=display:none></div>"
+        "<button onclick=startUpdate() id=btn%s>Download & Install Update</button>"
+        "<div "
+        "style='margin-top:16px;padding:12px;background:#f5f5f5;border-radius:4px;display:none' "
+        "id=manual>"
+        "<strong>Manual Installation:</strong><ol style='margin:8px 0 0 20px;padding:0'>"
+        "<li>Download has started (check your downloads folder)</li>"
+        "<li>Connect device to computer via USB</li>"
+        "<li>Device appears as 'RPI-RP2' drive</li>"
+        "<li>Drag the .uf2 file onto the drive</li>"
+        "<li>Device reboots automatically with new firmware</li></ol></div>"
+        "</div><script>"
+        "const s=document.getElementById('status'),"
+        "p=document.getElementById('prog'),"
+        "b=document.getElementById('btn'),"
+        "l=document.getElementById('log'),"
+        "m=document.getElementById('manual');"
+        "function log(msg){const d=new Date();l.style.display='block';"
+        "l.innerHTML+=d.toLocaleTimeString()+' - '+msg+'<br>';l.scrollTop=l.scrollHeight}"
+        "function show(msg,type){s.innerHTML='<div class='+(type||'info')+'>'+msg+'</div>'}"
+        "function downloadFirmware(){"
+        "const a=document.createElement('a');"
+        "a.href='http://%s:8090/firmware/latest.uf2';"
+        "a.download='photon-firmware.uf2';"
+        "document.body.appendChild(a);a.click();document.body.removeChild(a);"
+        "log('Firmware download started')}"
+        "async function webUSBFlash(uf2Data){"
+        "log('Requesting USB device access...');"
+        "const dev=await "
+        "navigator.usb.requestDevice({filters:[{vendorId:0x2E8A,productId:0x0003}]});"
+        "if(!dev){throw new Error('No device selected')}"
+        "log('Opening device connection...');"
+        "await dev.open();"
+        "if(dev.configuration===null){await dev.selectConfiguration(1)}"
+        "log('Claiming USB interface...');"
+        "await dev.claimInterface(1);"
+        "log('Starting firmware transfer...');"
+        "const BLOCK_SIZE=512;const blocks=Math.ceil(uf2Data.byteLength/BLOCK_SIZE);"
+        "for(let i=0;i<blocks;i++){"
+        "const offset=i*BLOCK_SIZE;"
+        "const chunk=uf2Data.slice(offset,Math.min(offset+BLOCK_SIZE,uf2Data.byteLength));"
+        "const padded=new Uint8Array(BLOCK_SIZE);padded.set(new Uint8Array(chunk));"
+        "await dev.transferOut(2,padded);"
+        "if(i%%10===0){const pct=Math.round((i/blocks)*100);log('Writing: '+pct+'%%')}}"
+        "log('Transfer complete, closing connection...');"
+        "await dev.close();"
+        "log('Firmware flashed successfully!')}"
+        "async function startUpdate(){"
+        "const hasWebUSB=!!navigator.usb;"
+        "b.disabled=true;"
+        "try{"
+        "if(hasWebUSB){p.style.display='block';log('Starting WebUSB update...')}"
+        "log('Downloading firmware from server...');"
+        "const resp=await fetch('http://%s:8090/firmware/latest.uf2');"
+        "if(!resp.ok)throw new Error('Download failed: '+resp.statusText);"
+        "const uf2=await resp.arrayBuffer();"
+        "log('Downloaded '+Math.round(uf2.byteLength/1024)+'KB');"
+        "if(hasWebUSB){"
+        "log('Triggering device bootloader mode...');"
+        "await fetch('/update',{method:'POST'});"
+        "log('Waiting for device to enter bootloader (3 seconds)...');"
+        "await new Promise(r=>setTimeout(r,3000));"
+        "try{await webUSBFlash(uf2);"
+        "show('✓ Update successful! Device is rebooting...','info');p.style.display='none';"
+        "}catch(usbErr){"
+        "log('WebUSB failed: '+usbErr.message);"
+        "log('Falling back to manual installation...');"
+        "downloadFirmware();"
+        "await fetch('/update',{method:'POST'});"
+        "m.style.display='block';"
+        "show('Download started. Follow manual installation steps below.','info');"
+        "p.style.display='none'}}"
+        "else{downloadFirmware();"
+        "await new Promise(r=>setTimeout(r,500));"
+        "await fetch('/update',{method:'POST'});"
+        "m.style.display='block';"
+        "show('Download started. Connect device via USB and follow steps below.','info')}"
+        "}catch(e){log('Error: '+e.message);"
+        "show('Update failed: '+e.message,'warn');"
+        "b.disabled=false;p.style.display='none'}}"
+        "</script></body></html>",
+        update_available ? "" : " disabled", PROXY_HOST, PROXY_HOST);
+
+    return update_html_buf;
 }
