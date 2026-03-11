@@ -598,9 +598,16 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
                 )
             else:
                 try:
-                    current = float(data["Close"].iloc[-1])
+                    # Handle both Series and DataFrame cases
+                    close_data = data["Close"]
+                    if isinstance(close_data, pd.DataFrame):
+                        close_list = close_data.iloc[:, 0].tolist()
+                    else:
+                        close_list = close_data.tolist()
+
+                    current = float(close_list[-1])
                     prev_close = (
-                        float(data["Close"].iloc[-2]) if len(data) > 1 else current
+                        float(close_list[-2]) if len(close_list) > 1 else current
                     )
 
                     # Get currency from ticker info
@@ -647,10 +654,12 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
                         )
                         continue
 
-                    current = float(close_values.iloc[-1])
+                    # Convert to list to ensure Python scalars
+                    close_list = close_values.tolist()
+                    current = float(close_list[-1])
                     prev_close = (
-                        float(close_values.iloc[-2])
-                        if len(close_values) > 1
+                        float(close_list[-2])
+                        if len(close_list) > 1
                         else current
                     )
 

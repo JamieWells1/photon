@@ -24,20 +24,6 @@ static int scroll_offset = 0;
 
 void config_display(Matrix* mtrx)
 {
-    if (http_server_config_saved())
-    {
-        debug(INFO, "Config saved, rebooting...");
-
-        matrix_clear(mtrx);
-        matrix_display_word_icon_pair("REBOOT...", &ORANGE, NULL, 0);
-        matrix_show(mtrx);
-
-        sleep_ms(2000);
-
-        watchdog_enable(1, 1);
-        while (1);
-    }
-
     const char* url_text = "    http://photon.local";
     int total_width = matrix_calculate_word_width_with_space(url_text) + 4;
 

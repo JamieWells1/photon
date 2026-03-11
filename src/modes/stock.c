@@ -227,20 +227,6 @@ void stock_display(Matrix* mtrx, int* offset)
     ASSERT_NOT_NULL(mtrx);
     ASSERT_NOT_NULL(offset);
 
-    if (http_server_config_saved())
-    {
-        debug(INFO, "Config saved, rebooting...");
-
-        matrix_clear(mtrx);
-        matrix_display_word_icon_pair("REBOOT...", &ORANGE, NULL, 0);
-        matrix_show(mtrx);
-
-        sleep_ms(2000);
-
-        watchdog_enable(1, 1);
-        while (1);
-    }
-
     stock_get_count();
 
     if (g_stock_count == 0)

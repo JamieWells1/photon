@@ -455,20 +455,6 @@ void portfolio_display(Matrix* mtrx, int* offset)
     ASSERT_NOT_NULL(mtrx);
     ASSERT_NOT_NULL(offset);
 
-    if (http_server_config_saved())
-    {
-        debug(INFO, "Config saved, rebooting...");
-
-        matrix_clear(mtrx);
-        matrix_display_word_icon_pair("REBOOT...", &ORANGE, NULL, 0);
-        matrix_show(mtrx);
-
-        sleep_ms(2000);
-
-        watchdog_enable(1, 1);
-        while (1);
-    }
-
     uint64_t current_time_ms = get_current_time_ms();
     bool should_fetch = (g_next_fetch_time_ms == 0) || (current_time_ms >= g_next_fetch_time_ms);
 

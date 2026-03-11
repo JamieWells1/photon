@@ -189,39 +189,51 @@ int main(void)
                     sleep_ms(10);
                 }
 
-                // Show scrolling update URL
-                debug(INFO, "Displaying update URL...");
+                // Show scrolling update URL indefinitely until device reboots
+                debug(INFO, "Displaying update URL - will remain until device is rebooted");
                 const char* url_text = "    http://photon.local/update";
                 int url_width = matrix_calculate_word_width_with_space(url_text) + 4;
                 int scroll_offset = 0;
-                int scroll_duration = 0;
-                int max_scroll_duration = 300;  // Show URL for ~3 seconds
+                int scroll_frame = 0;
 
-                while (scroll_duration < max_scroll_duration)
+                // Loop indefinitely, displaying scrolling URL until reboot
+                while (true)
                 {
-                    matrix_clear(mtrx);
-
-                    // Display URL twice for seamless scrolling
-                    for (int wrap = 0; wrap < 2; wrap++)
-                    {
-                        int text_x = (wrap * url_width) - scroll_offset;
-                        int text_y = 1;
-                        matrix_display_word(url_text, text_x, text_y, &BLUE);
-                    }
-
-                    matrix_show(mtrx);
-                    scroll_offset++;
-                    if (scroll_offset >= url_width)
-                    {
-                        scroll_offset = 0;
-                    }
-
+                    // Check if user triggered update via web interface
                     cyw43_arch_poll();
-                    sleep_ms(10);
-                    scroll_duration++;
-                }
+                    if (http_server_update_triggered())
+                    {
+                        debug(INFO, "Update triggered, entering bootloader mode");
+                        matrix_clear(mtrx);
+                        matrix_display_word_icon_pair("REBOOT...", &YELLOW, NULL, 0);
+                        matrix_show(mtrx);
+                        sleep_ms(1000);
+                        update_enter_bootloader_mode();
+                    }
 
-                debug(INFO, "Update notification complete, continuing to main menu");
+                    if (scroll_frame % 10 == 0)
+                    {
+                        matrix_clear(mtrx);
+
+                        for (int wrap = 0; wrap < 2; wrap++)
+                        {
+                            int text_x = (wrap * url_width) - scroll_offset;
+                            int text_y = 1;
+                            matrix_display_word(url_text, text_x, text_y, &BLUE);
+                        }
+
+                        matrix_show(mtrx);
+
+                        scroll_offset++;
+                        if (scroll_offset >= url_width)
+                        {
+                            scroll_offset = 0;
+                        }
+                    }
+
+                    scroll_frame++;
+                    sleep_ms(10);
+                }
             }
             else if (RC_FAILED(update_rc))
             {
@@ -387,9 +399,16 @@ int main(void)
                 sleep_ms(1000);
                 update_enter_bootloader_mode();
             }
-            else
+
+            if (http_server_config_saved())
             {
-                debug(TRACE, "No update detected, continuing");
+                debug(INFO, "Config saved via web, rebooting...");
+                matrix_clear(mtrx);
+                matrix_display_word_icon_pair("REBOOT...", &ORANGE, NULL, 0);
+                matrix_show(mtrx);
+                sleep_ms(1000);
+                watchdog_enable(1, 1);
+                while (1) tight_loop_contents();
             }
         }
 
