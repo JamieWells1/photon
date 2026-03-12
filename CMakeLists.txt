@@ -111,6 +111,7 @@ set(MODE_SOURCES
         src/modes/portfolio.c
         src/modes/stock.c
         src/modes/crypto.c
+        src/modes/currency_pair.c
         src/modes/weather.c
         src/modes/config.c
         src/modes/reset.c

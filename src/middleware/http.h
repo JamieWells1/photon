@@ -16,6 +16,6 @@
 typedef void (*http_response_callback_t)(const char* body, size_t len, bool complete);
 
 ReturnCode http_get(const char* host_url, uint16_t port, const char* url_sub_path,
-                    http_response_callback_t callback, Matrix* mtrx);
+                    http_response_callback_t callback, Matrix* mtrx, bool update_display);
 
 #endif  // HTTP_H

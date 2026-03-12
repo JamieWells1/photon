@@ -246,7 +246,7 @@ static void weather_response_callback(const char* body, size_t len, bool complet
         debug(TRACE, "Current hour (%s): temp=%.1f, code=%d", g_hourly_times[g_current_hour_index],
               g_hourly_temps[g_current_hour_index], g_hourly_codes[g_current_hour_index]);
 
-        uint64_t ms_until_next_fetch = 60 * 60 * 1000;
+        uint64_t ms_until_next_fetch = WEATHER_FETCH_INTERVAL_MINUTES * 60 * 1000;
 
         g_data_fetched = true;
         g_next_fetch_time_ms = to_ms_since_boot(get_absolute_time()) + ms_until_next_fetch;
@@ -324,7 +324,8 @@ static RGB get_dynamic_temp_display_colour(float temp)
 void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
 {
     uint64_t current_time_ms = get_current_time_ms();
-    bool should_fetch = !g_data_fetched || current_time_ms >= g_next_fetch_time_ms;
+    bool is_first_fetch = !g_data_fetched;
+    bool should_fetch = is_first_fetch || current_time_ms >= g_next_fetch_time_ms;
 
     if (g_data_fetched && g_last_hour_advance_ms > 0)
     {
@@ -364,7 +365,7 @@ void weather_display(Matrix* mtrx, int* hour_offset_from_now_to_display)
                      "&timezone=%s",
                      lat, lon, WEATHER_HOURS / 24, tz);
 
-            ReturnCode rc = http_get(HOST_URL_WEATHER, 80, path, weather_response_callback, mtrx);
+            ReturnCode rc = http_get(HOST_URL_WEATHER, 80, path, weather_response_callback, mtrx, is_first_fetch);
             if (RC_FAILED(rc))
             {
                 debug(ERROR, "HTTP request failed: %s", rc_to_string(rc));

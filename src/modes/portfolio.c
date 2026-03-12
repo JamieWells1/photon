@@ -115,26 +115,12 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
 
     g_data_fetched = true;
 
-    uint64_t fetch_interval_minutes;
-    if (g_portfolio_count >= 30)
-    {
-        fetch_interval_minutes = 60;
-    }
-    else if (g_portfolio_count >= 10)
-    {
-        fetch_interval_minutes = 30;
-    }
-    else
-    {
-        fetch_interval_minutes = 15;
-    }
-
-    uint64_t ms_until_next_fetch = fetch_interval_minutes * 60 * 1000;
+    uint64_t ms_until_next_fetch = TKR_FETCH_INTERVAL_MINUTES * 60 * 1000;
     g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
-    debug(INFO, "Batch fetch complete. Next fetch in %llu minutes", fetch_interval_minutes);
+    debug(INFO, "Batch fetch complete. Next fetch in %d minutes", TKR_FETCH_INTERVAL_MINUTES);
 }
 
-static void portfolio_fetch_prices(Matrix* mtrx)
+static void portfolio_fetch_prices(Matrix* mtrx, bool is_first_fetch)
 {
     if (!wifi_is_connected() || g_portfolio_count == 0) return;
 
@@ -159,7 +145,7 @@ static void portfolio_fetch_prices(Matrix* mtrx)
           PROXY_PORT, path);
 
     uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-    ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, portfolio_response_callback, mtrx);
+    ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, portfolio_response_callback, mtrx, is_first_fetch);
     if (RC_FAILED(rc))
     {
         debug(ERROR, "Batch HTTP request failed: %s", rc_to_string(rc));
@@ -457,14 +443,15 @@ void portfolio_display(Matrix* mtrx, int* offset)
     ASSERT_NOT_NULL(offset);
 
     uint64_t current_time_ms = get_current_time_ms();
-    bool should_fetch = (g_next_fetch_time_ms == 0) || (current_time_ms >= g_next_fetch_time_ms);
+    bool is_first_fetch = (g_next_fetch_time_ms == 0);
+    bool should_fetch = is_first_fetch || (current_time_ms >= g_next_fetch_time_ms);
 
     if (should_fetch)
     {
         portfolio_load_from_flash();
         if (g_portfolio_count > 0)
         {
-            portfolio_fetch_prices(mtrx);
+            portfolio_fetch_prices(mtrx, is_first_fetch);
         }
     }
 

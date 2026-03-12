@@ -283,7 +283,35 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                         "<label><input type=checkbox name=c%d%s>%s</label>", i,
                         (config->crypto & (1 << i)) ? " checked" : "", CRYPTO_ARR[i].to_str);
     }
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div></div>");
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "</div>");
+
+    // Currency Pairs section
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                    "<label class=sh>Currency Pairs</label>"
+                    "<div class=row>"
+                    "<select id=c1><option value=''>-</option>");
+
+    // Add all currencies to first dropdown
+    const char* currencies[] = {"GBP", "USD", "EUR", "JPY", "CAD", "AUD", "CHF", "CNY", "INR", "KRW", "BRL", "SGD"};
+    for (int i = 0; i < 12; i++)
+    {
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                        "<option>%s</option>", currencies[i]);
+    }
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                    "</select><span>/</span><select id=c2><option value=''>-</option>");
+
+    // Add all currencies to second dropdown
+    for (int i = 0; i < 12; i++)
+    {
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                        "<option>%s</option>", currencies[i]);
+    }
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                    "</select><button type=button onclick=addCP()>Add</button></div>"
+                    "<ul class=tl id=cplist></ul>"
+                    "<p id=cpmaxmsg style=font-size:11px;color:#888;display:none>Max 10 pairs</p>"
+                    "</div>");
 
     // Portfolio tab
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
@@ -335,6 +363,15 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                         i > 0 ? "," : "", config->stock_tickers[i]);
     }
 
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "],cp=[");  // currencyPairs array
+
+    // Initialize with existing currency pairs from config
+    for (int i = 0; i < config->currency_pair_count && i < 10; i++)
+    {
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "%s'%s'",
+                        i > 0 ? "," : "", config->currency_pairs[i]);
+    }
+
     pos += snprintf(
         config_html_buf + pos, sizeof(config_html_buf) - pos,
         "],D=document,E='createElement',H='hidden',I='innerHTML',N='none',B='block';"
@@ -356,11 +393,21 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
         "C.value=q('[name=currency]')[0].value;K[I]='';"
         "q('[name^=c]:checked,[name^=s]:checked').forEach(e=>{"
         "var h=D[E]('input');h.type=H;h.name=e.name;h.value='1';K.appendChild(h)});return 1}"
+        "function rcp(){var l=g('cplist'),m=g('cpmaxmsg');if(!l)return;l[I]='';"
+        "cp.forEach((p,i)=>l[I]+='<li><span>'+p.slice(0,3)+'/'+p.slice(3)+'</span><a class=rm onclick=xcp('+i+')>X</a>');"
+        "if(m)m.style.display=cp.length>=10?B:N}"
+        "function addCP(){var c1=g('c1'),c2=g('c2');if(!c1||!c2)return;"
+        "var v1=c1.value.trim(),v2=c2.value.trim();"
+        "if(!v1||!v2||v1===v2||cp.length>=10||cp.indexOf(v1+v2)>=0)return;"
+        "cp.push(v1+v2);c1.value='';c2.value='';rcp()}"
+        "function xcp(i){cp.splice(i,1);rcp()}"
         "function saveCfg(){var f=D.forms[0];mt.forEach((t,i)=>{"
-        "var h=D[E]('input');h.type=H;h.name='mt_'+i;h.value=t;f.appendChild(h)});f.submit()}"
+        "var h=D[E]('input');h.type=H;h.name='mt_'+i;h.value=t;f.appendChild(h)});"
+        "cp.forEach((p,i)=>{"
+        "var h=D[E]('input');h.type=H;h.name='cp_'+i;h.value=p;f.appendChild(h)});f.submit()}"
         "function s(i){q('.tab').forEach((t,j)=>t.className=j==i?'tab a':'tab');"
         "q('.t').forEach((t,j)=>t.className=j==i?'t a':'t');"
-        "sv.style.display=i==2?N:B;pf.style.display=i==2?B:N}setTimeout(r,0);"
+        "sv.style.display=i==2?N:B;pf.style.display=i==2?B:N}setTimeout(function(){r();rcp()},0);"
         "</script></body></html>");
 
     debug(DEBUG, "Generated HTML page: %d bytes (buffer size: %d)", pos,

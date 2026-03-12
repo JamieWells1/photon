@@ -3,7 +3,7 @@
  * Proprietary and Confidential - Unauthorized copying or distribution prohibited.
  */
 
-// Pre-built display functions for the matrix
+// Pre-built display for the matrix
 
 #ifndef DISPLAYS_H
 #define DISPLAYS_H
@@ -61,6 +61,8 @@ typedef enum
     CRYPTO = 17,
     INVEST = 18,
     STOCKS_CANDLE = 19,
+    CONFIG = 20,
+    CURNCY = 21,
     ICON_COUNT
 } IconType;
 
@@ -583,6 +585,27 @@ static const Pixel ICON_STOCKS_CANDLE[17] = {
     {1, 3, RED},   {3, 1, RED},   {3, 2, RED},   {3, 3, RED},   {3, 4, RED},
 };
 
+static const Pixel ICON_CONFIG[12] = {
+    {0, 0, BLUE}, {0, 1, BLUE}, {0, 2, BLUE}, {0, 3, BLUE}, {1, 2, BLUE}, {2, 2, BLUE},
+    {3, 2, BLUE}, {4, 2, BLUE}, {0, 4, BLUE}, {1, 4, BLUE}, {2, 4, BLUE}, {3, 4, BLUE},
+};
+
+static const Pixel ICON_CURNCY[13] = {
+    {0, 0, GREEN},
+    {1, 0, GREEN},
+    {0, 1, GREEN},
+    {1, 1, GREEN},
+    {3, 3, RED},
+    {3, 4, RED},
+    {4, 3, RED},
+    {4, 4, RED},
+    {3, 0, DEFAULT_COLOUR},
+    {3, 1, DEFAULT_COLOUR},
+    {2, 2, DEFAULT_COLOUR},
+    {1, 3, DEFAULT_COLOUR},
+    {1, 4, DEFAULT_COLOUR},
+};
+
 // =================
 // ICON LOOKUP TABLE
 // =================
@@ -608,6 +631,8 @@ static const Glyph ICONS_ARR[ICON_COUNT] = {
     {ICON_CRYPTO, ARRAY_SIZE(ICON_CRYPTO), 5, 5},                // 17: CRYPTO
     {ICON_INVEST, ARRAY_SIZE(ICON_INVEST), 5, 5},                // 18: INVEST
     {ICON_STOCKS_CANDLE, ARRAY_SIZE(ICON_STOCKS_CANDLE), 5, 5},  // 19: STOCKS_CANDLE
+    {ICON_CONFIG, ARRAY_SIZE(ICON_CONFIG), 5, 5},                // 20: CONFIG
+    {ICON_CURNCY, ARRAY_SIZE(ICON_CURNCY), 5, 5},                // 21: CURNCY
 };
 
 #endif  // DISPLAYS_H

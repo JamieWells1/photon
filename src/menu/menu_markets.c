@@ -7,6 +7,7 @@
 
 #include <const.h>
 #include <crypto.h>
+#include <currency_pair.h>
 #include <input.h>
 #include <macro.h>
 #include <matrix.h>
@@ -24,6 +25,7 @@ typedef enum
     SUBMENU_INVEST = 0,
     SUBMENU_STOCKS = 1,
     SUBMENU_CRYPTO = 2,
+    SUBMENU_CURNCY = 3,
 } MarketsSubmenu;
 
 typedef struct
@@ -39,11 +41,14 @@ typedef struct
 #define STK_END 1
 #define CRYPTO_START (STK_START + STK_END)
 #define CRYPTO_END 3
+#define CURNCY_START (CRYPTO_START + CRYPTO_END)
+#define CURNCY_END 4
 
 static const MarketsMenu MARKETS_MENUS[] = {
     {SUBMENU_INVEST, "INVEST", &ICONS_ARR[INVEST]},
     {SUBMENU_STOCKS, "STOCKS", &ICONS_ARR[STOCKS_CANDLE]},
     {SUBMENU_CRYPTO, "CRYPTO", &ICONS_ARR[CRYPTO]},
+    {SUBMENU_CURNCY, "CURNCY", &ICONS_ARR[CURNCY]},
 };
 
 static bool g_markets_display_initialized = false;
@@ -54,11 +59,13 @@ static Mode g_markets_current_mode = INVEST_START;
 static int g_invest_offset = 0;
 static int g_stock_offset = 0;
 static int g_crypto_offset = 0;
+static int g_curncy_offset = 0;
 
 static bool g_markets_menu_ready = false;
 static bool g_invest_submenu_ready = false;
 static bool g_stocks_submenu_ready = false;
 static bool g_crypto_submenu_ready = false;
+static bool g_curncy_submenu_ready = false;
 
 static void menu_markets_set_initial_display(Matrix* mtrx)
 {
@@ -92,6 +99,7 @@ static void menu_markets_slide_right(Matrix* mtrx)
     g_invest_submenu_ready = false;
     g_stocks_submenu_ready = false;
     g_crypto_submenu_ready = false;
+    g_curncy_submenu_ready = false;
 }
 
 static void menu_markets_slide_left(Matrix* mtrx)
@@ -126,6 +134,7 @@ static void menu_markets_slide_left(Matrix* mtrx)
     g_invest_submenu_ready = false;
     g_stocks_submenu_ready = false;
     g_crypto_submenu_ready = false;
+    g_curncy_submenu_ready = false;
 }
 
 static void menu_markets_enter_mode(MarketsMenu submenu, Matrix* mtrx)
@@ -143,6 +152,10 @@ static void menu_markets_enter_mode(MarketsMenu submenu, Matrix* mtrx)
     else if (submenu.submenu == SUBMENU_CRYPTO)
     {
         target_menu = CRYPTO_START;
+    }
+    else if (submenu.submenu == SUBMENU_CURNCY)
+    {
+        target_menu = CURNCY_START;
     }
     else
     {
@@ -169,6 +182,10 @@ static void menu_markets_enter_mode(MarketsMenu submenu, Matrix* mtrx)
     else if (g_markets_current_mode == CRYPTO_START)
     {
         crypto_display(mtrx, &g_crypto_offset);
+    }
+    else if (g_markets_current_mode == CURNCY_START)
+    {
+        currency_pair_display(mtrx, &g_curncy_offset);
     }
 }
 
@@ -333,6 +350,7 @@ void menu_markets_cleanup(void)
     portfolio_cleanup();
     stock_cleanup();
     crypto_cleanup();
+    currency_pair_cleanup();
 
     g_markets_display_initialized = false;
     g_in_markets_submenu = false;
@@ -340,8 +358,10 @@ void menu_markets_cleanup(void)
     g_invest_offset = 0;
     g_stock_offset = 0;
     g_crypto_offset = 0;
+    g_curncy_offset = 0;
     g_markets_menu_ready = false;
     g_invest_submenu_ready = false;
     g_stocks_submenu_ready = false;
     g_crypto_submenu_ready = false;
+    g_curncy_submenu_ready = false;
 }

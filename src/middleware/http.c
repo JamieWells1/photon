@@ -259,7 +259,7 @@ static void http_display_status(Matrix* mtrx, int dot_counter)
 }
 
 ReturnCode http_get(const char* host_url, uint16_t port, const char* url_sub_path,
-                    http_response_callback_t callback, Matrix* mtrx)
+                    http_response_callback_t callback, Matrix* mtrx, bool update_display)
 {
     if (!host_url || !url_sub_path || !callback)
     {
@@ -315,7 +315,7 @@ ReturnCode http_get(const char* host_url, uint16_t port, const char* url_sub_pat
 
     while (!g_http_state->complete)
     {
-        if (display_frame_counter % 3 == 0)
+        if (update_display && display_frame_counter % 3 == 0)
         {
             http_display_status(mtrx, dot_counter);
             dot_counter++;

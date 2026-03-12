@@ -139,7 +139,7 @@ static void crypto_response_callback(const char* body, size_t len, bool complete
         CRYPTO_ARR[g_crypto_to_fetch_index].open_price = open_price;
         g_data_fetched = true;
 
-        uint64_t ms_until_next_fetch = 15 * 60 * 1000;
+        uint64_t ms_until_next_fetch = TKR_FETCH_INTERVAL_MINUTES * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
 
         debug(INFO, "Parsed current: $%.2f, open: $%.2f", current_price, open_price);
@@ -159,7 +159,8 @@ void crypto_display(Matrix* mtrx, int* offset)
     ASSERT_NOT_NULL(offset);
 
     uint64_t current_time_ms = get_current_time_ms();
-    bool should_fetch = (g_next_fetch_time_ms == 0) || (current_time_ms >= g_next_fetch_time_ms);
+    bool is_first_fetch = (g_next_fetch_time_ms == 0);
+    bool should_fetch = is_first_fetch || (current_time_ms >= g_next_fetch_time_ms);
 
     if (should_fetch)
     {
@@ -191,7 +192,7 @@ void crypto_display(Matrix* mtrx, int* offset)
 
                 uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
                 ReturnCode rc =
-                    http_get(PROXY_HOST, proxy_port, path, crypto_response_callback, mtrx);
+                    http_get(PROXY_HOST, proxy_port, path, crypto_response_callback, mtrx, is_first_fetch);
                 if (RC_FAILED(rc))
                 {
                     debug(ERROR, "HTTP request failed for %s: %s", crypto_to_fetch,

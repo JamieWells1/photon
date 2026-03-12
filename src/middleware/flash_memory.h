@@ -27,6 +27,9 @@ typedef struct
     uint8_t stock_ticker_count;
     char stock_tickers[10][10];
 
+    uint8_t currency_pair_count;
+    char currency_pairs[10][7];  // 6 chars + null terminator (e.g., "GBPUSD")
+
     uint8_t portfolio_count;
     uint8_t portfolio_mode;
     char portfolio_tickers[50][10];  // Max 50 tickers (T212 limit)

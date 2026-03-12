@@ -734,6 +734,35 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             }
             debug(INFO, "Parsed %d manual tickers", config.stock_ticker_count);
 
+            // Parse currency pairs (cp_N=PAIR)
+            config.currency_pair_count = 0;
+            for (int i = 0; i < 10; i++)
+            {
+                char key[8];
+                snprintf(key, sizeof(key), "cp_%d=", i);
+                const char* pair_start = strstr(body, key);
+                if (pair_start)
+                {
+                    pair_start += strlen(key);
+                    const char* pair_end = pair_start;
+                    while (*pair_end && *pair_end != '&' && *pair_end != '\r' &&
+                           (pair_end - pair_start) < 6)
+                    {
+                        pair_end++;
+                    }
+                    size_t len = pair_end - pair_start;
+                    if (len == 6)
+                    {
+                        strncpy(config.currency_pairs[config.currency_pair_count], pair_start, 6);
+                        config.currency_pairs[config.currency_pair_count][6] = '\0';
+                        config.currency_pair_count++;
+                        debug(DEBUG, "Parsed currency pair %d: %s", config.currency_pair_count - 1,
+                              config.currency_pairs[config.currency_pair_count - 1]);
+                    }
+                }
+            }
+            debug(INFO, "Parsed %d currency pairs", config.currency_pair_count);
+
             debug(INFO,
                   "Parsed config - Brightness: %d%%, Location: %d, Currency: %d, Crypto: 0x%04X, "
                   "Stocks: 0x%llX, Stock count: %d",

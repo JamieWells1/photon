@@ -169,25 +169,11 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
             if (stock_is_enabled(i)) enabled_count++;
         }
 
-        uint64_t fetch_interval_minutes;
-        if (enabled_count >= 30)
-        {
-            fetch_interval_minutes = 60;
-        }
-        else if (enabled_count >= 10)
-        {
-            fetch_interval_minutes = 30;
-        }
-        else
-        {
-            fetch_interval_minutes = 15;
-        }
-
-        uint64_t ms_until_next_fetch = fetch_interval_minutes * 60 * 1000;
+        uint64_t ms_until_next_fetch = TKR_FETCH_INTERVAL_MINUTES * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
 
         debug(INFO, "Batch fetch complete: %u/%u tickers parsed", parsed_count, enabled_count);
-        debug(TRACE, "Next fetch scheduled in %llu minutes", fetch_interval_minutes);
+        debug(TRACE, "Next fetch scheduled in %d minutes", TKR_FETCH_INTERVAL_MINUTES);
     }
     else
     {
@@ -236,7 +222,8 @@ void stock_display(Matrix* mtrx, int* offset)
     }
 
     uint64_t current_time_ms = get_current_time_ms();
-    bool should_fetch = (g_next_fetch_time_ms == 0) || (current_time_ms >= g_next_fetch_time_ms);
+    bool is_first_fetch = (g_next_fetch_time_ms == 0);
+    bool should_fetch = is_first_fetch || (current_time_ms >= g_next_fetch_time_ms);
 
     if (should_fetch)
     {
@@ -274,7 +261,7 @@ void stock_display(Matrix* mtrx, int* offset)
                   PROXY_PORT, path);
 
             uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-            ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, stock_response_callback, mtrx);
+            ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, stock_response_callback, mtrx, is_first_fetch);
             if (RC_FAILED(rc))
             {
                 debug(ERROR, "Batch HTTP request failed: %s", rc_to_string(rc));
@@ -423,7 +410,7 @@ void stock_validate_pending_ticker(Matrix* mtrx)
     debug(INFO, "Validating ticker %s via proxy", ticker);
 
     uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-    ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, validation_response_callback, mtrx);
+    ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, validation_response_callback, mtrx, true);
     if (RC_FAILED(rc))
     {
         debug(ERROR, "Ticker validation request failed for %s: %s", ticker, rc_to_string(rc));

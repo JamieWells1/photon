@@ -7,6 +7,7 @@
 
 #include <const.h>
 #include <macro.h>
+#include <currency_pair.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -40,6 +41,10 @@ static void flash_memory_set_defaults(device_config_t* config)
     config->crypto = DEFAULT_CRYPTO;
     config->stocks = DEFAULT_STOCKS;
     config->stock_ticker_count = 0;
+    config->currency_pair_count = 3;
+    strncpy(config->currency_pairs[0], "GBPUSD", 7);
+    strncpy(config->currency_pairs[1], "GBPEUR", 7);
+    strncpy(config->currency_pairs[2], "USDEUR", 7);
     config->portfolio_count = 0;
     strncpy(config->firmware_version, BUILD_VERSION, sizeof(config->firmware_version) - 1);
     config->firmware_version[sizeof(config->firmware_version) - 1] = '\0';
@@ -80,6 +85,14 @@ bool flash_memory_read(device_config_t* config)
     if (config->crypto == 0)
     {
         config->crypto = DEFAULT_CRYPTO;
+    }
+
+    if (config->currency_pair_count == 0)
+    {
+        config->currency_pair_count = 3;
+        strncpy(config->currency_pairs[0], "GBPUSD", 7);
+        strncpy(config->currency_pairs[1], "GBPEUR", 7);
+        strncpy(config->currency_pairs[2], "USDEUR", 7);
     }
 
     return true;

@@ -66,5 +66,9 @@ typedef enum
 
 // Weather
 #define WEATHER_HOURS 48
+#define WEATHER_FETCH_INTERVAL_MINUTES 60
+
+// All tickers
+#define TKR_FETCH_INTERVAL_MINUTES 10
 
 #endif  // CONST_H
