@@ -411,6 +411,22 @@ class ProxyIntegrationTests:
         else:
             self.result.record_fail(test_name, "Failed to handle mixed markets")
 
+    def test_batch_single_ticker(self):
+        """Test 15: Batch request with just one ticker"""
+        test_name = "Batch Endpoint - Single Ticker (AAPL)"
+        data = self._make_request("/stocks/batch", {"symbols": "AAPL"})
+
+        if not data or "result" not in data:
+            self.result.record_fail(test_name, "Invalid response structure")
+            return
+
+        if self._validate_stock_response(data, "AAPL"):
+            price = float(data["result"]["AAPL"]["c"][0])
+            logger.info(f"  AAPL: ${price:.2f}")
+            self.result.record_pass(test_name)
+        else:
+            self.result.record_fail(test_name, "Invalid response for single ticker")
+
     def run_all_tests(self):
         """Run all integration tests"""
         logger.info("=" * 60)
@@ -437,6 +453,7 @@ class ProxyIntegrationTests:
         self.test_batch_with_currency()
         self.test_batch_lse_tickers()
         self.test_batch_mixed_markets()
+        self.test_batch_single_ticker()
 
         self.result.end_time = datetime.now()
 
