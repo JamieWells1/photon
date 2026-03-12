@@ -272,6 +272,32 @@ static void menu_markets_crypto_detect_inputs(Button* btns, Rotator* rtr, Matrix
     }
 }
 
+static void menu_markets_curncy_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
+{
+    if (!g_curncy_submenu_ready)
+    {
+        bool all_released = (btns[0].current_state == true && btns[1].current_state == true &&
+                             rtr->current_sw_state == true);
+
+        if (all_released)
+        {
+            g_curncy_submenu_ready = true;
+            debug(DEBUG, "All buttons released, curncy submenu ready for input");
+        }
+        return;
+    }
+
+    if (input_rtr_long_pressed(rtr))
+    {
+        menu_main_exit_submenu(mtrx);
+    }
+
+    if (input_rtr_cw(rtr))
+    {
+        g_curncy_offset += 1;
+    }
+}
+
 void menu_markets_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 {
     if (!g_in_markets_submenu)
@@ -327,6 +353,10 @@ void menu_markets_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
         else if (g_markets_current_mode == CRYPTO_START)
         {
             menu_markets_crypto_detect_inputs(btns, rtr, mtrx);
+        }
+        else if (g_markets_current_mode == CURNCY_START)
+        {
+            menu_markets_curncy_detect_inputs(btns, rtr, mtrx);
         }
     }
 }

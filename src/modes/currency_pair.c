@@ -27,6 +27,7 @@ static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
 static unsigned int g_pair_to_fetch_index = 0;
 static int g_scroll_offset = 0;
+static int g_url_scroll_offset = 0;
 
 // Parsing
 
@@ -109,10 +110,42 @@ static void currency_pair_response_callback(const char* body, size_t len, bool c
     }
 }
 
+static void currency_pair_display_url(Matrix* mtrx)
+{
+    const char* url_text = "    http://photon.local/watchlist";
+    int total_width = matrix_calculate_word_width_with_space(url_text) + 4;
+
+    matrix_clear(mtrx);
+
+    for (int wrap = 0; wrap < 2; wrap++)
+    {
+        int text_x = (wrap * total_width) - g_url_scroll_offset;
+        int text_y = 1;
+        matrix_display_word(url_text, text_x, text_y, &BLUE);
+    }
+
+    matrix_show(mtrx);
+}
+
 void currency_pair_display(Matrix* mtrx, int* offset)
 {
     ASSERT_NOT_NULL(mtrx);
     ASSERT_NOT_NULL(offset);
+
+    // Check if any currency pairs are configured
+    uint8_t enabled_count = currency_pair_get_count();
+    if (enabled_count == 0)
+    {
+        currency_pair_display_url(mtrx);
+        g_url_scroll_offset++;
+        int url_width =
+            matrix_calculate_word_width_with_space("    http://photon.local/watchlist") + 4;
+        if (g_url_scroll_offset >= url_width)
+        {
+            g_url_scroll_offset = 0;
+        }
+        return;
+    }
 
     uint64_t current_time_ms = get_current_time_ms();
     bool is_first_fetch = (g_next_fetch_time_ms == 0);
@@ -302,6 +335,7 @@ void currency_pair_cleanup(void)
     g_data_fetched = false;
     g_next_fetch_time_ms = 0;
     g_scroll_offset = 0;
+    g_url_scroll_offset = 0;
     g_pair_to_fetch_index = 0;
 }
 

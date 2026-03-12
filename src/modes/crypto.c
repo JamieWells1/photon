@@ -34,6 +34,7 @@ static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
 static unsigned int g_crypto_to_fetch_index = 0;
 static int g_scroll_offset = 0;
+static int g_url_scroll_offset = 0;
 static uint16_t g_enabled_mask = DEFAULT_CRYPTO;
 
 static const char* currency_to_string(Currency ccy)
@@ -153,10 +154,47 @@ static void crypto_response_callback(const char* body, size_t len, bool complete
     }
 }
 
+static void crypto_display_url(Matrix* mtrx)
+{
+    const char* url_text = "    http://photon.local/watchlist";
+    int total_width = matrix_calculate_word_width_with_space(url_text) + 4;
+
+    matrix_clear(mtrx);
+
+    for (int wrap = 0; wrap < 2; wrap++)
+    {
+        int text_x = (wrap * total_width) - g_url_scroll_offset;
+        int text_y = 1;
+        matrix_display_word(url_text, text_x, text_y, &BLUE);
+    }
+
+    matrix_show(mtrx);
+}
+
 void crypto_display(Matrix* mtrx, int* offset)
 {
     ASSERT_NOT_NULL(mtrx);
     ASSERT_NOT_NULL(offset);
+
+    // Check if any crypto currencies are enabled
+    uint8_t enabled_count = 0;
+    for (unsigned int i = 0; i < CRYPTO_COUNT; i++)
+    {
+        if (crypto_is_enabled(i)) enabled_count++;
+    }
+
+    if (enabled_count == 0)
+    {
+        crypto_display_url(mtrx);
+        g_url_scroll_offset++;
+        int url_width =
+            matrix_calculate_word_width_with_space("    http://photon.local/watchlist") + 4;
+        if (g_url_scroll_offset >= url_width)
+        {
+            g_url_scroll_offset = 0;
+        }
+        return;
+    }
 
     uint64_t current_time_ms = get_current_time_ms();
     bool is_first_fetch = (g_next_fetch_time_ms == 0);
@@ -308,4 +346,5 @@ void crypto_cleanup(void)
     g_next_fetch_time_ms = 0;
     g_crypto_to_fetch_index = 0;
     g_scroll_offset = 0;
+    g_url_scroll_offset = 0;
 }
