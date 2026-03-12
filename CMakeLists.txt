@@ -106,15 +106,19 @@ set(MDNS_SOURCES
         ${PICO_LWIP_PATH}/src/apps/mdns/mdns_domain.c
 )
 
-# Display modes
-set(MODE_SOURCES
-        src/modes/portfolio.c
-        src/modes/stock.c
-        src/modes/crypto.c
-        src/modes/currency_pair.c
+# Main display modes
+set(MAIN_MODE_SOURCES
         src/modes/weather.c
         src/modes/config.c
         src/modes/reset.c
+)
+
+# Markets display modes
+set(MARKETS_MODE_SOURCES
+        src/modes/markets/portfolio.c
+        src/modes/markets/stock.c
+        src/modes/markets/crypto.c
+        src/modes/markets/currency_pair.c
 )
 
 add_executable(photon
@@ -129,7 +133,8 @@ add_executable(photon
         ${MIDDLEWARE_SOURCES}
         ${SERVER_SOURCES}
         ${MDNS_SOURCES}
-        ${MODE_SOURCES}
+        ${MAIN_MODE_SOURCES}
+        ${MARKETS_MODE_SOURCES}
 )
 
 pico_set_program_name(photon "photon")
@@ -177,6 +182,7 @@ target_include_directories(photon PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/src/middleware
         ${CMAKE_CURRENT_LIST_DIR}/src/server
         ${CMAKE_CURRENT_LIST_DIR}/src/modes
+        ${CMAKE_CURRENT_LIST_DIR}/src/modes/markets
         ${CMAKE_CURRENT_BINARY_DIR}
 )
 
