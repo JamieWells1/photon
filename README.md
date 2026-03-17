@@ -2,6 +2,9 @@
 
 Photon is a firmware application for the Raspberry Pi Pico 2 W that transforms a 32x8 WS2812B LED matrix into an interactive display system. The firmware provides a menu-driven interface for displaying real-time weather and cryptocurrency prices, controlled through a rotary encoder and push buttons.
 
+![Gemini_Generated_Image_jdipoejdipoejdip Medium](https://github.com/user-attachments/assets/69394211-9c20-4712-8bbb-81a906645902)
+> The intended final design
+
 ## Overview
 
 The system connects to WiFi to fetch data from multiple sources and displays dynamic, color-coded information with custom icons. Display weather data from Open-Meteo API or live cryptocurrency prices from Kraken. Navigation through the menu system is handled via a rotary encoder with integrated push button and two additional tactile buttons.
