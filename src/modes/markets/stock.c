@@ -261,7 +261,8 @@ void stock_display(Matrix* mtrx, int* offset)
                   PROXY_PORT, path);
 
             uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-            ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, stock_response_callback, mtrx, is_first_fetch);
+            ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, stock_response_callback, mtrx,
+                                     is_first_fetch);
             if (RC_FAILED(rc))
             {
                 debug(ERROR, "Batch HTTP request failed: %s", rc_to_string(rc));
@@ -410,7 +411,8 @@ void stock_validate_pending_ticker(Matrix* mtrx)
     debug(INFO, "Validating ticker %s via proxy", ticker);
 
     uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-    ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, validation_response_callback, mtrx, true);
+    ReturnCode rc =
+        http_get(PROXY_HOST, proxy_port, path, validation_response_callback, mtrx, true);
     if (RC_FAILED(rc))
     {
         debug(ERROR, "Ticker validation request failed for %s: %s", ticker, rc_to_string(rc));
