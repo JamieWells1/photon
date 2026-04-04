@@ -32,6 +32,7 @@ typedef struct
 
     uint8_t portfolio_count;
     uint8_t portfolio_mode;
+    uint8_t scroll_type;  // 0 = automatic, 1 = manual
     char portfolio_tickers[50][10];  // Max 50 tickers (T212 limit)
     float portfolio_quantities[50];
     float portfolio_avg_prices[50];

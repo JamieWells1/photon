@@ -597,6 +597,20 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                                 }
                             }
 
+                            // Parse scroll_type
+                            field = strstr(body, "name=\"scroll_type\"");
+                            if (field)
+                            {
+                                val = strstr(field, "\r\n\r\n");
+                                if (val)
+                                {
+                                    val += 4;
+                                    config.scroll_type = (uint8_t)atoi(val);
+                                    debug(DEBUG, "Parsed scroll_type: %d",
+                                          config.scroll_type);
+                                }
+                            }
+
                             // Parse crypto checkboxes
                             uint16_t crypto = 0;
                             for (int i = 0; i < CRYPTO_COUNT; i++)
@@ -676,6 +690,8 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             if (val) config.currency = (uint8_t)atoi(val + 9);
             val = strstr(body, "portfolio_mode=");
             if (val) config.portfolio_mode = (uint8_t)atoi(val + 15);
+            val = strstr(body, "scroll_type=");
+            if (val) config.scroll_type = (uint8_t)atoi(val + 12);
 
             uint16_t crypto = 0;
             for (int i = 0; i < CRYPTO_COUNT; i++)

@@ -19,7 +19,7 @@ static const char* html_wifi_form =
     "Content-Type: text/html\r\n"
     "Connection: close\r\n\r\n"
     "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width\">"
-    "<title>Photon Setup</title>"
+    "<title>Delta Setup</title>"
     "<style>"
     "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe "
     "UI',Roboto,sans-serif;background:linear-gradient(135deg,#4A90E2 0%,#357ABD "
@@ -40,7 +40,7 @@ static const char* html_wifi_form =
     "button:active{transform:translateY(0)}"
     ".subtitle{color:#888;font-size:14px;text-align:center;margin-bottom:24px}"
     "</style></head><body>"
-    "<div class=\"container\"><h1>Photon Setup</h1>"
+    "<div class=\"container\"><h1>Delta Setup</h1>"
     "<p class=\"subtitle\">Connect your device to WiFi</p>"
     "<form method=\"POST\" action=\"/save\" enctype=\"application/x-www-form-urlencoded\">"
     "<label>Network Name (SSID)</label><input type=\"text\" name=\"ssid\" placeholder=\"Enter WiFi "
@@ -160,7 +160,7 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
         config_html_buf + pos, sizeof(config_html_buf) - pos,
         "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n"
         "<!DOCTYPE html><html><head><meta name=viewport content=width=device-width>"
-        "<title>Photon</title><style>"
+        "<title>Delta</title><style>"
         "*{box-sizing:border-box;margin:0}body{background:#4A90E2;padding:10px;font:14px "
         "sans-serif}"
         ".c{background:#fff;padding:12px;max-width:400px;margin:0 auto}"
@@ -172,6 +172,7 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
         ".t{display:none}.t.a{display:block}"
         "label{display:block;margin:8px 0 2px}.sh{margin:14px 0 10px}"
         "input,select{width:100%%;padding:5px;border:1px solid #ddd}"
+        "[type=radio]{width:auto;margin:0 4px 0 0}.rl{display:inline;margin-right:12px}"
         "button{width:100%%;background:#4A90E2;color:#fff;border:0;padding:8px;margin-top:8px;"
         "cursor:pointer}"
         ".g{display:grid;grid-template-columns:1fr 1fr;gap:4px}"
@@ -181,7 +182,7 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
         ".rm{color:red;text-decoration:none;cursor:pointer}"
         ".row{display:flex;gap:4px}.row input{flex:1}.row button{width:auto;margin:0;padding:5px "
         "10px}"
-        "</style><body><div class=c><h1>Photon</h1>"
+        "</style><body><div class=c><h1>Delta</h1>"
         "<div class=tabs>"
         "<button class=\"tab%s\" onclick=s(0)>Device</button>"
         "<button class=\"tab%s\" onclick=s(1)>Watchlist</button>"
@@ -338,6 +339,10 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                     "<label>P&L Mode</label><select name=portfolio_mode id=pm>"
                     "<option value=0%s>All-Time</option>"
                     "<option value=1%s>Daily</option></select>"
+                    "<label class=sh>Scroll Type</label>"
+                    "<p style=color:#888;font-size:11px;margin-bottom:12px>Auto scrolls metrics continuously, whereas manual requires encoder rotation</p>"
+                    "<label class=rl><input type=radio name=scroll_type value=0%s>Auto</label>"
+                    "<label class=rl><input type=radio name=scroll_type value=1%s>Manual</label>"
                     "<input type=hidden name=brightness id=B value=%d>"
                     "<input type=hidden name=location id=L value=%d>"
                     "<input type=hidden name=currency id=C value=%d>"
@@ -346,8 +351,10 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                     strcmp(active_tab, "portfolio") == 0 ? "none" : "block",
                     strcmp(active_tab, "portfolio") == 0 ? "block" : "none",
                     config->portfolio_mode == 0 ? " selected" : "",
-                    config->portfolio_mode == 1 ? " selected" : "", config->brightness,
-                    config->location, config->currency);
+                    config->portfolio_mode == 1 ? " selected" : "",
+                    config->scroll_type == 0 ? " checked" : "",
+                    config->scroll_type == 1 ? " checked" : "",
+                    config->brightness, config->location, config->currency);
 
     // JavaScript with manual ticker management
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
@@ -404,7 +411,10 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
         "function saveCfg(){var f=D.forms[0];mt.forEach((t,i)=>{"
         "var h=D[E]('input');h.type=H;h.name='mt_'+i;h.value=t;f.appendChild(h)});"
         "cp.forEach((p,i)=>{"
-        "var h=D[E]('input');h.type=H;h.name='cp_'+i;h.value=p;f.appendChild(h)});f.submit()}"
+        "var h=D[E]('input');h.type=H;h.name='cp_'+i;h.value=p;f.appendChild(h)});"
+        "var st=q('[name=scroll_type]:checked');if(st.length){"
+        "var h=D[E]('input');h.type=H;h.name='scroll_type';h.value=st[0].value;f.appendChild(h)}"
+        "f.submit()}"
         "function s(i){q('.tab').forEach((t,j)=>t.className=j==i?'tab a':'tab');"
         "q('.t').forEach((t,j)=>t.className=j==i?'t a':'t');"
         "sv.style.display=i==2?N:B;pf.style.display=i==2?B:N}setTimeout(function(){r();rcp()},0);"
@@ -430,7 +440,7 @@ const char* html_build_update_page(bool update_available, const char* remote_ver
         update_html_buf + pos, sizeof(update_html_buf) - pos,
         "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n"
         "<!DOCTYPE html><html><head><meta name=viewport content=width=device-width>"
-        "<title>Photon Update</title><style>"
+        "<title>Delta Update</title><style>"
         "*{box-sizing:border-box;margin:0}body{background:#4A90E2;padding:20px;font:14px "
         "sans-serif;color:#333}"
         ".c{background:#fff;padding:20px;max-width:500px;margin:0 auto;border-radius:8px}"
@@ -475,13 +485,13 @@ const char* html_build_update_page(bool update_available, const char* remote_ver
         "solid #4A90E2'>"
         "<div style='margin-bottom:12px;padding:12px;background:#D1ECF1;border-radius:4px'>"
         "<strong>Download in progress...</strong><br>"
-        "<small>Check your downloads folder for photon-update.uf2</small></div>"
+        "<small>Check your downloads folder for delta-update.uf2</small></div>"
         "<strong>Installation Steps:</strong>"
         "<ol style='margin:12px 0 0 20px;line-height:1.8'>"
-        "<li><strong>Connect USB:</strong> If not already, plug your Photon device into your "
+        "<li><strong>Connect USB:</strong> If not already, plug your Delta device into your "
         "computer with your USB "
         "cable</li>"
-        "<li><strong>Find the Photon device:</strong> Your Photon device will appear as "
+        "<li><strong>Find the Delta device:</strong> Your Delta device will appear as "
         "<strong>RP2040</strong> in File Explorer on Windows, or Finder on macOS"
         "</li>"
         "<li><strong>Install:</strong> Click on RP2040, and drag the downloaded "
@@ -505,7 +515,7 @@ const char* html_build_update_page(bool update_available, const char* remote_ver
         "show('Downloading update file...','info');"
         "const link=document.createElement('a');"
         "link.href='http://%s:8090/firmware/latest.uf2';"
-        "link.download='photon-update.uf2';"
+        "link.download='delta-update.uf2';"
         "document.body.appendChild(link);"
         "link.click();"
         "document.body.removeChild(link);"

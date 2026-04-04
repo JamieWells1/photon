@@ -215,13 +215,13 @@ void wifi_start_mdns(void)
     mdns_initialized = true;
 
     // Add this interface to mDNS
-    err_t err = mdns_resp_add_netif(&cyw43_state.netif[CYW43_ITF_STA], "photon");
+    err_t err = mdns_resp_add_netif(&cyw43_state.netif[CYW43_ITF_STA], "delta");
 
     const ip4_addr_t* ip = netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_STA]);
 
     if (err == ERR_OK)
     {
-        debug(INFO, "mDNS responder started: photon.local resolves to %s", ip4addr_ntoa(ip));
+        debug(INFO, "mDNS responder started: delta.local resolves to %s", ip4addr_ntoa(ip));
     }
     else
     {

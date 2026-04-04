@@ -156,7 +156,7 @@ static void crypto_response_callback(const char* body, size_t len, bool complete
 
 static void crypto_display_url(Matrix* mtrx)
 {
-    const char* url_text = "    http://photon.local/watchlist";
+    const char* url_text = "    http://delta.local/watchlist";
     int total_width = matrix_calculate_word_width_with_space(url_text) + 4;
 
     matrix_clear(mtrx);
@@ -188,7 +188,7 @@ void crypto_display(Matrix* mtrx, int* offset)
         crypto_display_url(mtrx);
         g_url_scroll_offset++;
         int url_width =
-            matrix_calculate_word_width_with_space("    http://photon.local/watchlist") + 4;
+            matrix_calculate_word_width_with_space("    http://delta.local/watchlist") + 4;
         if (g_url_scroll_offset >= url_width)
         {
             g_url_scroll_offset = 0;

@@ -41,7 +41,7 @@ typedef struct
 // When adding to this enum, also add the icon to the end of ICONS_ARR
 typedef enum
 {
-    PHOTON = 0,
+    DELTA = 0,
     STOCKS = 1,
     TKR_UP = 2,
     TKR_DOWN = 3,
@@ -460,8 +460,8 @@ static const Glyph NUMBERS[10] = {
 
 // LOGO
 
-static const Pixel ICON_PHOTON[15] = {
-    // Photon icon
+static const Pixel ICON_DELTA[15] = {
+    // Delta icon
     {0, 2, LOGO_COLOUR}, {0, 3, LOGO_COLOUR}, {0, 4, LOGO_COLOUR}, {1, 2, LOGO_COLOUR},
     {1, 4, LOGO_COLOUR}, {2, 0, LOGO_COLOUR}, {2, 1, LOGO_COLOUR}, {2, 2, LOGO_COLOUR},
     {2, 3, LOGO_COLOUR}, {2, 4, LOGO_COLOUR}, {3, 0, LOGO_COLOUR}, {3, 2, LOGO_COLOUR},
@@ -586,7 +586,7 @@ static const Pixel ICON_STOCKS_CANDLE[17] = {
 };
 
 static const Pixel ICON_CONFIG[12] = {
-    {0, 0, BLUE}, {0, 1, BLUE}, {0, 2, BLUE}, {0, 3, BLUE}, {1, 2, BLUE}, {2, 2, BLUE},
+    {0, 0, BLUE}, {3, 0, BLUE}, {2, 0, BLUE}, {1, 0, BLUE}, {1, 2, BLUE}, {2, 2, BLUE},
     {3, 2, BLUE}, {4, 2, BLUE}, {0, 4, BLUE}, {1, 4, BLUE}, {2, 4, BLUE}, {3, 4, BLUE},
 };
 
@@ -611,7 +611,7 @@ static const Pixel ICON_CURNCY[13] = {
 // =================
 
 static const Glyph ICONS_ARR[ICON_COUNT] = {
-    {ICON_PHOTON, ARRAY_SIZE(ICON_PHOTON), 5, 5},                // 0: PHOTON
+    {ICON_DELTA, ARRAY_SIZE(ICON_DELTA), 5, 5},                // 0: DELTA
     {ICON_STOCKS, ARRAY_SIZE(ICON_STOCKS), 5, 5},                // 1: STOCKS
     {ICON_TKR_UP, ARRAY_SIZE(ICON_TKR_UP), 5, 5},                // 2: TKR_UP
     {ICON_TKR_DOWN, ARRAY_SIZE(ICON_TKR_DOWN), 5, 5},            // 3: TKR_DOWN

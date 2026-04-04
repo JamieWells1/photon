@@ -52,6 +52,9 @@ static volatile uint64_t g_next_fetch_time_ms = 0;
 static int g_scroll_offset = 0;
 static int g_url_scroll_offset = 0;
 static PortfolioMetric g_current_metric = METRIC_PL_ABSOLUTE;
+static int g_auto_scroll_offset = 0;
+static bool g_scroll_type_loaded = false;
+static uint8_t g_scroll_type = 0;  // 0 = automatic (default), 1 = manual
 
 static void portfolio_response_callback(const char* body, size_t len, bool complete)
 {
@@ -219,6 +222,197 @@ static void portfolio_calculate_metrics(float* total_pl, float* total_pct, int* 
     *total_pct = (total_cost > 0.0f) ? (*total_pl / total_cost) * 100.0f : 0.0f;
 }
 
+typedef struct
+{
+    char label[32];
+    char value[32];
+    const RGB* color;
+    bool has_label;
+    int position_offset;
+} MetricRenderData;
+
+static void portfolio_build_metric_data(PortfolioMetric metric, MetricRenderData* out,
+                                        float total_pl, float total_pct, float total_value,
+                                        int winner_idx, int loser_idx,
+                                        const char* currency_symbol, bool daily_mode)
+{
+    out->label[0] = '\0';
+    out->value[0] = '\0';
+    out->color = &DEFAULT_COLOUR;
+    out->has_label = false;
+    out->position_offset = 0;
+
+    bool all_invalid = (winner_idx == -1 && loser_idx == -1);
+
+    switch (metric)
+    {
+        case METRIC_PL_ABSOLUTE:
+            if (all_invalid)
+            {
+                snprintf(out->value, sizeof(out->value), "NO DATA");
+            }
+            else
+            {
+                snprintf(out->label, sizeof(out->label), "P/L");
+                snprintf(out->value, sizeof(out->value), " %.2f", total_pl);
+                if (total_pl != 0.0f) out->color = (total_pl > 0) ? &GREEN : &RED;
+                out->has_label = true;
+                out->position_offset = -1;
+            }
+            break;
+
+        case METRIC_PL_PERCENTAGE:
+            if (all_invalid)
+            {
+                snprintf(out->value, sizeof(out->value), "NO DATA");
+            }
+            else
+            {
+                snprintf(out->label, sizeof(out->label), "P/L");
+                snprintf(out->value, sizeof(out->value), " %.2f%%", total_pct);
+                if (total_pct != 0.0f) out->color = (total_pct > 0) ? &GREEN : &RED;
+                out->has_label = true;
+                out->position_offset = -1;
+            }
+            break;
+
+        case METRIC_BIGGEST_WINNER:
+            if (winner_idx >= 0)
+            {
+                float baseline = daily_mode ? g_positions[winner_idx].prev_close
+                                            : g_positions[winner_idx].avg_price;
+                float cost = g_positions[winner_idx].quantity * baseline;
+                float cur_val =
+                    g_positions[winner_idx].quantity * g_positions[winner_idx].current_price;
+                float pct = (cost > 0.0f) ? ((cur_val - cost) / cost) * 100.0f : 0.0f;
+                snprintf(out->label, sizeof(out->label), "  %s", g_positions[winner_idx].ticker);
+                snprintf(out->value, sizeof(out->value), "%+.2f%%", pct);
+                if (pct != 0.0f) out->color = (pct > 0) ? &GREEN : &RED;
+                out->has_label = true;
+                out->position_offset = 2;
+            }
+            else
+            {
+                snprintf(out->value, sizeof(out->value), "NO DATA");
+            }
+            break;
+
+        case METRIC_BIGGEST_LOSER:
+            if (loser_idx >= 0)
+            {
+                float baseline = daily_mode ? g_positions[loser_idx].prev_close
+                                            : g_positions[loser_idx].avg_price;
+                float cost = g_positions[loser_idx].quantity * baseline;
+                float cur_val =
+                    g_positions[loser_idx].quantity * g_positions[loser_idx].current_price;
+                float pct = (cost > 0.0f) ? ((cur_val - cost) / cost) * 100.0f : 0.0f;
+                snprintf(out->label, sizeof(out->label), "  %s", g_positions[loser_idx].ticker);
+                snprintf(out->value, sizeof(out->value), "%+.2f%%", pct);
+                if (pct != 0.0f) out->color = (pct > 0) ? &GREEN : &RED;
+                out->has_label = true;
+                out->position_offset = 2;
+            }
+            else
+            {
+                snprintf(out->value, sizeof(out->value), "NO DATA");
+            }
+            break;
+
+        case METRIC_TOTAL_VALUE:
+            if (all_invalid)
+            {
+                snprintf(out->value, sizeof(out->value), "NO DATA");
+            }
+            else
+            {
+                snprintf(out->label, sizeof(out->label), "  TOTAL");
+                snprintf(out->value, sizeof(out->value), "%s%.2f %+.2f%%", currency_symbol,
+                         total_value, total_pct);
+                if (total_pct != 0.0f) out->color = (total_pct > 0) ? &GREEN : &RED;
+                out->has_label = true;
+                out->position_offset = 1;
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+static int portfolio_metric_width(const MetricRenderData* m)
+{
+    int label_w = m->has_label ? matrix_calculate_word_width_with_space(m->label) : 0;
+    int value_w = matrix_calculate_word_width_with_space(m->value);
+    int w = label_w + value_w;
+    if (m->has_label)
+    {
+        w -= (m->position_offset == -1) ? 2 : 1;
+    }
+    return w;
+}
+
+static void portfolio_display_auto(Matrix* mtrx)
+{
+    float total_pl, total_pct, total_value;
+    int winner_idx, loser_idx;
+    portfolio_calculate_metrics(&total_pl, &total_pct, &winner_idx, &loser_idx, &total_value);
+
+    device_config_t config;
+    flash_memory_read(&config);
+    const char* currency_symbol = currency_get_symbol(config.currency);
+    bool daily_mode = (config.portfolio_mode == 1);
+
+    MetricRenderData metrics[METRIC_COUNT];
+    int metric_widths[METRIC_COUNT];
+    int total_width = 0;
+
+    for (int i = 0; i < METRIC_COUNT; i++)
+    {
+        portfolio_build_metric_data(i, &metrics[i], total_pl, total_pct, total_value,
+                                    winner_idx, loser_idx, currency_symbol, daily_mode);
+        int w = portfolio_metric_width(&metrics[i]) + 12;
+        metric_widths[i] = w;
+        total_width += w;
+    }
+
+    if (total_width == 0) return;
+
+    matrix_clear(mtrx);
+
+    int current_x = 0;
+    for (int i = 0; i < METRIC_COUNT; i++)
+    {
+        const MetricRenderData* m = &metrics[i];
+        int label_w = m->has_label ? matrix_calculate_word_width_with_space(m->label) : 0;
+        int base_x = current_x - g_auto_scroll_offset;
+
+        for (int wrap = 0; wrap < 2; wrap++)
+        {
+            int x = base_x + (wrap * total_width) + 2;
+
+            if (m->has_label)
+            {
+                matrix_display_word(m->label, x, 1, &LABEL_ORANGE);
+                matrix_display_word(m->value, x + label_w + m->position_offset, 1, m->color);
+            }
+            else
+            {
+                matrix_display_word(m->value, x, 1, m->color);
+            }
+        }
+
+        current_x += metric_widths[i];
+    }
+
+    matrix_show(mtrx);
+
+    g_auto_scroll_offset += 2;
+    if (g_auto_scroll_offset >= total_width)
+    {
+        g_auto_scroll_offset = 0;
+    }
+}
+
 static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
 {
     float total_pl, total_pct, total_value;
@@ -228,154 +422,19 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
     device_config_t config;
     flash_memory_read(&config);
     const char* currency_symbol = currency_get_symbol(config.currency);
+    bool daily_mode = (config.portfolio_mode == 1);
 
-    char label_str[32] = "";
-    char value_str[32] = "";
-    const RGB* value_color = &DEFAULT_COLOUR;
-    bool has_label = false;
+    MetricRenderData m;
+    portfolio_build_metric_data(metric, &m, total_pl, total_pct, total_value,
+                                winner_idx, loser_idx, currency_symbol, daily_mode);
 
-    // Check if all tickers are invalid (no valid positions)
-    bool all_invalid = (winner_idx == -1 && loser_idx == -1);
-
-    switch (metric)
-    {
-        case METRIC_PL_ABSOLUTE:
-            if (all_invalid)
-            {
-                snprintf(value_str, sizeof(value_str), "NO DATA");
-                has_label = false;
-            }
-            else
-            {
-                snprintf(label_str, sizeof(label_str), "P/L");
-                snprintf(value_str, sizeof(value_str), " %.2f", total_pl);
-                if (total_pl == 0.0f)
-                    value_color = &DEFAULT_COLOUR;
-                else
-                    value_color = (total_pl > 0) ? &GREEN : &RED;
-                has_label = true;
-            }
-            break;
-
-        case METRIC_PL_PERCENTAGE:
-            if (all_invalid)
-            {
-                snprintf(value_str, sizeof(value_str), "NO DATA");
-                has_label = false;
-            }
-            else
-            {
-                snprintf(label_str, sizeof(label_str), "P/L");
-                snprintf(value_str, sizeof(value_str), " %.2f%%", total_pct);
-                if (total_pct == 0.0f)
-                    value_color = &DEFAULT_COLOUR;
-                else
-                    value_color = (total_pct > 0) ? &GREEN : &RED;
-                has_label = true;
-            }
-            break;
-
-        case METRIC_BIGGEST_WINNER:
-            if (winner_idx >= 0)
-            {
-                device_config_t config;
-                flash_memory_read(&config);
-                bool daily_mode = (config.portfolio_mode == 1);
-                float baseline = daily_mode ? g_positions[winner_idx].prev_close
-                                            : g_positions[winner_idx].avg_price;
-
-                float cost = g_positions[winner_idx].quantity * baseline;
-                float current_value =
-                    g_positions[winner_idx].quantity * g_positions[winner_idx].current_price;
-                float pct_change = (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
-                snprintf(label_str, sizeof(label_str), "  %s", g_positions[winner_idx].ticker);
-                snprintf(value_str, sizeof(value_str), "%+.2f%%", pct_change);
-                if (pct_change == 0.0f)
-                    value_color = &DEFAULT_COLOUR;
-                else
-                    value_color = (pct_change > 0) ? &GREEN : &RED;
-                has_label = true;
-            }
-            else
-            {
-                snprintf(value_str, sizeof(value_str), "NO DATA");
-                has_label = false;
-            }
-            break;
-
-        case METRIC_BIGGEST_LOSER:
-            if (loser_idx >= 0)
-            {
-                device_config_t config;
-                flash_memory_read(&config);
-                bool daily_mode = (config.portfolio_mode == 1);
-                float baseline = daily_mode ? g_positions[loser_idx].prev_close
-                                            : g_positions[loser_idx].avg_price;
-
-                float cost = g_positions[loser_idx].quantity * baseline;
-                float current_value =
-                    g_positions[loser_idx].quantity * g_positions[loser_idx].current_price;
-                float pct_change = (cost > 0.0f) ? ((current_value - cost) / cost) * 100.0f : 0.0f;
-                snprintf(label_str, sizeof(label_str), "  %s", g_positions[loser_idx].ticker);
-                snprintf(value_str, sizeof(value_str), "%+.2f%%", pct_change);
-                if (pct_change == 0.0f)
-                    value_color = &DEFAULT_COLOUR;
-                else
-                    value_color = (pct_change > 0) ? &GREEN : &RED;
-                has_label = true;
-            }
-            else
-            {
-                snprintf(value_str, sizeof(value_str), "NO DATA");
-                has_label = false;
-            }
-            break;
-
-        case METRIC_TOTAL_VALUE:
-            if (all_invalid)
-            {
-                snprintf(value_str, sizeof(value_str), "NO DATA");
-                has_label = false;
-            }
-            else
-            {
-                snprintf(label_str, sizeof(label_str), "  TOTAL");
-                snprintf(value_str, sizeof(value_str), "%s%.2f %+.2f%%", currency_symbol,
-                         total_value, total_pct);
-                if (total_pct == 0.0f)
-                    value_color = &DEFAULT_COLOUR;
-                else
-                    value_color = (total_pct > 0) ? &GREEN : &RED;
-                has_label = true;
-            }
-            break;
-
-        default:
-            return;
-    }
-
-    int label_width = has_label ? matrix_calculate_word_width_with_space(label_str) : 0;
-    int value_width = matrix_calculate_word_width_with_space(value_str);
+    int label_width = m.has_label ? matrix_calculate_word_width_with_space(m.label) : 0;
+    int value_width = matrix_calculate_word_width_with_space(m.value);
     int total_width = label_width + value_width;
-    int position_offset = 0;
 
-    if (has_label)
+    if (m.has_label)
     {
-        if (metric == METRIC_PL_ABSOLUTE || metric == METRIC_PL_PERCENTAGE)
-        {
-            total_width -= 2;
-            position_offset = -1;
-        }
-        else if (metric == METRIC_BIGGEST_WINNER || metric == METRIC_BIGGEST_LOSER)
-        {
-            total_width -= 1;
-            position_offset = 2;
-        }
-        else if (metric == METRIC_TOTAL_VALUE)
-        {
-            total_width -= 1;
-            position_offset = 1;
-        }
+        total_width -= (m.position_offset == -1) ? 2 : 1;
     }
 
     matrix_clear(mtrx);
@@ -385,15 +444,15 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
         for (int wrap = 0; wrap < 2; wrap++)
         {
             int base_x = (wrap * (total_width + 4)) - g_scroll_offset;
-            if (has_label)
+            if (m.has_label)
             {
-                matrix_display_word(label_str, base_x, 1, &LABEL_ORANGE);
-                matrix_display_word(value_str, base_x + label_width + position_offset, 1,
-                                    value_color);
+                matrix_display_word(m.label, base_x, 1, &LABEL_ORANGE);
+                matrix_display_word(m.value, base_x + label_width + m.position_offset, 1,
+                                    m.color);
             }
             else
             {
-                matrix_display_word(value_str, base_x, 1, value_color);
+                matrix_display_word(m.value, base_x, 1, m.color);
             }
         }
         matrix_show(mtrx);
@@ -407,14 +466,14 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
     else
     {
         int x_pos = 1;
-        if (has_label)
+        if (m.has_label)
         {
-            matrix_display_word(label_str, x_pos, 1, &LABEL_ORANGE);
-            matrix_display_word(value_str, x_pos + label_width + position_offset, 1, value_color);
+            matrix_display_word(m.label, x_pos, 1, &LABEL_ORANGE);
+            matrix_display_word(m.value, x_pos + label_width + m.position_offset, 1, m.color);
         }
         else
         {
-            matrix_display_word(value_str, x_pos, 1, value_color);
+            matrix_display_word(m.value, x_pos, 1, m.color);
         }
         matrix_show(mtrx);
     }
@@ -422,7 +481,7 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
 
 static void portfolio_display_url(Matrix* mtrx)
 {
-    const char* url_text = "    http://photon.local/portfolio";
+    const char* url_text = "    http://delta.local/portfolio";
     int total_width = matrix_calculate_word_width_with_space(url_text) + 4;
 
     matrix_clear(mtrx);
@@ -468,7 +527,7 @@ void portfolio_display(Matrix* mtrx, int* offset)
             portfolio_display_url(mtrx);
             g_url_scroll_offset++;
             int url_width =
-                matrix_calculate_word_width_with_space("    http://photon.local/portfolio") + 4;
+                matrix_calculate_word_width_with_space("    http://delta.local/portfolio") + 4;
             if (g_url_scroll_offset >= url_width)
             {
                 g_url_scroll_offset = 0;
@@ -477,7 +536,22 @@ void portfolio_display(Matrix* mtrx, int* offset)
     }
     else if (g_data_fetched)
     {
-        portfolio_display_metric(mtrx, g_current_metric);
+        if (!g_scroll_type_loaded)
+        {
+            device_config_t scroll_config;
+            flash_memory_read(&scroll_config);
+            g_scroll_type = scroll_config.scroll_type;
+            g_scroll_type_loaded = true;
+        }
+
+        if (g_scroll_type == 0)
+        {
+            portfolio_display_auto(mtrx);
+        }
+        else
+        {
+            portfolio_display_metric(mtrx, g_current_metric);
+        }
     }
     else
     {
@@ -498,6 +572,7 @@ void portfolio_next_metric(Matrix* mtrx)
     // Update to next metric
     g_current_metric = (g_current_metric + 1) % METRIC_COUNT;
     g_scroll_offset = 0;
+    g_auto_scroll_offset = 0;
 
     // Render new metric and save its state
     portfolio_display_metric(mtrx, g_current_metric);
@@ -524,12 +599,25 @@ void portfolio_prev_metric(Matrix* mtrx)
         g_current_metric--;
     }
     g_scroll_offset = 0;
+    g_auto_scroll_offset = 0;
 
     portfolio_display_metric(mtrx, g_current_metric);
     PixelState next_state[NUM_PIXELS];
     matrix_save_state(next_state);
 
     matrix_slide_left(mtrx, current_state, next_state);
+}
+
+bool portfolio_is_auto_scroll(void)
+{
+    if (!g_scroll_type_loaded)
+    {
+        device_config_t config;
+        flash_memory_read(&config);
+        g_scroll_type = config.scroll_type;
+        g_scroll_type_loaded = true;
+    }
+    return (g_scroll_type == 0);
 }
 
 void portfolio_cleanup(void)
@@ -539,5 +627,7 @@ void portfolio_cleanup(void)
     g_scroll_offset = 0;
     g_url_scroll_offset = 0;
     g_current_metric = METRIC_PL_ABSOLUTE;
+    g_auto_scroll_offset = 0;
+    g_scroll_type_loaded = false;
     debug(TRACE, "Portfolio cleanup called");
 }

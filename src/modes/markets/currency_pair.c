@@ -112,7 +112,7 @@ static void currency_pair_response_callback(const char* body, size_t len, bool c
 
 static void currency_pair_display_url(Matrix* mtrx)
 {
-    const char* url_text = "    http://photon.local/watchlist";
+    const char* url_text = "    http://delta.local/watchlist";
     int total_width = matrix_calculate_word_width_with_space(url_text) + 4;
 
     matrix_clear(mtrx);
@@ -132,14 +132,27 @@ void currency_pair_display(Matrix* mtrx, int* offset)
     ASSERT_NOT_NULL(mtrx);
     ASSERT_NOT_NULL(offset);
 
-    // Check if any currency pairs are configured
+    // Load currency pairs from flash on first call (before count check)
     uint8_t enabled_count = currency_pair_get_count();
+    if (enabled_count == 0 && g_next_fetch_time_ms == 0)
+    {
+        device_config_t config;
+        flash_memory_read(&config);
+        if (config.currency_pair_count > 0)
+        {
+            currency_pair_set_pairs(
+                (const char(*)[CURRENCY_PAIR_LEN + 1]) config.currency_pairs,
+                config.currency_pair_count);
+            enabled_count = currency_pair_get_count();
+        }
+    }
+
     if (enabled_count == 0)
     {
         currency_pair_display_url(mtrx);
         g_url_scroll_offset++;
         int url_width =
-            matrix_calculate_word_width_with_space("    http://photon.local/watchlist") + 4;
+            matrix_calculate_word_width_with_space("    http://delta.local/watchlist") + 4;
         if (g_url_scroll_offset >= url_width)
         {
             g_url_scroll_offset = 0;

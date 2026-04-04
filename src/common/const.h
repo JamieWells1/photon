@@ -24,7 +24,7 @@ typedef enum
 #endif
 
 // Device defaults
-#define DEFAULT_BRIGHTNESS 10  // 8%
+#define DEFAULT_BRIGHTNESS 15  // 10%
 #define DEFAULT_LOCATION 0     // London
 #define DEFAULT_CURRENCY 0     // GBP
 #define DEFAULT_CRYPTO 0x0007  // XBT + ETH + SOL
@@ -35,7 +35,7 @@ typedef enum
 #define MAX_BRIGHTNESS_MAINS 20
 
 // Display
-#define PROJECT_NAME "PHOTON"
+#define PROJECT_NAME "DELTA"
 #define DISPLAY_UPDATE_INTERVAL_TICKS_MS 30
 
 // Matrix layout

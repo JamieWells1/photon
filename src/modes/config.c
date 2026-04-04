@@ -24,7 +24,7 @@ static int scroll_offset = 0;
 
 void config_display(Matrix* mtrx)
 {
-    const char* url_text = "    http://photon.local";
+    const char* url_text = "    http://delta.local";
     int total_width = matrix_calculate_word_width_with_space(url_text) + 4;
 
     matrix_clear(mtrx);

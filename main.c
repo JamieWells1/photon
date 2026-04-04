@@ -155,7 +155,7 @@ int main(void)
             wifi_start_mdns();
             http_server_start();
 
-            debug(INFO, "Web interface available at: http://photon.local");
+            debug(INFO, "Web interface available at: http://delta.local");
             debug(INFO, "Access anytime from your browser to configure device");
             wifi_ready = true;
 
@@ -191,7 +191,7 @@ int main(void)
 
                 // Show scrolling update URL indefinitely until device reboots
                 debug(INFO, "Displaying update URL - will remain until device is rebooted");
-                const char* url_text = "    http://photon.local/update";
+                const char* url_text = "    http://delta.local/update";
                 int url_width = matrix_calculate_word_width_with_space(url_text) + 4;
                 int scroll_offset = 0;
                 int scroll_frame = 0;
@@ -290,7 +290,7 @@ int main(void)
     {
         debug(INFO, "No valid WiFi config, entering setup mode");
 
-        wifi_init_ap("Photon-Setup", NULL, mtrx);
+        wifi_init_ap("Delta-Setup", NULL, mtrx);
         sleep_ms(500);
 
         dns_server_start();
