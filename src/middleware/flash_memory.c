@@ -6,8 +6,8 @@
 #include <flash_memory.h>
 
 #include <const.h>
-#include <macro.h>
 #include <currency_pair.h>
+#include <macro.h>
 
 #include <stdio.h>
 #include <string.h>

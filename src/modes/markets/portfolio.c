@@ -148,7 +148,8 @@ static void portfolio_fetch_prices(Matrix* mtrx, bool is_first_fetch)
           PROXY_PORT, path);
 
     uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-    ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, portfolio_response_callback, mtrx, is_first_fetch);
+    ReturnCode rc =
+        http_get(PROXY_HOST, proxy_port, path, portfolio_response_callback, mtrx, is_first_fetch);
     if (RC_FAILED(rc))
     {
         debug(ERROR, "Batch HTTP request failed: %s", rc_to_string(rc));
@@ -233,8 +234,8 @@ typedef struct
 
 static void portfolio_build_metric_data(PortfolioMetric metric, MetricRenderData* out,
                                         float total_pl, float total_pct, float total_value,
-                                        int winner_idx, int loser_idx,
-                                        const char* currency_symbol, bool daily_mode)
+                                        int winner_idx, int loser_idx, const char* currency_symbol,
+                                        bool daily_mode)
 {
     out->label[0] = '\0';
     out->value[0] = '\0';
@@ -368,8 +369,8 @@ static void portfolio_display_auto(Matrix* mtrx)
 
     for (int i = 0; i < METRIC_COUNT; i++)
     {
-        portfolio_build_metric_data(i, &metrics[i], total_pl, total_pct, total_value,
-                                    winner_idx, loser_idx, currency_symbol, daily_mode);
+        portfolio_build_metric_data(i, &metrics[i], total_pl, total_pct, total_value, winner_idx,
+                                    loser_idx, currency_symbol, daily_mode);
         int w = portfolio_metric_width(&metrics[i]) + 12;
         metric_widths[i] = w;
         total_width += w;
@@ -425,8 +426,8 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
     bool daily_mode = (config.portfolio_mode == 1);
 
     MetricRenderData m;
-    portfolio_build_metric_data(metric, &m, total_pl, total_pct, total_value,
-                                winner_idx, loser_idx, currency_symbol, daily_mode);
+    portfolio_build_metric_data(metric, &m, total_pl, total_pct, total_value, winner_idx, loser_idx,
+                                currency_symbol, daily_mode);
 
     int label_width = m.has_label ? matrix_calculate_word_width_with_space(m.label) : 0;
     int value_width = matrix_calculate_word_width_with_space(m.value);
@@ -447,8 +448,7 @@ static void portfolio_display_metric(Matrix* mtrx, PortfolioMetric metric)
             if (m.has_label)
             {
                 matrix_display_word(m.label, base_x, 1, &LABEL_ORANGE);
-                matrix_display_word(m.value, base_x + label_width + m.position_offset, 1,
-                                    m.color);
+                matrix_display_word(m.value, base_x + label_width + m.position_offset, 1, m.color);
             }
             else
             {
@@ -525,7 +525,7 @@ void portfolio_display(Matrix* mtrx, int* offset)
         else
         {
             portfolio_display_url(mtrx);
-            g_url_scroll_offset++;
+            g_url_scroll_offset += 2;
             int url_width =
                 matrix_calculate_word_width_with_space("    http://delta.local/portfolio") + 4;
             if (g_url_scroll_offset >= url_width)

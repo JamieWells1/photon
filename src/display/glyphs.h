@@ -611,7 +611,7 @@ static const Pixel ICON_CURNCY[13] = {
 // =================
 
 static const Glyph ICONS_ARR[ICON_COUNT] = {
-    {ICON_DELTA, ARRAY_SIZE(ICON_DELTA), 5, 5},                // 0: DELTA
+    {ICON_DELTA, ARRAY_SIZE(ICON_DELTA), 5, 5},                  // 0: DELTA
     {ICON_STOCKS, ARRAY_SIZE(ICON_STOCKS), 5, 5},                // 1: STOCKS
     {ICON_TKR_UP, ARRAY_SIZE(ICON_TKR_UP), 5, 5},                // 2: TKR_UP
     {ICON_TKR_DOWN, ARRAY_SIZE(ICON_TKR_DOWN), 5, 5},            // 3: TKR_DOWN

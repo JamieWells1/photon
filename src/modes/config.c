@@ -38,7 +38,7 @@ void config_display(Matrix* mtrx)
 
     matrix_show(mtrx);
 
-    scroll_offset++;
+    scroll_offset += 2;
     if (scroll_offset >= total_width)
     {
         scroll_offset = 0;

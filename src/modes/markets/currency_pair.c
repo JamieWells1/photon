@@ -140,9 +140,8 @@ void currency_pair_display(Matrix* mtrx, int* offset)
         flash_memory_read(&config);
         if (config.currency_pair_count > 0)
         {
-            currency_pair_set_pairs(
-                (const char(*)[CURRENCY_PAIR_LEN + 1]) config.currency_pairs,
-                config.currency_pair_count);
+            currency_pair_set_pairs((const char(*)[CURRENCY_PAIR_LEN + 1]) config.currency_pairs,
+                                    config.currency_pair_count);
             enabled_count = currency_pair_get_count();
         }
     }
@@ -150,7 +149,7 @@ void currency_pair_display(Matrix* mtrx, int* offset)
     if (enabled_count == 0)
     {
         currency_pair_display_url(mtrx);
-        g_url_scroll_offset++;
+        g_url_scroll_offset += 2;
         int url_width =
             matrix_calculate_word_width_with_space("    http://delta.local/watchlist") + 4;
         if (g_url_scroll_offset >= url_width)

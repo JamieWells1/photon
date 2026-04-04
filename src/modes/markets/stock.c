@@ -210,7 +210,7 @@ void stock_display(Matrix* mtrx, int* offset)
     if (g_stock_count == 0)
     {
         stock_display_url(mtrx);
-        g_url_scroll_offset++;
+        g_url_scroll_offset += 2;
         int url_width =
             matrix_calculate_word_width_with_space("    http://delta.local/watchlist") + 4;
         if (g_url_scroll_offset >= url_width)

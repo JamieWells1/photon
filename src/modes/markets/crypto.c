@@ -186,7 +186,7 @@ void crypto_display(Matrix* mtrx, int* offset)
     if (enabled_count == 0)
     {
         crypto_display_url(mtrx);
-        g_url_scroll_offset++;
+        g_url_scroll_offset += 2;
         int url_width =
             matrix_calculate_word_width_with_space("    http://delta.local/watchlist") + 4;
         if (g_url_scroll_offset >= url_width)
@@ -229,8 +229,8 @@ void crypto_display(Matrix* mtrx, int* offset)
                       PROXY_PORT, path);
 
                 uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
-                ReturnCode rc =
-                    http_get(PROXY_HOST, proxy_port, path, crypto_response_callback, mtrx, is_first_fetch);
+                ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, crypto_response_callback,
+                                         mtrx, is_first_fetch);
                 if (RC_FAILED(rc))
                 {
                     debug(ERROR, "HTTP request failed for %s: %s", crypto_to_fetch,

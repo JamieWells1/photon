@@ -606,8 +606,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                                 {
                                     val += 4;
                                     config.scroll_type = (uint8_t)atoi(val);
-                                    debug(DEBUG, "Parsed scroll_type: %d",
-                                          config.scroll_type);
+                                    debug(DEBUG, "Parsed scroll_type: %d", config.scroll_type);
                                 }
                             }
 

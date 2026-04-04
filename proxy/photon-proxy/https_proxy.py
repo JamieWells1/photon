@@ -572,19 +572,51 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
 
     try:
         # Batch download - SINGLE API CALL
+        # 15m interval over 2 days: gives live-ish prices (within 15 minutes)
+        # and lets us split on the date boundary to get a true prev_close.
         logger.info(
             f"Batch fetching {len(yf_symbols)} symbols: {', '.join(yf_symbols)}"
         )
 
         data = yf.download(
             tickers=" ".join(yf_symbols),
-            period="2d",  # Get 2 days to ensure we have prev_close
-            interval="1d",
+            period="2d",
+            interval="15m",
             progress=False,
             threads=True,
         )
 
         results = []
+
+        def extract_current_and_prev_close(close_series):
+            """
+            Given a minute-resolution Close series spanning up to 2 trading days,
+            return (current_price, prev_close).
+
+            current  = last available price (most recent minute bar)
+            prev_close = last price of the previous calendar day's session.
+                         Falls back to the first bar if only one day is present.
+            """
+            close_values = close_series.dropna()
+            if close_values.empty:
+                return None, None
+
+            current = float(close_values.iloc[-1])
+
+            # Normalise index to dates for grouping
+            dates = close_values.index.normalize()
+            unique_dates = dates.unique()
+
+            if len(unique_dates) >= 2:
+                prev_day = unique_dates[-2]
+                prev_day_data = close_values[dates == prev_day]
+                prev_close = float(prev_day_data.iloc[-1])
+            else:
+                # Only one trading session available (e.g. weekend/holiday boundary) —
+                # return current as prev_close so delta displays as 0 rather than wrong.
+                prev_close = current
+
+            return current, prev_close
 
         # Handle single vs multiple tickers (yfinance returns different formats)
         if len(yf_symbols) == 1:
@@ -598,17 +630,15 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
                 )
             else:
                 try:
-                    # Handle both Series and DataFrame cases
                     close_data = data["Close"]
                     if isinstance(close_data, pd.DataFrame):
-                        close_list = close_data.iloc[:, 0].tolist()
+                        close_series = close_data.iloc[:, 0]
                     else:
-                        close_list = close_data.tolist()
+                        close_series = close_data
 
-                    current = float(close_list[-1])
-                    prev_close = (
-                        float(close_list[-2]) if len(close_list) > 1 else current
-                    )
+                    current, prev_close = extract_current_and_prev_close(close_series)
+                    if current is None:
+                        raise ValueError("No valid price data")
 
                     # Get currency from ticker info
                     ticker_obj = yf.Ticker(yf_symbol)
@@ -637,7 +667,6 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
                     if isinstance(data.columns, pd.MultiIndex):
                         close_data = data["Close"][yf_symbol]
                     else:
-                        # Fallback for single column
                         close_data = data["Close"]
 
                     if close_data.empty or close_data.isna().all():
@@ -646,22 +675,12 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
                         )
                         continue
 
-                    # Get current and previous close
-                    close_values = close_data.dropna()
-                    if len(close_values) == 0:
+                    current, prev_close = extract_current_and_prev_close(close_data)
+                    if current is None:
                         results.append(
                             {"symbol": original_symbol, "error": "No valid price data"}
                         )
                         continue
-
-                    # Convert to list to ensure Python scalars
-                    close_list = close_values.tolist()
-                    current = float(close_list[-1])
-                    prev_close = (
-                        float(close_list[-2])
-                        if len(close_list) > 1
-                        else current
-                    )
 
                     # Get currency from ticker info
                     ticker_obj = yf.Ticker(yf_symbol)

@@ -293,11 +293,12 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                     "<select id=c1><option value=''>-</option>");
 
     // Add all currencies to first dropdown
-    const char* currencies[] = {"GBP", "USD", "EUR", "JPY", "CAD", "AUD", "CHF", "CNY", "INR", "KRW", "BRL", "SGD"};
+    const char* currencies[] = {"GBP", "USD", "EUR", "JPY", "CAD", "AUD",
+                                "CHF", "CNY", "INR", "KRW", "BRL", "SGD"};
     for (int i = 0; i < 12; i++)
     {
-        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<option>%s</option>", currencies[i]);
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "<option>%s</option>",
+                        currencies[i]);
     }
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                     "</select><span>/</span><select id=c2><option value=''>-</option>");
@@ -305,8 +306,8 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
     // Add all currencies to second dropdown
     for (int i = 0; i < 12; i++)
     {
-        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
-                        "<option>%s</option>", currencies[i]);
+        pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "<option>%s</option>",
+                        currencies[i]);
     }
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                     "</select><button type=button onclick=addCP()>Add</button></div>"
@@ -340,7 +341,8 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                     "<option value=0%s>All-Time</option>"
                     "<option value=1%s>Daily</option></select>"
                     "<label class=sh>Scroll Type</label>"
-                    "<p style=color:#888;font-size:11px;margin-bottom:12px>Auto scrolls metrics continuously, whereas manual requires encoder rotation</p>"
+                    "<p style=color:#888;font-size:11px;margin-bottom:12px>Auto scrolls metrics "
+                    "continuously, whereas manual requires encoder rotation</p>"
                     "<label class=rl><input type=radio name=scroll_type value=0%s>Auto</label>"
                     "<label class=rl><input type=radio name=scroll_type value=1%s>Manual</label>"
                     "<input type=hidden name=brightness id=B value=%d>"
@@ -353,8 +355,8 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                     config->portfolio_mode == 0 ? " selected" : "",
                     config->portfolio_mode == 1 ? " selected" : "",
                     config->scroll_type == 0 ? " checked" : "",
-                    config->scroll_type == 1 ? " checked" : "",
-                    config->brightness, config->location, config->currency);
+                    config->scroll_type == 1 ? " checked" : "", config->brightness,
+                    config->location, config->currency);
 
     // JavaScript with manual ticker management
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
@@ -370,7 +372,8 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
                         i > 0 ? "," : "", config->stock_tickers[i]);
     }
 
-    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos, "],cp=[");  // currencyPairs array
+    pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
+                    "],cp=[");  // currencyPairs array
 
     // Initialize with existing currency pairs from config
     for (int i = 0; i < config->currency_pair_count && i < 10; i++)
@@ -401,7 +404,8 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
         "q('[name^=c]:checked,[name^=s]:checked').forEach(e=>{"
         "var h=D[E]('input');h.type=H;h.name=e.name;h.value='1';K.appendChild(h)});return 1}"
         "function rcp(){var l=g('cplist'),m=g('cpmaxmsg');if(!l)return;l[I]='';"
-        "cp.forEach((p,i)=>l[I]+='<li><span>'+p.slice(0,3)+'/'+p.slice(3)+'</span><a class=rm onclick=xcp('+i+')>X</a>');"
+        "cp.forEach((p,i)=>l[I]+='<li><span>'+p.slice(0,3)+'/'+p.slice(3)+'</span><a class=rm "
+        "onclick=xcp('+i+')>X</a>');"
         "if(m)m.style.display=cp.length>=10?B:N}"
         "function addCP(){var c1=g('c1'),c2=g('c2');if(!c1||!c2)return;"
         "var v1=c1.value.trim(),v2=c2.value.trim();"
