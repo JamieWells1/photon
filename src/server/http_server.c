@@ -4,9 +4,11 @@
  */
 
 #include <http_server.h>
+#include <parser.h>
 
 #include <const.h>
 #include <crypto.h>
+#include <error.h>
 #include <flash_memory.h>
 #include <html.h>
 #include <macro.h>
@@ -54,192 +56,9 @@ typedef struct
 // Forward declarations
 static err_t http_close_conn(struct tcp_pcb* pcb);
 
-static int hex_to_int(char c)
-{
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
-    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
-    return 0;
-}
-
-static void url_decode(char* dst, const char* src, size_t max_len)
-{
-    size_t i = 0;
-    size_t j = 0;
-
-    while (src[i] && j < max_len - 1)
-    {
-        if (src[i] == '%' && src[i + 1] && src[i + 2])
-        {
-            dst[j++] = (hex_to_int(src[i + 1]) << 4) | hex_to_int(src[i + 2]);
-            i += 3;
-        }
-        else if (src[i] == '+')
-        {
-            dst[j++] = ' ';
-            i++;
-        }
-        else
-        {
-            dst[j++] = src[i++];
-        }
-    }
-    dst[j] = '\0';
-}
-
-static bool parse_csv_portfolio(const char* csv_data, device_config_t* config)
-{
-    const char* line_start = csv_data;
-    const char* line_end;
-    int line_num = 0;
-    config->portfolio_count = 0;
-
-    debug(DEBUG, "Starting CSV parse, data preview: %.100s", csv_data);
-
-    while (*line_start && config->portfolio_count < 50)
-    {
-        line_end = strchr(line_start, '\n');
-        if (!line_end) line_end = line_start + strlen(line_start);
-
-        const char* line_end_trimmed = line_end;
-        if (line_end > line_start && *(line_end - 1) == '\r')
-        {
-            line_end_trimmed = line_end - 1;
-        }
-
-        size_t line_length = line_end_trimmed - line_start;
-        debug(TRACE, "Line %d, length %zu: %.*s", line_num, line_length, (int)line_length,
-              line_start);
-
-        if (line_num > 0 && line_length > 0)
-        {
-            const char* col_start = line_start;
-            const char* col_end = NULL;
-            int col_num = 0;
-            char ticker[10] = {0};
-            float invested_value = 0.0f;
-            float current_value = 0.0f;
-            float quantity = 0.0f;
-
-            while (col_start < line_end_trimmed && col_num < 6)
-            {
-                if (*col_start == '"')
-                {
-                    col_start++;
-                    col_end = strchr(col_start, '"');
-                }
-                else
-                {
-                    col_end = strchr(col_start, ',');
-                }
-
-                if (!col_end || col_end > line_end_trimmed) col_end = line_end_trimmed;
-
-                size_t col_len = col_end - col_start;
-                debug(TRACE, "  Col %d, len %zu: '%.*s'", col_num, col_len, (int)col_len,
-                      col_start);
-
-                if (col_num == 0 && col_len > 0 && col_len < 10 &&
-                    strncmp(col_start, "Total", 5) != 0)
-                {
-                    strncpy(ticker, col_start, col_len);
-                    ticker[col_len] = '\0';
-                }
-                else if (col_num == 2)
-                {
-                    invested_value = atof(col_start);
-                }
-                else if (col_num == 3)
-                {
-                    current_value = atof(col_start);
-                }
-                else if (col_num == 5)
-                {
-                    quantity = atof(col_start);
-                }
-
-                col_start = (*col_end == '"') ? col_end + 1 : col_end;
-                if (*col_start == ',') col_start++;
-                col_num++;
-            }
-
-            if (ticker[0] != '\0' && invested_value > 0.0f && quantity > 0.0f)
-            {
-                strncpy(config->portfolio_tickers[config->portfolio_count], ticker, 10);
-
-                float avg_price = invested_value / quantity;
-                float csv_price = (current_value > 0.0f) ? (current_value / quantity) : 0.0f;
-
-                config->portfolio_quantities[config->portfolio_count] = quantity;
-                config->portfolio_avg_prices[config->portfolio_count] = avg_price;
-                config->portfolio_csv_prices[config->portfolio_count] = csv_price;
-
-                debug(DEBUG,
-                      "✓ Parsed position %d: %s qty=%.4f avg_price=%.2f csv_price=%.2f "
-                      "invested=%.2f value=%.2f",
-                      config->portfolio_count, ticker, quantity, avg_price, csv_price,
-                      invested_value, current_value);
-
-                config->portfolio_count++;
-            }
-            else
-            {
-                debug(TRACE, "✗ Skipped line %d: ticker='%s' invested=%.2f qty=%.2f (invalid)",
-                      line_num, ticker, invested_value, quantity);
-            }
-        }
-
-        line_num++;
-        line_start = (*line_end == '\n') ? line_end + 1 : line_end;
-    }
-
-    debug(INFO, "Parsed %d positions from CSV", config->portfolio_count);
-    return config->portfolio_count > 0;
-}
-
-static void parse_post_data(const char* body, device_config_t* config)
-{
-    memset(config, 0, sizeof(device_config_t));
-
-    char temp_ssid[128] = {0};
-    char temp_password[128] = {0};
-
-    const char* ssid_start = strstr(body, "ssid=");
-    if (ssid_start)
-    {
-        ssid_start += 5;
-        const char* ssid_end = strchr(ssid_start, '&');
-        if (!ssid_end) ssid_end = body + strlen(body);
-
-        size_t ssid_len = ssid_end - ssid_start;
-        if (ssid_len > sizeof(temp_ssid) - 1) ssid_len = sizeof(temp_ssid) - 1;
-        strncpy(temp_ssid, ssid_start, ssid_len);
-        temp_ssid[ssid_len] = '\0';
-
-        url_decode(config->ssid, temp_ssid, sizeof(config->ssid));
-    }
-
-    const char* password_start = strstr(body, "password=");
-    if (password_start)
-    {
-        password_start += 9;
-        const char* password_end = strchr(password_start, '&');
-        if (!password_end) password_end = body + strlen(body);
-
-        size_t password_len = password_end - password_start;
-        if (password_len > sizeof(temp_password) - 1) password_len = sizeof(temp_password) - 1;
-        strncpy(temp_password, password_start, password_len);
-        temp_password[password_len] = '\0';
-
-        url_decode(config->password, temp_password, sizeof(config->password));
-    }
-
-    debug(INFO, "Parsed WiFi credentials - SSID: %s", config->ssid);
-}
-
 static void http_err_callback(void* arg, err_t err)
 {
-    debug(WARN, "HTTP error callback: err=%d, arg=%p", err, arg);
+    print(WARN, "HTTP error callback: err=%d, arg=%p", err, arg);
     if (arg)
     {
         free(arg);
@@ -254,12 +73,12 @@ static err_t http_continue_sending(struct tcp_pcb* pcb, http_send_state_t* send_
     {
         u16_t available = tcp_sndbuf(pcb);
 
-        debug(TRACE, "Continue send: offset %zu/%zu, available buffer = %u bytes", send_state->sent,
+        print(TRACE, "Continue send: offset %zu/%zu, available buffer = %u bytes", send_state->sent,
               send_state->total_len, available);
 
         if (available < 256)
         {
-            debug(TRACE, "Waiting for more buffer space (available: %u)", available);
+            print(TRACE, "Waiting for more buffer space (available: %u)", available);
             tcp_output(pcb);
             return ERR_OK;  // Will continue in sent callback
         }
@@ -272,7 +91,7 @@ static err_t http_continue_sending(struct tcp_pcb* pcb, http_send_state_t* send_
             tcp_write(pcb, send_state->data + send_state->sent, to_send, TCP_WRITE_FLAG_COPY);
         if (err != ERR_OK)
         {
-            debug(ERROR, "tcp_write failed at offset %zu: %d", send_state->sent, err);
+            print(ERROR, "tcp_write failed at offset %zu: %d", send_state->sent, err);
             return err;
         }
 
@@ -280,7 +99,7 @@ static err_t http_continue_sending(struct tcp_pcb* pcb, http_send_state_t* send_
         tcp_output(pcb);
     }
 
-    debug(DEBUG, "Send complete: %zu bytes", send_state->sent);
+    print(DEBUG, "Send complete: %zu bytes", send_state->sent);
     return ERR_OK;
 }
 
@@ -288,7 +107,7 @@ static err_t http_sent_callback_with_continuation(void* arg, struct tcp_pcb* pcb
 {
     http_send_state_t* send_state = (http_send_state_t*)arg;
 
-    debug(TRACE, "Sent callback: %u bytes ACKed, %zu/%zu total sent", len, send_state->sent,
+    print(TRACE, "Sent callback: %u bytes ACKed, %zu/%zu total sent", len, send_state->sent,
           send_state->total_len);
 
     if (send_state->sent < send_state->total_len)
@@ -297,7 +116,7 @@ static err_t http_sent_callback_with_continuation(void* arg, struct tcp_pcb* pcb
         err_t err = http_continue_sending(pcb, send_state);
         if (err != ERR_OK)
         {
-            debug(ERROR, "Continue sending failed: %d", err);
+            print(ERROR, "Continue sending failed: %d", err);
             free(send_state);
             tcp_arg(pcb, NULL);
             http_close_conn(pcb);
@@ -307,7 +126,7 @@ static err_t http_sent_callback_with_continuation(void* arg, struct tcp_pcb* pcb
     else
     {
         // All data sent, clean up and close if needed
-        debug(DEBUG, "All data transmitted and ACKed");
+        print(DEBUG, "All data transmitted and ACKed");
         bool should_close = send_state->should_close;
         free(send_state);
         tcp_arg(pcb, NULL);
@@ -324,13 +143,13 @@ static err_t http_sent_callback_with_continuation(void* arg, struct tcp_pcb* pcb
 static err_t http_send_data(struct tcp_pcb* pcb, const char* data, size_t len,
                             http_request_state_t* state)
 {
-    debug(DEBUG, "Sending %zu bytes with continuation support", len);
+    print(DEBUG, "Sending %zu bytes with continuation support", len);
 
     // Allocate send state for continuation
     http_send_state_t* send_state = (http_send_state_t*)malloc(sizeof(http_send_state_t));
     if (!send_state)
     {
-        debug(ERROR, "Failed to allocate send state");
+        print(ERROR, "Failed to allocate send state");
         return ERR_MEM;
     }
 
@@ -357,7 +176,7 @@ static err_t http_send_data(struct tcp_pcb* pcb, const char* data, size_t len,
 
 static err_t http_close_conn(struct tcp_pcb* pcb)
 {
-    debug(TRACE, "Closing HTTP connection, pcb=%p, state=%d, unsent=%p, unacked=%p", pcb,
+    print(TRACE, "Closing HTTP connection, pcb=%p, state=%d, unsent=%p, unacked=%p", pcb,
           pcb->state, pcb->unsent, pcb->unacked);
 
     tcp_arg(pcb, NULL);
@@ -369,11 +188,11 @@ static err_t http_close_conn(struct tcp_pcb* pcb)
     err_t err = tcp_close(pcb);
     if (err != ERR_OK)
     {
-        debug(WARN, "tcp_close failed: %d, calling tcp_abort", err);
+        print(WARN, "tcp_close failed: %d, calling tcp_abort", err);
         tcp_abort(pcb);
         return ERR_ABRT;
     }
-    debug(TRACE, "tcp_close succeeded");
+    print(TRACE, "tcp_close succeeded");
     return ERR_OK;
 }
 
@@ -390,7 +209,7 @@ static err_t http_sent_callback_simple(void* arg, struct tcp_pcb* pcb, u16_t len
 
 static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, err_t err)
 {
-    debug(TRACE, "http_recv_callback: pcb=%p, pbuf=%p, pbuf_len=%u, err=%d", pcb, p,
+    print(TRACE, "http_recv_callback: pcb=%p, pbuf=%p, pbuf_len=%u, err=%d", pcb, p,
           p ? p->tot_len : 0, err);
 
     if (!p)
@@ -448,7 +267,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                 state->content_length = atoi(cl_header + 15);
             }
 
-            debug(TRACE, "Headers complete. Content-Length: %zu", state->content_length);
+            print(TRACE, "Headers complete. Content-Length: %zu", state->content_length);
         }
         else
         {
@@ -465,7 +284,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             size_t header_len = (body_start + 4) - state->buffer;
             size_t body_received = state->received - header_len;
 
-            debug(TRACE, "Body received: %zu / %zu", body_received, state->content_length);
+            print(TRACE, "Body received: %zu / %zu", body_received, state->content_length);
 
             if (body_received < state->content_length)
             {
@@ -476,13 +295,13 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
     char* request = state->buffer;
 
-    debug(TRACE, "HTTP request complete, length: %zu", state->received);
-    debug(DEBUG, "Request first line: %.100s", request);
+    print(TRACE, "HTTP request complete, length: %zu", state->received);
+    print(DEBUG, "Request first line: %.100s", request);
 
     // Prevent processing the same request multiple times
     if (state->request_processed)
     {
-        debug(DEBUG, "Request already processed, ignoring");
+        print(DEBUG, "Request already processed, ignoring");
         return ERR_OK;
     }
     state->request_processed = true;
@@ -515,7 +334,9 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
 
             if (strlen(boundary) > 0)
             {
-                const char* file_start = strstr(body, "\r\n\r\n");
+                // Find the portfolio file part specifically by its Content-Disposition name
+                const char* portfolio_part = strstr(body, "name=\"portfolio\"");
+                const char* file_start = portfolio_part ? strstr(portfolio_part, "\r\n\r\n") : NULL;
                 if (file_start)
                 {
                     file_start += 4;
@@ -533,7 +354,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                             memcpy(csv_data, file_start, csv_len);
                             csv_data[csv_len] = '\0';
 
-                            debug(DEBUG, "CSV data length: %zu bytes", csv_len);
+                            print(DEBUG, "CSV data length: %zu bytes", csv_len);
 
                             device_config_t config;
                             flash_memory_read(&config);
@@ -553,7 +374,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                                     uint8_t brightness = (uint8_t)atoi(val);
                                     config.brightness =
                                         brightness ? brightness : DEFAULT_BRIGHTNESS;
-                                    debug(DEBUG, "Parsed brightness: %d", config.brightness);
+                                    print(DEBUG, "Parsed brightness: %d", config.brightness);
                                 }
                             }
 
@@ -566,7 +387,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                                 {
                                     val += 4;
                                     config.location = (uint8_t)atoi(val);
-                                    debug(DEBUG, "Parsed location: %d", config.location);
+                                    print(DEBUG, "Parsed location: %d", config.location);
                                 }
                             }
 
@@ -579,7 +400,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                                 {
                                     val += 4;
                                     config.currency = (uint8_t)atoi(val);
-                                    debug(DEBUG, "Parsed currency: %d", config.currency);
+                                    print(DEBUG, "Parsed currency: %d", config.currency);
                                 }
                             }
 
@@ -592,7 +413,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                                 {
                                     val += 4;
                                     config.portfolio_mode = (uint8_t)atoi(val);
-                                    debug(DEBUG, "Parsed portfolio_mode: %d",
+                                    print(DEBUG, "Parsed portfolio_mode: %d",
                                           config.portfolio_mode);
                                 }
                             }
@@ -606,7 +427,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                                 {
                                     val += 4;
                                     config.scroll_type = (uint8_t)atoi(val);
-                                    debug(DEBUG, "Parsed scroll_type: %d", config.scroll_type);
+                                    print(DEBUG, "Parsed scroll_type: %d", config.scroll_type);
                                 }
                             }
 
@@ -620,14 +441,15 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                             }
                             if (crypto) config.crypto = crypto;
 
-                            debug(
+                            print(
                                 INFO,
                                 "Upload - Brightness: %d%%, Location: %d, Currency: %d, Mode: %d, "
                                 "Crypto: 0x%04X",
                                 config.brightness, config.location, config.currency,
                                 config.portfolio_mode, config.crypto);
 
-                            if (parse_csv_portfolio(csv_data, &config))
+                            ReturnCode rc = parser_csv_portfolio(csv_data, &config);
+                            if (rc == RC_OK)
                             {
                                 // Default first 10 portfolio tickers enabled
                                 {
@@ -648,8 +470,9 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                             else
                             {
                                 portfolio_parse_failed = true;
+                                print(WARN, "CSV parse failed: %s", rc_to_string(rc));
 
-                                const char* response = html_get_portfolio_error();
+                                const char* response = html_get_portfolio_error(rc_to_string(rc));
                                 tcp_write(pcb, response, strlen(response), 0);
                                 tcp_output(pcb);
                             }
@@ -671,7 +494,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         {
             body += 4;
 
-            debug(DEBUG, "Config POST body: %s", body);
+            print(DEBUG, "Config POST body: %s", body);
 
             device_config_t config;
             flash_memory_read(&config);
@@ -736,7 +559,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                         strncpy(config.stock_tickers[config.stock_ticker_count], ticker_start, len);
                         config.stock_tickers[config.stock_ticker_count][len] = '\0';
                         config.stock_ticker_count++;
-                        debug(DEBUG, "Parsed manual ticker %d: %s", config.stock_ticker_count - 1,
+                        print(DEBUG, "Parsed manual ticker %d: %s", config.stock_ticker_count - 1,
                               config.stock_tickers[config.stock_ticker_count - 1]);
                     }
                 }
@@ -747,7 +570,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             {
                 config.stocks = (1ULL << config.stock_ticker_count) - 1;
             }
-            debug(INFO, "Parsed %d manual tickers", config.stock_ticker_count);
+            print(INFO, "Parsed %d manual tickers", config.stock_ticker_count);
 
             // Parse currency pairs (cp_N=PAIR)
             config.currency_pair_count = 0;
@@ -771,14 +594,14 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                         strncpy(config.currency_pairs[config.currency_pair_count], pair_start, 6);
                         config.currency_pairs[config.currency_pair_count][6] = '\0';
                         config.currency_pair_count++;
-                        debug(DEBUG, "Parsed currency pair %d: %s", config.currency_pair_count - 1,
+                        print(DEBUG, "Parsed currency pair %d: %s", config.currency_pair_count - 1,
                               config.currency_pairs[config.currency_pair_count - 1]);
                     }
                 }
             }
-            debug(INFO, "Parsed %d currency pairs", config.currency_pair_count);
+            print(INFO, "Parsed %d currency pairs", config.currency_pair_count);
 
-            debug(INFO,
+            print(INFO,
                   "Parsed config - Brightness: %d%%, Location: %d, Currency: %d, Crypto: 0x%04X, "
                   "Stocks: 0x%llX, Stock count: %d",
                   config.brightness, config.location, config.currency, config.crypto,
@@ -802,18 +625,18 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         {
             body += 4;
 
-            debug(DEBUG, "POST body: %s", body);
+            print(DEBUG, "POST body: %s", body);
 
             device_config_t config;
-            parse_post_data(body, &config);
+            parser_post_data(body, &config);
 
             config.brightness = DEFAULT_BRIGHTNESS;
             config.location = DEFAULT_LOCATION;
             config.currency = DEFAULT_CURRENCY;
             config.portfolio_mode = 0;
 
-            debug(DEBUG, "Parsed - SSID: '%s', Password: '%s'", config.ssid, config.password);
-            debug(DEBUG, "Set defaults - Brightness: %d, Location: %d, Currency: %d",
+            print(DEBUG, "Parsed - SSID: '%s', Password: '%s'", config.ssid, config.password);
+            print(DEBUG, "Set defaults - Brightness: %d, Location: %d, Currency: %d",
                   config.brightness, config.location, config.currency);
 
             if (strlen(config.ssid) > 0)
@@ -827,7 +650,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
             }
             else
             {
-                debug(WARN, "Empty SSID received");
+                print(WARN, "Empty SSID received");
                 tcp_write(pcb, html_get_wifi_form(), strlen(html_get_wifi_form()), 0);
                 tcp_output(pcb);
                 sleep_ms(500);
@@ -842,7 +665,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         const char* page = html_build_config_page(&config, "device");
         size_t page_len = strlen(page);
 
-        debug(DEBUG, "Sending device page: %zu bytes", page_len);
+        print(DEBUG, "Sending device page: %zu bytes", page_len);
 
         // Free request state before sending (send will use its own state)
         if (state)
@@ -868,7 +691,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         const char* page = html_build_config_page(&config, "watchlist");
         size_t page_len = strlen(page);
 
-        debug(DEBUG, "Sending watchlist page: %zu bytes", page_len);
+        print(DEBUG, "Sending watchlist page: %zu bytes", page_len);
 
         // Free request state before sending (send will use its own state)
         if (state)
@@ -894,7 +717,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         const char* page = html_build_config_page(&config, "portfolio");
         size_t page_len = strlen(page);
 
-        debug(DEBUG, "Sending portfolio page: %zu bytes", page_len);
+        print(DEBUG, "Sending portfolio page: %zu bytes", page_len);
 
         // Free request state before sending (send will use its own state)
         if (state)
@@ -910,7 +733,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         }
 
         // http_send_data sets up its own sent callback
-        debug(DEBUG, "Portfolio page send initiated");
+        print(DEBUG, "Portfolio page send initiated");
         return ERR_OK;
     }
     else if (strncmp(request, "GET /update", 11) == 0)
@@ -920,7 +743,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
         const char* page = html_build_update_page(update_avail, remote_ver);
         size_t page_len = strlen(page);
 
-        debug(DEBUG, "Sending update page: %zu bytes", page_len);
+        print(DEBUG, "Sending update page: %zu bytes", page_len);
 
         if (state)
         {
@@ -938,7 +761,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
     }
     else if (strncmp(request, "POST /update", 12) == 0)
     {
-        debug(INFO, "Update endpoint triggered - entering bootloader mode");
+        print(INFO, "Update endpoint triggered - entering bootloader mode");
         update_triggered = true;
 
         const char* response =
@@ -976,11 +799,11 @@ static err_t http_accept_callback(void* arg, struct tcp_pcb* newpcb, err_t err)
 {
     if (err != ERR_OK || !newpcb)
     {
-        debug(WARN, "HTTP accept failed: err=%d", err);
+        print(WARN, "HTTP accept failed: err=%d", err);
         return ERR_VAL;
     }
 
-    debug(INFO, "HTTP connection accepted from %s:%d", ipaddr_ntoa(&newpcb->remote_ip),
+    print(INFO, "HTTP connection accepted from %s:%d", ipaddr_ntoa(&newpcb->remote_ip),
           newpcb->remote_port);
 
     tcp_recv(newpcb, http_recv_callback);
@@ -1003,14 +826,14 @@ void http_server_start(void)
     http_pcb = tcp_new();
     if (!http_pcb)
     {
-        debug(ERROR, "Failed to create HTTP PCB");
+        print(ERROR, "Failed to create HTTP PCB");
         return;
     }
 
     err_t err = tcp_bind(http_pcb, IP_ADDR_ANY, 80);
     if (err != ERR_OK)
     {
-        debug(ERROR, "Failed to bind HTTP server: %d", err);
+        print(ERROR, "Failed to bind HTTP server: %d", err);
         tcp_close(http_pcb);
         http_pcb = NULL;
         return;
@@ -1019,7 +842,7 @@ void http_server_start(void)
     http_pcb = tcp_listen(http_pcb);
     tcp_accept(http_pcb, http_accept_callback);
 
-    debug(INFO, "HTTP server started on port 80");
+    print(INFO, "HTTP server started on port 80");
 }
 
 void http_server_stop(void)
@@ -1028,7 +851,7 @@ void http_server_stop(void)
     {
         tcp_close(http_pcb);
         http_pcb = NULL;
-        debug(INFO, "HTTP server stopped");
+        print(INFO, "HTTP server stopped");
     }
 }
 

@@ -118,7 +118,7 @@ bool flash_memory_write(const device_config_t* config)
     flash_range_program(FLASH_TARGET_OFFSET, buffer, FLASH_SECTOR_SIZE);
     restore_interrupts(ints);
 
-    debug(INFO, "Flash config written successfully");
+    print(INFO, "Flash config written successfully");
     return true;
 }
 
@@ -128,5 +128,5 @@ void flash_memory_erase(void)
     flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE);
     restore_interrupts(ints);
 
-    debug(INFO, "Flash config erased");
+    print(INFO, "Flash config erased");
 }

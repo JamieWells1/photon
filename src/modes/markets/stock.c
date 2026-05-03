@@ -102,19 +102,19 @@ static bool stock_is_enabled(int idx)
 
 static void stock_response_callback(const char* body, size_t len, bool complete)
 {
-    debug(TRACE, "stock_response_callback: len=%d, complete=%d", len, complete);
+    print(TRACE, "stock_response_callback: len=%d, complete=%d", len, complete);
 
     if (!complete) return;
 
     if (!body || len == 0)
     {
-        debug(ERROR, "Empty batch response");
+        print(ERROR, "Empty batch response");
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
         return;
     }
 
-    debug(DEBUG, "Received batch stock response: %.*s", (int)len, body);
+    print(DEBUG, "Received batch stock response: %.*s", (int)len, body);
 
     // Parse batch response - iterate through all stocks and extract their data
     uint8_t parsed_count = 0;
@@ -131,7 +131,7 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
         const char* ticker_data = strstr(body, ticker_search);
         if (!ticker_data)
         {
-            debug(WARN, "Ticker %s not found in batch response", ticker);
+            print(WARN, "Ticker %s not found in batch response", ticker);
             g_stocks[i].current_price = -1.0f;
             g_stocks[i].open_price = -1.0f;
             continue;
@@ -149,11 +149,11 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
             g_stocks[i].current_price = current_price;
             g_stocks[i].open_price = open_price;
             parsed_count++;
-            debug(TRACE, "%s: current=$%.2f, open=$%.2f", ticker, current_price, open_price);
+            print(TRACE, "%s: current=$%.2f, open=$%.2f", ticker, current_price, open_price);
         }
         else
         {
-            debug(WARN, "Failed to parse data for %s", ticker);
+            print(WARN, "Failed to parse data for %s", ticker);
             g_stocks[i].current_price = -1.0f;
             g_stocks[i].open_price = -1.0f;
         }
@@ -172,12 +172,12 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
         uint64_t ms_until_next_fetch = TKR_FETCH_INTERVAL_MINUTES * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
 
-        debug(INFO, "Batch fetch complete: %u/%u tickers parsed", parsed_count, enabled_count);
-        debug(TRACE, "Next fetch scheduled in %d minutes", TKR_FETCH_INTERVAL_MINUTES);
+        print(INFO, "Batch fetch complete: %u/%u tickers parsed", parsed_count, enabled_count);
+        print(TRACE, "Next fetch scheduled in %d minutes", TKR_FETCH_INTERVAL_MINUTES);
     }
     else
     {
-        debug(ERROR, "Failed to parse any stock data from batch response");
+        print(ERROR, "Failed to parse any stock data from batch response");
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
     }
@@ -227,7 +227,7 @@ void stock_display(Matrix* mtrx, int* offset)
 
     if (should_fetch)
     {
-        debug(INFO, "Starting batch stock data fetch");
+        print(INFO, "Starting batch stock data fetch");
 
         if (wifi_is_connected())
         {
@@ -249,7 +249,7 @@ void stock_display(Matrix* mtrx, int* offset)
 
             if (ticker_count == 0)
             {
-                debug(WARN, "No enabled stocks to fetch");
+                print(WARN, "No enabled stocks to fetch");
                 return;
             }
 
@@ -257,7 +257,7 @@ void stock_display(Matrix* mtrx, int* offset)
             char path[768];
             snprintf(path, sizeof(path), "/stocks/batch?symbols=%s", symbols);
 
-            debug(INFO, "Fetching %u tickers via batch: %s:%s%s", ticker_count, PROXY_HOST,
+            print(INFO, "Fetching %u tickers via batch: %s:%s%s", ticker_count, PROXY_HOST,
                   PROXY_PORT, path);
 
             uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
@@ -265,12 +265,12 @@ void stock_display(Matrix* mtrx, int* offset)
                                      is_first_fetch);
             if (RC_FAILED(rc))
             {
-                debug(ERROR, "Batch HTTP request failed: %s", rc_to_string(rc));
+                print(ERROR, "Batch HTTP request failed: %s", rc_to_string(rc));
             }
         }
         else
         {
-            debug(ERROR, "WiFi connection failed");
+            print(ERROR, "WiFi connection failed");
         }
     }
 
@@ -397,7 +397,7 @@ static void validation_response_callback(const char* body, size_t len, bool comp
     }
 
     http_server_set_validation_result(valid);
-    debug(INFO, "Ticker validation result: %s", valid ? "valid" : "invalid");
+    print(INFO, "Ticker validation result: %s", valid ? "valid" : "invalid");
 }
 
 void stock_validate_pending_ticker(Matrix* mtrx)
@@ -408,14 +408,14 @@ void stock_validate_pending_ticker(Matrix* mtrx)
     char path[256];
     snprintf(path, sizeof(path), "/stocks/%s", ticker);
 
-    debug(INFO, "Validating ticker %s via proxy", ticker);
+    print(INFO, "Validating ticker %s via proxy", ticker);
 
     uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
     ReturnCode rc =
         http_get(PROXY_HOST, proxy_port, path, validation_response_callback, mtrx, true);
     if (RC_FAILED(rc))
     {
-        debug(ERROR, "Ticker validation request failed for %s: %s", ticker, rc_to_string(rc));
+        print(ERROR, "Ticker validation request failed for %s: %s", ticker, rc_to_string(rc));
         http_server_set_validation_result(false);
     }
 }

@@ -50,13 +50,13 @@ static void currency_pair_response_callback(const char* body, size_t len, bool c
 
     if (!body || len == 0)
     {
-        debug(ERROR, "Empty response for currency pairs batch");
+        print(ERROR, "Empty response for currency pairs batch");
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
         return;
     }
 
-    debug(DEBUG, "Received currency pairs batch response: %.*s", (int)len, body);
+    print(DEBUG, "Received currency pairs batch response: %.*s", (int)len, body);
 
     // Parse batch response - iterate through all enabled pairs
     bool any_success = false;
@@ -81,17 +81,17 @@ static void currency_pair_response_callback(const char* body, size_t len, bool c
                 g_currency_pairs[i].open_price = open_price;
                 any_success = true;
 
-                debug(INFO, "Parsed %s: current: %.4f, open: %.4f", g_currency_pairs[i].pair,
+                print(INFO, "Parsed %s: current: %.4f, open: %.4f", g_currency_pairs[i].pair,
                       current_price, open_price);
             }
             else
             {
-                debug(WARN, "Failed to parse prices for %s", g_currency_pairs[i].pair);
+                print(WARN, "Failed to parse prices for %s", g_currency_pairs[i].pair);
             }
         }
         else
         {
-            debug(WARN, "Pair %s not found in batch response", g_currency_pairs[i].pair);
+            print(WARN, "Pair %s not found in batch response", g_currency_pairs[i].pair);
         }
     }
 
@@ -100,11 +100,11 @@ static void currency_pair_response_callback(const char* body, size_t len, bool c
         g_data_fetched = true;
         uint64_t ms_until_next_fetch = TKR_FETCH_INTERVAL_MINUTES * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
-        debug(TRACE, "Next fetch scheduled in %d minutes", TKR_FETCH_INTERVAL_MINUTES);
+        print(TRACE, "Next fetch scheduled in %d minutes", TKR_FETCH_INTERVAL_MINUTES);
     }
     else
     {
-        debug(ERROR, "Failed to parse any currency pair data from batch");
+        print(ERROR, "Failed to parse any currency pair data from batch");
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
     }
@@ -165,7 +165,7 @@ void currency_pair_display(Matrix* mtrx, int* offset)
 
     if (should_fetch)
     {
-        debug(INFO, "Starting currency pair data fetch");
+        print(INFO, "Starting currency pair data fetch");
 
         if (wifi_is_connected())
         {
@@ -203,7 +203,7 @@ void currency_pair_display(Matrix* mtrx, int* offset)
 
             if (pair_count == 0)
             {
-                debug(WARN, "No enabled currency pairs to fetch");
+                print(WARN, "No enabled currency pairs to fetch");
                 g_next_fetch_time_ms = current_time_ms + (60 * 1000);  // Retry in 1 minute
                 return;
             }
@@ -212,7 +212,7 @@ void currency_pair_display(Matrix* mtrx, int* offset)
             char path[512];
             snprintf(path, sizeof(path), "/stocks/batch?symbols=%s", symbols);
 
-            debug(INFO, "Fetching %u currency pairs via batch: %s:%s%s", pair_count, PROXY_HOST,
+            print(INFO, "Fetching %u currency pairs via batch: %s:%s%s", pair_count, PROXY_HOST,
                   PROXY_PORT, path);
 
             uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
@@ -224,13 +224,13 @@ void currency_pair_display(Matrix* mtrx, int* offset)
 
             if (RC_FAILED(rc))
             {
-                debug(ERROR, "HTTP request failed for currency pairs: %s", rc_to_string(rc));
+                print(ERROR, "HTTP request failed for currency pairs: %s", rc_to_string(rc));
                 g_next_fetch_time_ms = current_time_ms + (60 * 1000);  // Retry in 1 minute
             }
         }
         else
         {
-            debug(ERROR, "WiFi connection failed");
+            print(ERROR, "WiFi connection failed");
             g_next_fetch_time_ms = current_time_ms + (60 * 1000);  // Retry in 1 minute
         }
     }
