@@ -12,6 +12,7 @@
 void portfolio_display(Matrix* mtrx, int* offset);
 void portfolio_next_metric(Matrix* mtrx);
 void portfolio_prev_metric(Matrix* mtrx);
+void portfolio_nudge_auto_scroll(int pixels);
 bool portfolio_is_auto_scroll(void);
 void portfolio_cleanup(void);
 

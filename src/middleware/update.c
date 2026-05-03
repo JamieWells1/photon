@@ -46,11 +46,11 @@ static void version_check_callback(const char* body, size_t len, bool complete)
         {
             strncpy(g_remote_version, start, 8);
             g_remote_version[8] = '\0';
-            debug(INFO, "Remote version: %s", g_remote_version);
+            print(INFO, "Remote version: %s", g_remote_version);
         }
         else
         {
-            debug(WARN, "Invalid version format from server: %s", g_version_response);
+            print(WARN, "Invalid version format from server: %s", g_version_response);
         }
     }
 }
@@ -60,12 +60,12 @@ ReturnCode update_check_version(Matrix* mtrx)
     device_config_t config;
     if (!flash_memory_read(&config))
     {
-        debug(WARN, "No flash config, using BUILD_VERSION");
+        print(WARN, "No flash config, using BUILD_VERSION");
         strncpy(config.firmware_version, BUILD_VERSION, sizeof(config.firmware_version) - 1);
         config.firmware_version[sizeof(config.firmware_version) - 1] = '\0';
     }
 
-    debug(INFO, "Current firmware version: %s", config.firmware_version);
+    print(INFO, "Current firmware version: %s", config.firmware_version);
 
     g_update_available = false;
     g_remote_version[0] = '\0';
@@ -77,7 +77,7 @@ ReturnCode update_check_version(Matrix* mtrx)
 
     if (RC_FAILED(rc))
     {
-        debug(WARN, "Version check failed: %s", rc_to_string(rc));
+        print(WARN, "Version check failed: %s", rc_to_string(rc));
         return rc;
     }
 
@@ -87,16 +87,16 @@ ReturnCode update_check_version(Matrix* mtrx)
         if (comparison > 0)
         {
             g_update_available = true;
-            debug(INFO, "Update available: %s > %s", g_remote_version, config.firmware_version);
+            print(INFO, "Update available: %s > %s", g_remote_version, config.firmware_version);
         }
         else
         {
-            debug(INFO, "Firmware is up to date");
+            print(INFO, "Firmware is up to date");
         }
     }
     else
     {
-        debug(WARN, "Invalid remote version, skipping update check");
+        print(WARN, "Invalid remote version, skipping update check");
     }
 
     return RC_OK;
@@ -108,7 +108,7 @@ const char* update_get_remote_version(void) { return g_remote_version; }
 
 void update_enter_bootloader_mode(void)
 {
-    debug(INFO, "Entering bootloader mode for WebUSB flashing");
+    print(INFO, "Entering bootloader mode for WebUSB flashing");
     sleep_ms(100);
     reset_usb_boot(0, 0);
 }

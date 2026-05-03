@@ -55,14 +55,14 @@ void reset_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
         if (all_released)
         {
             g_reset_submenu_ready = true;
-            debug(DEBUG, "All buttons released, reset submenu ready for input");
+            print(DEBUG, "All buttons released, reset submenu ready for input");
         }
         return;
     }
 
     if (input_rtr_cw(rtr))
     {
-        debug(DEBUG, "Reset menu: encoder CW, selection %d -> %d", g_reset_selection,
+        print(DEBUG, "Reset menu: encoder CW, selection %d -> %d", g_reset_selection,
               (g_reset_selection + 1) % 2);
         g_reset_selection = (g_reset_selection + 1) % 2;
         reset_display(mtrx);
@@ -70,7 +70,7 @@ void reset_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 
     if (input_rtr_anti_cw(rtr))
     {
-        debug(DEBUG, "Reset menu: encoder CCW, selection %d -> %d", g_reset_selection,
+        print(DEBUG, "Reset menu: encoder CCW, selection %d -> %d", g_reset_selection,
               (g_reset_selection - 1 + 2) % 2);
         g_reset_selection = (g_reset_selection - 1 + 2) % 2;
         reset_display(mtrx);
@@ -78,12 +78,12 @@ void reset_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 
     if (input_any_btn_pressed(btns, rtr))
     {
-        debug(INFO, "Reset menu: button pressed, selection=%d (%s)", g_reset_selection,
+        print(INFO, "Reset menu: button pressed, selection=%d (%s)", g_reset_selection,
               g_reset_selection == 0 ? "YES" : "NO");
 
         if (g_reset_selection == 0)
         {
-            debug(INFO, "Executing flash reset");
+            print(INFO, "Executing flash reset");
             flash_memory_erase();
 
             matrix_clear(mtrx);
@@ -91,13 +91,13 @@ void reset_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
             matrix_show(mtrx);
             sleep_ms(1000);
 
-            debug(INFO, "Rebooting device");
+            print(INFO, "Rebooting device");
             watchdog_enable(1, 1);
             while (1);
         }
         else
         {
-            debug(INFO, "Reset cancelled by user");
+            print(INFO, "Reset cancelled by user");
         }
 
         // Note: If reset is cancelled, the caller (menu_main.c) should handle exiting the submenu

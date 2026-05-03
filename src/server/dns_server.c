@@ -93,12 +93,12 @@ void dns_server_start(void)
     dns_pcb = udp_new();
     if (!dns_pcb)
     {
-        debug(ERROR, "Failed to create DNS PCB");
+        print(ERROR, "Failed to create DNS PCB");
         return;
     }
 
     udp_bind(dns_pcb, IP_ADDR_ANY, 53);
     udp_recv(dns_pcb, dns_recv_callback, NULL);
 
-    debug(INFO, "DNS server started on port 53");
+    print(INFO, "DNS server started on port 53");
 }

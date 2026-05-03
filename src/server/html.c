@@ -90,11 +90,7 @@ static const char* html_portfolio_success =
     "<div class=\"container\"><h1>Upload Successful!</h1>"
     "<p>You can now view your portfolio on your device</p></div></body></html>";
 
-static const char* html_portfolio_error =
-    "HTTP/1.1 400 Bad Request\r\n"
-    "Content-Type: text/plain\r\n"
-    "Connection: close\r\n\r\n"
-    "Failed to parse CSV";
+static char portfolio_error_buf[1024];
 
 static char config_html_buf[16384];
 static char ticker_page_buf[512];
@@ -106,7 +102,21 @@ const char* html_get_success_page(void) { return html_success; }
 
 const char* html_get_portfolio_success(void) { return html_portfolio_success; }
 
-const char* html_get_portfolio_error(void) { return html_portfolio_error; }
+const char* html_get_portfolio_error(const char* reason)
+{
+    if (!reason) reason = "Failed to parse CSV.";
+    snprintf(portfolio_error_buf, sizeof(portfolio_error_buf),
+             "HTTP/1.1 400 Bad Request\r\n"
+             "Content-Type: text/html\r\n"
+             "Connection: close\r\n\r\n"
+             "<!DOCTYPE html><html><head><meta name=viewport content=\"width=device-width\">"
+             "<style>body{font-family:sans-serif;padding:20px;text-align:center}"
+             "h1{color:#e74c3c}a{color:#e74c3c}</style>"
+             "<body><h1>Upload Failed</h1><p>%s</p>"
+             "<a href=/portfolio>Try Again</a>",
+             reason);
+    return portfolio_error_buf;
+}
 
 const char* html_build_ticker_checking_page(const char* ticker)
 {
@@ -195,11 +205,11 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
     // Device tab
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
                     "<div class=\"t%s\" id=t0>"
-                    "<label>Bright: <span id=v>%d%%</span></label>"
-                    "<input type=range name=brightness min=1 max=20 value=%d "
-                    "oninput=v.textContent=this.value+'%%'>",
+                    "<label>Brightness: <span id=v>%d</span></label>"
+                    "<input type=range name=brightness min=%d max=%d value=%d "
+                    "oninput=v.textContent=this.value>",
                     strcmp(active_tab, "device") == 0 ? " a" : "", config->brightness,
-                    config->brightness);
+                    MIN_BRIGHTNESS, MAX_BRIGHTNESS, config->brightness);
 
     // Location select
     pos += snprintf(config_html_buf + pos, sizeof(config_html_buf) - pos,
@@ -424,12 +434,12 @@ const char* html_build_config_page(const device_config_t* config, const char* ac
         "sv.style.display=i==2?N:B;pf.style.display=i==2?B:N}setTimeout(function(){r();rcp()},0);"
         "</script></body></html>");
 
-    debug(DEBUG, "Generated HTML page: %d bytes (buffer size: %d)", pos,
+    print(DEBUG, "Generated HTML page: %d bytes (buffer size: %d)", pos,
           (int)sizeof(config_html_buf));
 
     if ((size_t)pos >= sizeof(config_html_buf))
     {
-        debug(ERROR, "HTML buffer overflow! Generated %d bytes, buffer is %d", pos,
+        print(ERROR, "HTML buffer overflow! Generated %d bytes, buffer is %d", pos,
               (int)sizeof(config_html_buf));
     }
 

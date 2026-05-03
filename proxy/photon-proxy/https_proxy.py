@@ -181,13 +181,13 @@ async def get_fx_rate(from_ccy: str, to_ccy: str) -> Optional[float]:
 
     # Check cache first
     if cached := await fx_cache.get(cache_key):
-        logger.debug(f"FX rate {cache_key}: {cached} (cached)")
+        logger.print(f"FX rate {cache_key}: {cached} (cached)")
         return cached
 
     # Check if another request is already fetching this rate
     async with in_flight_lock:
         if cache_key in in_flight_requests:
-            logger.debug(f"Waiting for in-flight FX request: {cache_key}")
+            logger.print(f"Waiting for in-flight FX request: {cache_key}")
             future = in_flight_requests[cache_key]
         else:
             future = asyncio.Future()
@@ -223,7 +223,7 @@ def _fetch_fx_rate_sync(from_ccy: str, to_ccy: str) -> Optional[float]:
             logger.info(f"FX rate {pair}: {rate} (fetched)")
             return rate
     except Exception as e:
-        logger.debug(f"Direct FX pair {pair} failed: {e}")
+        logger.print(f"Direct FX pair {pair} failed: {e}")
 
     # Try inverse pair
     pair = f"{to_ccy}{from_ccy}=X"
@@ -235,7 +235,7 @@ def _fetch_fx_rate_sync(from_ccy: str, to_ccy: str) -> Optional[float]:
             logger.info(f"FX rate {pair} (inverted): {inverted} (fetched)")
             return inverted
     except Exception as e:
-        logger.debug(f"Inverse FX pair {pair} failed: {e}")
+        logger.print(f"Inverse FX pair {pair} failed: {e}")
 
     logger.warning(f"Could not get FX rate for {from_ccy} to {to_ccy}")
     return None
@@ -456,7 +456,7 @@ async def get_stocks_batch(
 
     except Exception as e:
         logger.error(f"Batch request error from {client_ip}: {e}")
-        logger.debug(traceback.format_exc())
+        logger.print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Batch request failed: {str(e)}")
 
 
@@ -520,7 +520,7 @@ async def get_stock(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error fetching {symbol}: {e}")
-        logger.debug(traceback.format_exc())
+        logger.print(traceback.format_exc())
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch data for '{symbol}'"
         )
@@ -761,7 +761,7 @@ async def proxy_request(full_path: str, request: Request):
         raise HTTPException(status_code=502, detail="Bad Gateway")
     except Exception as e:
         logger.error(f"Unexpected error for {client_ip}: {e}")
-        logger.debug(traceback.format_exc())
+        logger.print(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

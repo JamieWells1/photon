@@ -24,15 +24,15 @@ typedef enum
 #endif
 
 // Device defaults
-#define DEFAULT_BRIGHTNESS 15  // 10%
+#define DEFAULT_BRIGHTNESS 20  // 20%
 #define DEFAULT_LOCATION 0     // London
 #define DEFAULT_CURRENCY 0     // GBP
 #define DEFAULT_CRYPTO 0x0007  // XBT + ETH + SOL
 #define DEFAULT_STOCKS 0x0000  // No default stocks (dynamic tickers)
 
-// Brightness limits by power source
-#define MAX_BRIGHTNESS_USB 5
-#define MAX_BRIGHTNESS_MAINS 20
+// Brightness limits
+#define MIN_BRIGHTNESS 1
+#define MAX_BRIGHTNESS 25
 
 // Display
 #define PROJECT_NAME "DELTA"

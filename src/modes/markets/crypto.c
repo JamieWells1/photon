@@ -114,19 +114,19 @@ static float crypto_parse_price_from_string(const char* json, const char* key)
 
 static void crypto_response_callback(const char* body, size_t len, bool complete)
 {
-    debug(TRACE, "crypto_response_callback: len=%d, complete=%d", len, complete);
+    print(TRACE, "crypto_response_callback: len=%d, complete=%d", len, complete);
 
     if (!complete) return;
 
     if (!body || len == 0)
     {
-        debug(ERROR, "Empty response for crypto index %u", g_crypto_to_fetch_index);
+        print(ERROR, "Empty response for crypto index %u", g_crypto_to_fetch_index);
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
         return;
     }
 
-    debug(DEBUG, "Received crypto response: %.*s", (int)len, body);
+    print(DEBUG, "Received crypto response: %.*s", (int)len, body);
 
     float current_price = crypto_parse_price_from_array(body, "\"c\":");
     float open_price = crypto_parse_price_from_string(body, "\"o\":");
@@ -143,12 +143,12 @@ static void crypto_response_callback(const char* body, size_t len, bool complete
         uint64_t ms_until_next_fetch = TKR_FETCH_INTERVAL_MINUTES * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
 
-        debug(INFO, "Parsed current: $%.2f, open: $%.2f", current_price, open_price);
-        debug(TRACE, "Next fetch scheduled in 15 minutes");
+        print(INFO, "Parsed current: $%.2f, open: $%.2f", current_price, open_price);
+        print(TRACE, "Next fetch scheduled in 15 minutes");
     }
     else
     {
-        debug(ERROR, "Failed to parse crypto data for index %u", g_crypto_to_fetch_index);
+        print(ERROR, "Failed to parse crypto data for index %u", g_crypto_to_fetch_index);
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
     }
@@ -202,7 +202,7 @@ void crypto_display(Matrix* mtrx, int* offset)
 
     if (should_fetch)
     {
-        debug(INFO, "Starting crypto data fetch");
+        print(INFO, "Starting crypto data fetch");
 
         if (wifi_is_connected())
         {
@@ -225,7 +225,7 @@ void crypto_display(Matrix* mtrx, int* offset)
                 snprintf(path, sizeof(path), "/proxy/%s/0/public/Ticker?pair=%s%s", HOST_URL_CRYPTO,
                          crypto_to_fetch, currency);
 
-                debug(INFO, "Fetching %s via proxy: %s:%s%s", crypto_to_fetch, PROXY_HOST,
+                print(INFO, "Fetching %s via proxy: %s:%s%s", crypto_to_fetch, PROXY_HOST,
                       PROXY_PORT, path);
 
                 uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
@@ -233,7 +233,7 @@ void crypto_display(Matrix* mtrx, int* offset)
                                          mtrx, is_first_fetch);
                 if (RC_FAILED(rc))
                 {
-                    debug(ERROR, "HTTP request failed for %s: %s", crypto_to_fetch,
+                    print(ERROR, "HTTP request failed for %s: %s", crypto_to_fetch,
                           rc_to_string(rc));
                 }
 
@@ -241,11 +241,11 @@ void crypto_display(Matrix* mtrx, int* offset)
             }
 
             g_crypto_to_fetch_index = 0;
-            debug(INFO, "Crypto fetch complete");
+            print(INFO, "Crypto fetch complete");
         }
         else
         {
-            debug(ERROR, "WiFi connection failed");
+            print(ERROR, "WiFi connection failed");
         }
     }
 
@@ -342,8 +342,6 @@ void crypto_display(Matrix* mtrx, int* offset)
 
 void crypto_cleanup(void)
 {
-    g_data_fetched = false;
-    g_next_fetch_time_ms = 0;
     g_crypto_to_fetch_index = 0;
     g_scroll_offset = 0;
     g_url_scroll_offset = 0;

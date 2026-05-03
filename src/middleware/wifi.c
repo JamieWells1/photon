@@ -34,11 +34,11 @@ static ReturnCode wifi_init(void)
 
     if (cyw43_arch_init())
     {
-        debug(ERROR, "Wi-Fi init failed");
+        print(ERROR, "Wi-Fi init failed");
         return RC_WIFI_INIT_FAILED;
     }
 
-    debug(INFO, "Wi-Fi initialized");
+    print(INFO, "Wi-Fi initialized");
     initialized = true;
     return RC_OK;
 }
@@ -46,7 +46,7 @@ static ReturnCode wifi_init(void)
 static void wifi_enable_sta_mode(void)
 {
     cyw43_arch_enable_sta_mode();
-    debug(INFO, "Wi-Fi station mode enabled");
+    print(INFO, "Wi-Fi station mode enabled");
 }
 
 static void wifi_display_status(Matrix* mtrx, int dot_counter)
@@ -70,7 +70,7 @@ ReturnCode wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
 {
     if (connected)
     {
-        debug(DEBUG, "Already connected to WiFi");
+        print(DEBUG, "Already connected to WiFi");
         return RC_OK;
     }
 
@@ -81,7 +81,7 @@ ReturnCode wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
         wifi_enable_sta_mode();
     }
 
-    debug(DEBUG, "Starting WiFi connection...");
+    print(DEBUG, "Starting WiFi connection...");
 
     cyw43_arch_wifi_connect_async(ssid, password, CYW43_AUTH_WPA2_AES_PSK);
 
@@ -101,35 +101,35 @@ ReturnCode wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
         int link_status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
         if (link_status == CYW43_LINK_UP)
         {
-            debug(INFO, "WiFi connected successfully");
+            print(INFO, "WiFi connected successfully");
             connected = true;
 
             // Get and log IP address
             const ip4_addr_t* ip = netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_STA]);
-            debug(INFO, "IP Address: %s", ip4addr_ntoa(ip));
-            debug(INFO, "Gateway: %s",
+            print(INFO, "IP Address: %s", ip4addr_ntoa(ip));
+            print(INFO, "Gateway: %s",
                   ip4addr_ntoa(netif_ip4_gw(&cyw43_state.netif[CYW43_ITF_STA])));
-            debug(INFO, "Netmask: %s",
+            print(INFO, "Netmask: %s",
                   ip4addr_ntoa(netif_ip4_netmask(&cyw43_state.netif[CYW43_ITF_STA])));
-            debug(INFO, "To access web interface, navigate to CONFIG menu on device");
+            print(INFO, "To access web interface, navigate to CONFIG menu on device");
 
             return RC_OK;
         }
         else if (link_status == CYW43_LINK_BADAUTH)
         {
-            debug(ERROR, "WiFi bad authentication (link_status=%d)", link_status);
+            print(ERROR, "WiFi bad authentication (link_status=%d)", link_status);
             connected = false;
             return RC_WIFI_BAD_AUTH;
         }
         else if (link_status == CYW43_LINK_NONET)
         {
-            debug(ERROR, "WiFi network not found (link_status=%d)", link_status);
+            print(ERROR, "WiFi network not found (link_status=%d)", link_status);
             connected = false;
             return RC_WIFI_NO_NETWORK;
         }
         else if (link_status == CYW43_LINK_FAIL)
         {
-            debug(ERROR, "WiFi connection failed (link_status=%d)", link_status);
+            print(ERROR, "WiFi connection failed (link_status=%d)", link_status);
             connected = false;
             return RC_WIFI_CONNECT_FAILED;
         }
@@ -138,7 +138,7 @@ ReturnCode wifi_connect(const char* ssid, const char* password, Matrix* mtrx)
         sleep_ms(100);
     }
 
-    debug(ERROR, "WiFi connection timeout");
+    print(ERROR, "WiFi connection timeout");
     connected = false;
     return RC_WIFI_TIMEOUT;
 }
@@ -147,7 +147,7 @@ void wifi_disconnect(void)
 {
     if (!connected)
     {
-        debug(DEBUG, "WiFi already disconnected");
+        print(DEBUG, "WiFi already disconnected");
         return;
     }
 
@@ -155,7 +155,7 @@ void wifi_disconnect(void)
     connected = false;
     initialized = false;
     mdns_initialized = false;  // Reset mDNS state since we deinit the network stack
-    debug(INFO, "WiFi disconnected");
+    print(INFO, "WiFi disconnected");
 }
 
 ReturnCode wifi_init_ap(const char* ssid, const char* password, Matrix* mtrx)
@@ -169,7 +169,7 @@ ReturnCode wifi_init_ap(const char* ssid, const char* password, Matrix* mtrx)
     cyw43_arch_enable_ap_mode(ssid, password, CYW43_AUTH_OPEN);
     ap_mode = true;
 
-    debug(INFO, "WiFi AP mode enabled: %s", ssid);
+    print(INFO, "WiFi AP mode enabled: %s", ssid);
 
     ip_addr_t gw, mask;
     IP4_ADDR(ip_2_ip4(&gw), 192, 168, 4, 1);
@@ -177,7 +177,7 @@ ReturnCode wifi_init_ap(const char* ssid, const char* password, Matrix* mtrx)
 
     dhcp_server_init(&dhcp_server, &gw, &mask);
 
-    debug(INFO, "DHCP server started at 192.168.4.1");
+    print(INFO, "DHCP server started at 192.168.4.1");
 
     if (mtrx)
     {
@@ -195,17 +195,17 @@ void wifi_start_mdns(void)
 {
     if (!connected)
     {
-        debug(WARN, "Cannot start mDNS: WiFi not connected");
+        print(WARN, "Cannot start mDNS: WiFi not connected");
         return;
     }
 
     if (mdns_initialized)
     {
-        debug(DEBUG, "mDNS already initialized");
+        print(DEBUG, "mDNS already initialized");
         return;
     }
 
-    debug(INFO, "Starting mDNS responder...");
+    print(INFO, "Starting mDNS responder...");
 
     // Give network stack extra time to settle
     sleep_ms(1000);
@@ -221,10 +221,10 @@ void wifi_start_mdns(void)
 
     if (err == ERR_OK)
     {
-        debug(INFO, "mDNS responder started: delta.local resolves to %s", ip4addr_ntoa(ip));
+        print(INFO, "mDNS responder started: delta.local resolves to %s", ip4addr_ntoa(ip));
     }
     else
     {
-        debug(WARN, "mDNS failed to bind (error: %d). Use IP address: %s", err, ip4addr_ntoa(ip));
+        print(WARN, "mDNS failed to bind (error: %d). Use IP address: %s", err, ip4addr_ntoa(ip));
     }
 }

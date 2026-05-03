@@ -97,6 +97,7 @@ set(SERVER_SOURCES
         src/server/http_server.c
         src/server/html.c
         src/server/dhcpserver.c
+        src/server/parser.c
 )
 
 # mDNS sources from lwIP

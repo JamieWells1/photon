@@ -79,7 +79,7 @@ static void menu_main_slide_right(Matrix* mtrx)
     int index_next = (MENU_STATE.mode + 1) % ARRAY_SIZE(MENUS);
     Menu nextMode = MENUS[index_next];
 
-    debug(INFO, "Menu: %s -> %s", MENUS[MENU_STATE.mode].text, nextMode.text);
+    print(INFO, "Menu: %s -> %s", MENUS[MENU_STATE.mode].text, nextMode.text);
 
     PixelState current_state[NUM_PIXELS];
     matrix_save_state(current_state);
@@ -108,7 +108,7 @@ static void menu_main_slide_left(Matrix* mtrx)
     }
     Menu nextMode = MENUS[index_previous];
 
-    debug(INFO, "Menu: %s -> %s", MENUS[MENU_STATE.mode].text, nextMode.text);
+    print(INFO, "Menu: %s -> %s", MENUS[MENU_STATE.mode].text, nextMode.text);
 
     PixelState current_state[NUM_PIXELS];
     matrix_save_state(current_state);
@@ -136,7 +136,7 @@ static void menu_main_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr
         Mode target_menu = TEMP_START;
         if (!g_in_submenu || g_current_mode != target_menu)
         {
-            debug(TRACE, "Entering weather mode");
+            print(TRACE, "Entering weather mode");
             g_in_submenu = true;
             g_current_mode = target_menu;
             g_display_initialized = false;
@@ -149,7 +149,7 @@ static void menu_main_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr
         Mode target_menu = CONFIG_START;
         if (!g_in_submenu || g_current_mode != target_menu)
         {
-            debug(TRACE, "Entering config mode");
+            print(TRACE, "Entering config mode");
             g_in_submenu = true;
             g_current_mode = target_menu;
             g_display_initialized = false;
@@ -162,7 +162,7 @@ static void menu_main_enter_sub_menu(Menu menu_state, Button* btns, Rotator* rtr
         Mode target_menu = RESET_START;
         if (!g_in_submenu || g_current_mode != target_menu)
         {
-            debug(TRACE, "Entering reset mode");
+            print(TRACE, "Entering reset mode");
             g_in_submenu = true;
             g_current_mode = target_menu;
             g_display_initialized = false;
@@ -182,7 +182,7 @@ static void menu_main_weather_detect_inputs(Button* btns, Rotator* rtr, Matrix* 
         if (all_released)
         {
             g_weather_submenu_ready = true;
-            debug(DEBUG, "All buttons released, weather submenu ready for input");
+            print(DEBUG, "All buttons released, weather submenu ready for input");
         }
         return;
     }
@@ -247,7 +247,7 @@ static void menu_main_config_detect_inputs(Button* btns, Rotator* rtr, Matrix* m
         if (all_released)
         {
             g_config_submenu_ready = true;
-            debug(DEBUG, "All buttons released, config submenu ready for input");
+            print(DEBUG, "All buttons released, config submenu ready for input");
         }
         return;
     }
@@ -267,26 +267,26 @@ static void menu_main_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 
         if (cw || acw)
         {
-            debug(TRACE, "menu_main_detect_inputs: g_in_submenu=%d, cw=%d, acw=%d\n", g_in_submenu,
+            print(TRACE, "menu_main_detect_inputs: g_in_submenu=%d, cw=%d, acw=%d\n", g_in_submenu,
                   cw, acw);
         }
 
         if (cw)
         {
-            debug(TRACE, "Calling menu_main_slide_right\n");
+            print(TRACE, "Calling menu_main_slide_right\n");
             menu_main_slide_right(mtrx);
         }
 
         if (acw)
         {
-            debug(TRACE, "Calling menu_main_slide_left\n");
+            print(TRACE, "Calling menu_main_slide_left\n");
             menu_main_slide_left(mtrx);
         }
     }
 
     if (input_any_btn_pressed(btns, rtr) && !g_in_submenu)
     {
-        debug(DEBUG, "Button pressed on main menu, entering submenu for mode=%d", MENU_STATE.mode);
+        print(DEBUG, "Button pressed on main menu, entering submenu for mode=%d", MENU_STATE.mode);
         menu_main_enter_sub_menu(MENU_STATE, btns, rtr, mtrx);
     }
 

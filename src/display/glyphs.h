@@ -460,12 +460,12 @@ static const Glyph NUMBERS[10] = {
 
 // LOGO
 
-static const Pixel ICON_DELTA[15] = {
+static const Pixel ICON_DELTA[16] = {
     // Delta icon
-    {0, 2, LOGO_COLOUR}, {0, 3, LOGO_COLOUR}, {0, 4, LOGO_COLOUR}, {1, 2, LOGO_COLOUR},
-    {1, 4, LOGO_COLOUR}, {2, 0, LOGO_COLOUR}, {2, 1, LOGO_COLOUR}, {2, 2, LOGO_COLOUR},
-    {2, 3, LOGO_COLOUR}, {2, 4, LOGO_COLOUR}, {3, 0, LOGO_COLOUR}, {3, 2, LOGO_COLOUR},
-    {4, 0, LOGO_COLOUR}, {4, 1, LOGO_COLOUR}, {4, 2, LOGO_COLOUR},
+    {0, 0, LOGO_COLOUR}, {0, 2, LOGO_COLOUR}, {0, 4, LOGO_COLOUR}, {2, 0, LOGO_COLOUR},
+    {4, 0, LOGO_COLOUR}, {4, 2, LOGO_COLOUR}, {4, 4, LOGO_COLOUR}, {2, 4, LOGO_COLOUR},
+    {1, 1, LOGO_COLOUR}, {1, 2, LOGO_COLOUR}, {1, 3, LOGO_COLOUR}, {2, 1, LOGO_COLOUR},
+    {2, 3, LOGO_COLOUR}, {3, 1, LOGO_COLOUR}, {3, 2, LOGO_COLOUR}, {3, 3, LOGO_COLOUR},
 };
 
 // TICKERS

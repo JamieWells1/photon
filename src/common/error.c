@@ -93,6 +93,19 @@ const char* rc_to_string(ReturnCode rc)
         case RC_SERVER_SEND_FAILED:
             return "Server: Send failed";
 
+        // Parser errors
+        case RC_PARSER_TOO_FEW_COLUMNS:
+            return "CSV has fewer columns than expected for the selected platform. "
+                   "Check that the correct platform is selected.";
+        case RC_PARSER_NO_POSITIONS:
+            return "No valid positions found. Check that the correct platform is selected "
+                   "and that the file is not empty.";
+        case RC_PARSER_UNRECOGNIZED_FORMAT:
+            return "CSV format not recognised. Make sure the correct platform is selected "
+                   "and that the file is an unmodified export from your broker.";
+        case RC_PARSER_TOO_MANY_TICKERS:
+            return "Portfolio exceeds the 50-position limit. Please remove some positions and re-upload.";
+
         default:
             return "Unknown return code";
     }
