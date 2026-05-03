@@ -410,7 +410,7 @@ static void portfolio_display_auto(Matrix* mtrx)
     g_auto_scroll_offset += 2;
     if (g_auto_scroll_offset >= total_width)
     {
-        g_auto_scroll_offset = 0;
+        g_auto_scroll_offset %= total_width;
     }
 }
 
@@ -608,6 +608,12 @@ void portfolio_prev_metric(Matrix* mtrx)
     matrix_slide_left(mtrx, current_state, next_state);
 }
 
+void portfolio_nudge_auto_scroll(int pixels)
+{
+    g_auto_scroll_offset += pixels;
+    if (g_auto_scroll_offset < 0) g_auto_scroll_offset = 0;
+}
+
 bool portfolio_is_auto_scroll(void)
 {
     if (!g_scroll_type_loaded)
@@ -622,8 +628,6 @@ bool portfolio_is_auto_scroll(void)
 
 void portfolio_cleanup(void)
 {
-    g_data_fetched = false;
-    g_next_fetch_time_ms = 0;
     g_scroll_offset = 0;
     g_url_scroll_offset = 0;
     g_current_metric = METRIC_PL_ABSOLUTE;

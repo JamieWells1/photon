@@ -422,11 +422,7 @@ void stock_validate_pending_ticker(Matrix* mtrx)
 
 void stock_cleanup(void)
 {
-    g_data_fetched = false;
-    g_next_fetch_time_ms = 0;
     g_scroll_offset = 0;
     g_url_scroll_offset = 0;
-    g_stock_count = 0;
     g_tickers_loaded = false;
-    g_enabled_mask = 0;
 }

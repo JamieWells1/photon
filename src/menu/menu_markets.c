@@ -211,12 +211,18 @@ static void menu_markets_invest_detect_inputs(Button* btns, Rotator* rtr, Matrix
 
     if (input_rtr_cw(rtr))
     {
-        portfolio_next_metric(mtrx);
+        if (portfolio_is_auto_scroll())
+            portfolio_nudge_auto_scroll(4);
+        else
+            portfolio_next_metric(mtrx);
     }
 
     if (input_rtr_anti_cw(rtr))
     {
-        portfolio_prev_metric(mtrx);
+        if (portfolio_is_auto_scroll())
+            portfolio_nudge_auto_scroll(-4);
+        else
+            portfolio_prev_metric(mtrx);
     }
 }
 

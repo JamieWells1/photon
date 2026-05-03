@@ -342,8 +342,6 @@ void crypto_display(Matrix* mtrx, int* offset)
 
 void crypto_cleanup(void)
 {
-    g_data_fetched = false;
-    g_next_fetch_time_ms = 0;
     g_crypto_to_fetch_index = 0;
     g_scroll_offset = 0;
     g_url_scroll_offset = 0;

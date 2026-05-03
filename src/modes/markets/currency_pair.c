@@ -344,8 +344,6 @@ void currency_pair_display(Matrix* mtrx, int* offset)
 
 void currency_pair_cleanup(void)
 {
-    g_data_fetched = false;
-    g_next_fetch_time_ms = 0;
     g_scroll_offset = 0;
     g_url_scroll_offset = 0;
     g_pair_to_fetch_index = 0;
