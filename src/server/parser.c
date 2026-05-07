@@ -78,7 +78,7 @@ ReturnCode parser_csv_portfolio(const char* csv_data, device_config_t* config)
     print(DEBUG, "Starting CSV parse (auto-detect), data preview: %.100s", csv_data);
 
     // T212 columns: 0=ticker, 2=invested, 3=current_value, 5=quantity
-    // IBKR columns: 0=ticker, 2=quantity, 3=invested, 4=current_value
+    // IBKR columns: 0=ticker, 1=quantity, 2=invested, 3=current_value
     int col_ticker = 0;
     int col_quantity = -1;
     int col_invested = 2;
@@ -107,11 +107,11 @@ ReturnCode parser_csv_portfolio(const char* csv_data, device_config_t* config)
             csv_format = ibkr_header ? 1 : 0;
             if (ibkr_header)
             {
-                col_quantity = 2;
-                col_invested = 3;
-                col_current = 4;
+                col_quantity = 1;
+                col_invested = 2;
+                col_current = 3;
                 col_quantity2 = -1;
-                col_max = 5;
+                col_max = 4;
             }
             print(DEBUG, "Detected format: %s", ibkr_header ? "IBKR" : "T212");
         }
@@ -122,11 +122,11 @@ ReturnCode parser_csv_portfolio(const char* csv_data, device_config_t* config)
             print(DEBUG, "First data row: %d columns, format=%s", ncols,
                   ibkr_header ? "IBKR" : "T212");
 
-            if (csv_format == 1)  // IBKR detected via header: must have exactly 5 columns
+            if (csv_format == 1)  // IBKR detected via header: must have exactly 4 columns
             {
-                if (ncols != 5)
+                if (ncols != 4)
                 {
-                    print(WARN, "IBKR header found but column count is %d (expected 5)", ncols);
+                    print(WARN, "IBKR header found but column count is %d (expected 4)", ncols);
                     return RC_PARSER_TOO_FEW_COLUMNS;
                 }
             }

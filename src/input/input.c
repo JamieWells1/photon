@@ -8,6 +8,7 @@
 #include <const.h>
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include <hardware/gpio.h>
 #include <pico/time.h>
@@ -60,7 +61,8 @@ void input_rtr_update(Rotator* rtr)
 
         int8_t dir = transition_table[rtr->state][new_state];
 
-        if (dir != 0 && new_state == 3)
+        bool at_detent = new_state == 3 || (ROTATOR_HALF_STEP && new_state == 0);
+        if (dir != 0 && at_detent)
         {
             rtr->rotation_count += dir;
             rtr->last_change_time = now;
@@ -91,6 +93,7 @@ bool input_rtr_cw(Rotator* rtr)
     if (rtr->rotation_count > 0)
     {
         rtr->rotation_count--;
+        printf("rotary: right\n");
         return true;
     }
     return false;
@@ -101,6 +104,7 @@ bool input_rtr_anti_cw(Rotator* rtr)
     if (rtr->rotation_count < 0)
     {
         rtr->rotation_count++;
+        printf("rotary: left\n");
         return true;
     }
     return false;
@@ -108,7 +112,9 @@ bool input_rtr_anti_cw(Rotator* rtr)
 
 bool input_rtr_pressed(Rotator* rtr)
 {
-    return rtr->last_sw_state == true && rtr->current_sw_state == false;
+    bool pressed = rtr->last_sw_state == true && rtr->current_sw_state == false;
+    if (pressed) printf("rotary: click\n");
+    return pressed;
 }
 
 bool input_rtr_released(Rotator* rtr)

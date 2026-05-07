@@ -29,8 +29,11 @@ static PixelState g_pixel_states[NUM_PIXELS];
 
 static int matrix_xy_to_index(int input_x, int input_y)
 {
-    // Matrix is column-serpentine, starting bottom-right (i=0)
-    // Map (0,0) to top-left: x=0 should be leftmost column, y=0 should be top
+    if (DISPLAY_INVERTED)
+    {
+        input_x = MATRIX_WIDTH - 1 - input_x;
+        input_y = MATRIX_HEIGHT - 1 - input_y;
+    }
 
     int col = MATRIX_WIDTH - 1 - input_x;
     int row = input_y;
