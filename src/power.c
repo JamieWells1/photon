@@ -45,9 +45,9 @@ static uint16_t power_estimate_current_draw_ma(LogLevel log_level, uint8_t brigh
     // Add 1mA per LED for controller chip overhead (even when off)
     uint32_t led_idle_current = NUM_PIXELS * LED_IDLE_CURRENT_MA;
 
-    debug(log_level, "Active pixels: %d/%d (%.1f%%)", active_pixels, NUM_PIXELS,
+    print(log_level, "Active pixels: %d/%d (%.1f%%)", active_pixels, NUM_PIXELS,
           (active_pixels * 100.0f) / NUM_PIXELS);
-    debug(log_level, "Total brightness sum: %u", total_brightness);
+    print(log_level, "Total brightness sum: %u", total_brightness);
 
     return (uint16_t)(PICO_IDLE_CURRENT_MA + led_active_current + led_idle_current);
 }
@@ -61,10 +61,10 @@ void power_log_stats(LogLevel log_level, uint8_t brightness_pct)
     uint16_t estimated_ma = power_estimate_current_draw_ma(log_level, brightness_pct);
     float power_watts = (estimated_ma * nominal_voltage) / 1000.0f;
 
-    debug(log_level, "Draw: %dmA | Power: %.2fW @ 5V", estimated_ma, power_watts);
+    print(log_level, "Draw: %dmA | Power: %.2fW @ 5V", estimated_ma, power_watts);
 
     if (estimated_ma > 2000)
     {
-        debug(WARN, "⚠️  Estimated current (%dmA) exceeds USB safe limit (2000mA)", estimated_ma);
+        print(WARN, "⚠️  Estimated current (%dmA) exceeds USB safe limit (2000mA)", estimated_ma);
     }
 }

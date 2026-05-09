@@ -58,19 +58,19 @@ static uint8_t g_scroll_type = 0;  // 0 = automatic (default), 1 = manual
 
 static void portfolio_response_callback(const char* body, size_t len, bool complete)
 {
-    debug(TRACE, "portfolio_response_callback: len=%d, complete=%d", len, complete);
+    print(TRACE, "portfolio_response_callback: len=%d, complete=%d", len, complete);
 
     if (!complete) return;
 
     if (!body || len == 0)
     {
-        debug(ERROR, "Empty batch response for portfolio");
+        print(ERROR, "Empty batch response for portfolio");
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
         return;
     }
 
-    debug(DEBUG, "Received batch response: %.*s", (int)len, body);
+    print(DEBUG, "Received batch response: %.*s", (int)len, body);
 
     for (uint8_t i = 0; i < g_portfolio_count; i++)
     {
@@ -81,7 +81,7 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
         const char* ticker_data = strstr(body, ticker_search);
         if (!ticker_data)
         {
-            debug(WARN, "Ticker %s not found in batch response", ticker);
+            print(WARN, "Ticker %s not found in batch response", ticker);
             g_positions[i].current_price = -1.0f;
             g_positions[i].prev_close = -1.0f;
             continue;
@@ -89,7 +89,7 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
 
         if (strstr(ticker_data, "\"error\""))
         {
-            debug(ERROR, "Error for ticker %s in batch response", ticker);
+            print(ERROR, "Error for ticker %s in batch response", ticker);
             g_positions[i].current_price = -1.0f;
             g_positions[i].prev_close = -1.0f;
             continue;
@@ -105,12 +105,12 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
         {
             g_positions[i].current_price = current_price;
             g_positions[i].prev_close = prev_close;
-            debug(INFO, "Parsed %s: current=%.2f, prev_close=%.2f", ticker, current_price,
+            print(INFO, "Parsed %s: current=%.2f, prev_close=%.2f", ticker, current_price,
                   prev_close);
         }
         else
         {
-            debug(ERROR, "Failed to parse price for %s", ticker);
+            print(ERROR, "Failed to parse price for %s", ticker);
             g_positions[i].current_price = -1.0f;
             g_positions[i].prev_close = -1.0f;
         }
@@ -120,7 +120,7 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
 
     uint64_t ms_until_next_fetch = TKR_FETCH_INTERVAL_MINUTES * 60 * 1000;
     g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
-    debug(INFO, "Batch fetch complete. Next fetch in %d minutes", TKR_FETCH_INTERVAL_MINUTES);
+    print(INFO, "Batch fetch complete. Next fetch in %d minutes", TKR_FETCH_INTERVAL_MINUTES);
 }
 
 static void portfolio_fetch_prices(Matrix* mtrx, bool is_first_fetch)
@@ -144,7 +144,7 @@ static void portfolio_fetch_prices(Matrix* mtrx, bool is_first_fetch)
     char path[768];
     snprintf(path, sizeof(path), "/stocks/batch?symbols=%s&currency=%s", symbols, currency);
 
-    debug(INFO, "Batch fetching %u tickers via proxy: %s:%s%s", g_portfolio_count, PROXY_HOST,
+    print(INFO, "Batch fetching %u tickers via proxy: %s:%s%s", g_portfolio_count, PROXY_HOST,
           PROXY_PORT, path);
 
     uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
@@ -152,7 +152,7 @@ static void portfolio_fetch_prices(Matrix* mtrx, bool is_first_fetch)
         http_get(PROXY_HOST, proxy_port, path, portfolio_response_callback, mtrx, is_first_fetch);
     if (RC_FAILED(rc))
     {
-        debug(ERROR, "Batch HTTP request failed: %s", rc_to_string(rc));
+        print(ERROR, "Batch HTTP request failed: %s", rc_to_string(rc));
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
     }
@@ -175,7 +175,7 @@ static void portfolio_load_from_flash(void)
             g_positions[i].current_price = g_positions[i].csv_price;
             g_positions[i].prev_close = g_positions[i].csv_price;
         }
-        debug(INFO, "Loaded %d portfolio positions", g_portfolio_count);
+        print(INFO, "Loaded %d portfolio positions", g_portfolio_count);
     }
 }
 
@@ -410,7 +410,7 @@ static void portfolio_display_auto(Matrix* mtrx)
     g_auto_scroll_offset += 2;
     if (g_auto_scroll_offset >= total_width)
     {
-        g_auto_scroll_offset = 0;
+        g_auto_scroll_offset %= total_width;
     }
 }
 
@@ -608,6 +608,12 @@ void portfolio_prev_metric(Matrix* mtrx)
     matrix_slide_left(mtrx, current_state, next_state);
 }
 
+void portfolio_nudge_auto_scroll(int pixels)
+{
+    g_auto_scroll_offset += pixels;
+    if (g_auto_scroll_offset < 0) g_auto_scroll_offset = 0;
+}
+
 bool portfolio_is_auto_scroll(void)
 {
     if (!g_scroll_type_loaded)
@@ -622,12 +628,10 @@ bool portfolio_is_auto_scroll(void)
 
 void portfolio_cleanup(void)
 {
-    g_data_fetched = false;
-    g_next_fetch_time_ms = 0;
     g_scroll_offset = 0;
     g_url_scroll_offset = 0;
     g_current_metric = METRIC_PL_ABSOLUTE;
     g_auto_scroll_offset = 0;
     g_scroll_type_loaded = false;
-    debug(TRACE, "Portfolio cleanup called");
+    print(TRACE, "Portfolio cleanup called");
 }

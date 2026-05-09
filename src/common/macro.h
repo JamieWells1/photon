@@ -21,7 +21,7 @@
                         : "UNKNOWN")
 
 // Debug macro that takes a level parameter
-#define debug(level, fmt, ...)                                                        \
+#define print(level, fmt, ...)                                                        \
     do                                                                                \
     {                                                                                 \
         if ((int)LOG_LEVEL >= (int)(level))                                           \

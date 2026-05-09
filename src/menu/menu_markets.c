@@ -80,7 +80,7 @@ static void menu_markets_slide_right(Matrix* mtrx)
     int index_next = (g_markets_selection + 1) % ARRAY_SIZE(MARKETS_MENUS);
     MarketsMenu nextMode = MARKETS_MENUS[index_next];
 
-    debug(INFO, "Markets menu: %s -> %s", MARKETS_MENUS[g_markets_selection].text, nextMode.text);
+    print(INFO, "Markets menu: %s -> %s", MARKETS_MENUS[g_markets_selection].text, nextMode.text);
 
     PixelState current_state[NUM_PIXELS];
     matrix_save_state(current_state);
@@ -115,7 +115,7 @@ static void menu_markets_slide_left(Matrix* mtrx)
     }
     MarketsMenu nextMode = MARKETS_MENUS[index_previous];
 
-    debug(INFO, "Markets menu: %s -> %s", MARKETS_MENUS[g_markets_selection].text, nextMode.text);
+    print(INFO, "Markets menu: %s -> %s", MARKETS_MENUS[g_markets_selection].text, nextMode.text);
 
     PixelState current_state[NUM_PIXELS];
     matrix_save_state(current_state);
@@ -164,7 +164,7 @@ static void menu_markets_enter_mode(MarketsMenu submenu, Matrix* mtrx)
 
     if (!g_in_markets_submenu || g_markets_current_mode != target_menu)
     {
-        debug(TRACE, "Entering markets mode: target=%d", target_menu);
+        print(TRACE, "Entering markets mode: target=%d", target_menu);
         g_in_markets_submenu = true;
         g_markets_current_mode = target_menu;
     }
@@ -199,7 +199,7 @@ static void menu_markets_invest_detect_inputs(Button* btns, Rotator* rtr, Matrix
         if (all_released)
         {
             g_invest_submenu_ready = true;
-            debug(DEBUG, "All buttons released, invest submenu ready for input");
+            print(DEBUG, "All buttons released, invest submenu ready for input");
         }
         return;
     }
@@ -211,12 +211,18 @@ static void menu_markets_invest_detect_inputs(Button* btns, Rotator* rtr, Matrix
 
     if (input_rtr_cw(rtr))
     {
-        portfolio_next_metric(mtrx);
+        if (portfolio_is_auto_scroll())
+            portfolio_nudge_auto_scroll(4);
+        else
+            portfolio_next_metric(mtrx);
     }
 
     if (input_rtr_anti_cw(rtr))
     {
-        portfolio_prev_metric(mtrx);
+        if (portfolio_is_auto_scroll())
+            portfolio_nudge_auto_scroll(-4);
+        else
+            portfolio_prev_metric(mtrx);
     }
 }
 
@@ -230,7 +236,7 @@ static void menu_markets_stocks_detect_inputs(Button* btns, Rotator* rtr, Matrix
         if (all_released)
         {
             g_stocks_submenu_ready = true;
-            debug(DEBUG, "All buttons released, stocks submenu ready for input");
+            print(DEBUG, "All buttons released, stocks submenu ready for input");
         }
         return;
     }
@@ -256,7 +262,7 @@ static void menu_markets_crypto_detect_inputs(Button* btns, Rotator* rtr, Matrix
         if (all_released)
         {
             g_crypto_submenu_ready = true;
-            debug(DEBUG, "All buttons released, crypto submenu ready for input");
+            print(DEBUG, "All buttons released, crypto submenu ready for input");
         }
         return;
     }
@@ -282,7 +288,7 @@ static void menu_markets_curncy_detect_inputs(Button* btns, Rotator* rtr, Matrix
         if (all_released)
         {
             g_curncy_submenu_ready = true;
-            debug(DEBUG, "All buttons released, curncy submenu ready for input");
+            print(DEBUG, "All buttons released, curncy submenu ready for input");
         }
         return;
     }
@@ -310,7 +316,7 @@ void menu_markets_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
             if (all_released)
             {
                 g_markets_menu_ready = true;
-                debug(DEBUG, "All buttons released, markets menu ready for input");
+                print(DEBUG, "All buttons released, markets menu ready for input");
             }
             return;
         }
@@ -336,7 +342,7 @@ void menu_markets_detect_inputs(Button* btns, Rotator* rtr, Matrix* mtrx)
 
     if (input_rtr_pressed(rtr) && !g_in_markets_submenu && g_markets_menu_ready)
     {
-        debug(DEBUG, "Button pressed in markets menu, entering mode=%d", g_markets_selection);
+        print(DEBUG, "Button pressed in markets menu, entering mode=%d", g_markets_selection);
         menu_markets_enter_mode(MARKETS_MENUS[g_markets_selection], mtrx);
     }
 

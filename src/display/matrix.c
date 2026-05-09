@@ -24,14 +24,16 @@
 
 static uint32_t g_pixels[NUM_PIXELS];
 static float g_brightness = 0.08f;
-static uint8_t g_max_brightness_pct = MAX_BRIGHTNESS_MAINS;
 
 static PixelState g_pixel_states[NUM_PIXELS];
 
 static int matrix_xy_to_index(int input_x, int input_y)
 {
-    // Matrix is column-serpentine, starting bottom-right (i=0)
-    // Map (0,0) to top-left: x=0 should be leftmost column, y=0 should be top
+    if (DISPLAY_INVERTED)
+    {
+        input_x = MATRIX_WIDTH - 1 - input_x;
+        input_y = MATRIX_HEIGHT - 1 - input_y;
+    }
 
     int col = MATRIX_WIDTH - 1 - input_x;
     int row = input_y;
@@ -214,13 +216,11 @@ void matrix_clear(Matrix* mtrx)
     }
 }
 
-void matrix_set_max_brightness(uint8_t max_pct) { g_max_brightness_pct = max_pct; }
-
 void matrix_set_brightness(uint8_t brightness_pct)
 {
-    if (brightness_pct > g_max_brightness_pct)
+    if (brightness_pct > MAX_BRIGHTNESS)
     {
-        brightness_pct = g_max_brightness_pct;
+        brightness_pct = MAX_BRIGHTNESS;
     }
     g_brightness = brightness_pct / 100.0f;
 }
@@ -231,7 +231,7 @@ void matrix_display_char(const char c, int x, int y, const RGB* col)
     const Glyph* ch = matrix_char_in_pxls(c);
     if (!ch)
     {
-        debug(WARN, "Cannot display invalid character: '%c'", c);
+        print(WARN, "Cannot display invalid character: '%c'", c);
         return;
     }
 

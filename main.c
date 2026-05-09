@@ -46,7 +46,7 @@ Button* main_init_buttons(void)
     buttons[1].current_state = gpio_get(buttons[1].pin);
     buttons[1].last_state = buttons[1].current_state;
 
-    debug(INFO, "✓ GPIO pins for buttons initialised");
+    print(INFO, "✓ GPIO pins for buttons initialised");
 
     return buttons;
 }
@@ -80,7 +80,7 @@ Rotator* main_init_rotator(void)
     rotator.rotation_count = 0;
     rotator.last_change_time = time_us_32();
 
-    debug(INFO, "✓ GPIO pins for rotary encoder initialised");
+    print(INFO, "✓ GPIO pins for rotary encoder initialised");
 
     return &rotator;
 }
@@ -92,7 +92,7 @@ Matrix* main_init_matrix(void)
     uint offset = pio_add_program(pio, &ws2812_program);
 
     ws2812_program_init(pio, sm, offset, MATRIX_DIN_PIN, MATRIX_DATA_FREQ, false);
-    debug(INFO, "✓ WS2812 program initialised");
+    print(INFO, "✓ WS2812 program initialised");
 
     static Matrix matrix = {.pin = MATRIX_DIN_PIN, .pio = pio0, .sm = 0};
     return &matrix;
@@ -111,7 +111,7 @@ int main(void)
     }
     sleep_ms(100);
 
-    debug(INFO, "Debug level: %u", LOG_LEVEL);
+    print(INFO, "Debug level: %u", LOG_LEVEL);
 
     Button* buttons = main_init_buttons();
     Rotator* rotator = main_init_rotator();
@@ -120,13 +120,7 @@ int main(void)
     matrix_clear(mtrx);
     matrix_show(mtrx);
 
-    bool usb_host = stdio_usb_connected();
-    uint8_t max_brightness = usb_host ? MAX_BRIGHTNESS_USB : MAX_BRIGHTNESS_MAINS;
-    matrix_set_max_brightness(max_brightness);
-    debug(INFO, "Power source: %s (max brightness: %u%%)", usb_host ? "USB" : "mains",
-          max_brightness);
-
-    debug(INFO, "✓✓✓ Main init complete. Starting main execution loop.");
+    print(INFO, "✓✓✓ Main init complete. Starting main execution loop.");
 
     device_config_t config;
     bool wifi_ready = false;
@@ -135,7 +129,7 @@ int main(void)
     // Update stored version if it differs from build version
     if (config_found && strcmp(config.firmware_version, BUILD_VERSION) != 0)
     {
-        debug(INFO, "Updating firmware version: %s -> %s", config.firmware_version, BUILD_VERSION);
+        print(INFO, "Updating firmware version: %s -> %s", config.firmware_version, BUILD_VERSION);
         strncpy(config.firmware_version, BUILD_VERSION, sizeof(config.firmware_version) - 1);
         config.firmware_version[8] = '\0';
         flash_memory_write(&config);
@@ -146,25 +140,25 @@ int main(void)
 
     if (config_found)
     {
-        debug(INFO, "Flash config found, attempting to connect to WiFi");
+        print(INFO, "Flash config found, attempting to connect to WiFi");
         ReturnCode rc = wifi_connect(config.ssid, config.password, mtrx);
         if (RC_SUCCESS(rc))
         {
-            debug(INFO, "WiFi connected successfully");
+            print(INFO, "WiFi connected successfully");
 
             wifi_start_mdns();
             http_server_start();
 
-            debug(INFO, "Web interface available at: http://delta.local");
-            debug(INFO, "Access anytime from your browser to configure device");
+            print(INFO, "Web interface available at: http://delta.local");
+            print(INFO, "Access anytime from your browser to configure device");
             wifi_ready = true;
 
             // Check for firmware updates
-            debug(INFO, "Checking for firmware updates...");
+            print(INFO, "Checking for firmware updates...");
             ReturnCode update_rc = update_check_version(mtrx);
             if (RC_SUCCESS(update_rc) && update_is_available())
             {
-                debug(INFO, "Firmware update available: %s", update_get_remote_version());
+                print(INFO, "Firmware update available: %s", update_get_remote_version());
 
                 // Display UPDATE with DATA icon - blocks until user clicks
                 matrix_clear(mtrx);
@@ -172,7 +166,7 @@ int main(void)
                 matrix_show(mtrx);
 
                 // Wait for rotary encoder click
-                debug(INFO, "Waiting for user to acknowledge update notification...");
+                print(INFO, "Waiting for user to acknowledge update notification...");
                 bool clicked = false;
                 while (!clicked)
                 {
@@ -182,7 +176,7 @@ int main(void)
                     if (rotator->last_sw_state == false && rotator->current_sw_state == true)
                     {
                         clicked = true;
-                        debug(INFO, "User acknowledged update notification");
+                        print(INFO, "User acknowledged update notification");
                     }
 
                     cyw43_arch_poll();  // Keep WiFi alive
@@ -190,7 +184,7 @@ int main(void)
                 }
 
                 // Show scrolling update URL indefinitely until device reboots
-                debug(INFO, "Displaying update URL - will remain until device is rebooted");
+                print(INFO, "Displaying update URL - will remain until device is rebooted");
                 const char* url_text = "    http://delta.local/update";
                 int url_width = matrix_calculate_word_width_with_space(url_text) + 4;
                 int scroll_offset = 0;
@@ -203,7 +197,7 @@ int main(void)
                     cyw43_arch_poll();
                     if (http_server_update_triggered())
                     {
-                        debug(INFO, "Update triggered, entering bootloader mode");
+                        print(INFO, "Update triggered, entering bootloader mode");
                         matrix_clear(mtrx);
                         matrix_display_word_icon_pair("REBOOT...", &YELLOW, NULL, 0);
                         matrix_show(mtrx);
@@ -237,12 +231,12 @@ int main(void)
             }
             else if (RC_FAILED(update_rc))
             {
-                debug(WARN, "Update check failed, continuing normally");
+                print(WARN, "Update check failed, continuing normally");
             }
         }
         else
         {
-            debug(WARN, "WiFi connection failed: %s", rc_to_string(rc));
+            print(WARN, "WiFi connection failed: %s", rc_to_string(rc));
 
             if (rc == RC_WIFI_BAD_AUTH || rc == RC_WIFI_NO_NETWORK)
             {
@@ -283,12 +277,12 @@ int main(void)
     }
     else
     {
-        debug(INFO, "No flash config found");
+        print(INFO, "No flash config found");
     }
 
     if (!wifi_ready)
     {
-        debug(INFO, "No valid WiFi config, entering setup mode");
+        print(INFO, "No valid WiFi config, entering setup mode");
 
         wifi_init_ap("Delta-Setup", NULL, mtrx);
         sleep_ms(500);
@@ -302,7 +296,7 @@ int main(void)
             sleep_ms(10);
         }
 
-        debug(INFO, "Captive portal active, waiting for credentials");
+        print(INFO, "Captive portal active, waiting for credentials");
 
         bool blink_state = true;
         int tick = 0;
@@ -329,7 +323,7 @@ int main(void)
             tick++;
         }
 
-        debug(INFO, "Credentials saved");
+        print(INFO, "Credentials saved");
         matrix_clear(mtrx);
         matrix_show(mtrx);
         sleep_ms(200);
@@ -338,7 +332,7 @@ int main(void)
         matrix_show(mtrx);
         sleep_ms(1000);
 
-        debug(INFO, "Rebooting");
+        print(INFO, "Rebooting");
         matrix_clear(mtrx);
         matrix_show(mtrx);
         sleep_ms(100);
@@ -392,7 +386,7 @@ int main(void)
 
             if (http_server_update_triggered())
             {
-                debug(INFO, "Update triggered, entering bootloader mode");
+                print(INFO, "Update triggered, entering bootloader mode");
                 matrix_clear(mtrx);
                 matrix_display_word_icon_pair("REBOOT...", &YELLOW, NULL, 0);
                 matrix_show(mtrx);
@@ -402,7 +396,7 @@ int main(void)
 
             if (http_server_config_saved())
             {
-                debug(INFO, "Config saved via web, rebooting...");
+                print(INFO, "Config saved via web, rebooting...");
                 matrix_clear(mtrx);
                 matrix_display_word_icon_pair("REBOOT...", &ORANGE, NULL, 0);
                 matrix_show(mtrx);

@@ -85,6 +85,14 @@ typedef enum
     RC_SERVER_ACCEPT_FAILED = -502,  // Failed to accept connection
     RC_SERVER_SEND_FAILED = -503,    // Failed to send response
 
+    // =========================================================================
+    // PARSER ERRORS (-6xx)
+    // =========================================================================
+    RC_PARSER_TOO_FEW_COLUMNS = -600,    // Row has fewer columns than the selected format requires
+    RC_PARSER_NO_POSITIONS = -602,        // File parsed but no valid positions were found
+    RC_PARSER_UNRECOGNIZED_FORMAT = -603,  // Doesn't match any known broker format
+    RC_PARSER_TOO_MANY_TICKERS = -604,    // Portfolio exceeds the 50-position limit
+
 } ReturnCode;
 
 #define RC_SUCCESS(rc) ((rc) == RC_OK)
@@ -93,6 +101,7 @@ typedef enum
 #define RC_IS_HTTP_ERROR(rc) ((rc) <= -300 && (rc) > -400)
 #define RC_IS_FLASH_ERROR(rc) ((rc) <= -400 && (rc) > -500)
 #define RC_IS_SERVER_ERROR(rc) ((rc) <= -500 && (rc) > -600)
+#define RC_IS_PARSER_ERROR(rc) ((rc) <= -600 && (rc) > -700)
 
 const char* rc_to_string(ReturnCode rc);
 

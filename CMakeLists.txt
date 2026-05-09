@@ -27,7 +27,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2_w CACHE STRING "Board type")
+set(PICO_BOARD pico_w CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -97,6 +97,7 @@ set(SERVER_SOURCES
         src/server/http_server.c
         src/server/html.c
         src/server/dhcpserver.c
+        src/server/parser.c
 )
 
 # mDNS sources from lwIP

@@ -42,7 +42,6 @@ void matrix_display_start_screen(Matrix* mtrx);
 
 void matrix_show(Matrix* mtrx);
 void matrix_clear(Matrix* mtrx);
-void matrix_set_max_brightness(uint8_t max_pct);
 void matrix_set_brightness(uint8_t brightness_pct);
 
 void matrix_display_char(const char c, int x, int y, const RGB* col);

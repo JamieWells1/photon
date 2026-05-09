@@ -189,7 +189,7 @@ bool input_rtr_pressed(Rotator* rtr);
 
 ```c
 if (input_rtr_pressed(&rtr)) {
-    debug("Encoder button pressed - selecting menu\n");
+    print("Encoder button pressed - selecting menu\n");
     select_current_menu();
 }
 ```
