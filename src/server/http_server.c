@@ -639,6 +639,7 @@ static err_t http_recv_callback(void* arg, struct tcp_pcb* pcb, struct pbuf* p, 
                                 // Clear manual tickers since portfolio is the source
                                 config.stock_ticker_count = 0;
                                 flash_memory_write(&config);
+                                stock_invalidate_cache();
                                 portfolio_parse_failed = false;
 
                                 const char* response = html_get_portfolio_success();

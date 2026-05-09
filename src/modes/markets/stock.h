@@ -32,4 +32,6 @@ void stock_cleanup(void);
 
 void stock_validate_pending_ticker(Matrix* mtrx);
 
+void stock_invalidate_cache(void);
+
 #endif  // STOCK_H

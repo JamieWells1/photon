@@ -34,6 +34,13 @@ static volatile uint64_t g_next_fetch_time_ms = 0;
 static int g_scroll_offset = 0;
 static int g_url_scroll_offset = 0;
 
+void stock_invalidate_cache(void)
+{
+    g_next_fetch_time_ms = 0;
+    g_data_fetched = false;
+    g_tickers_loaded = false;
+}
+
 uint8_t stock_get_count(void)
 {
     if (!g_tickers_loaded)
