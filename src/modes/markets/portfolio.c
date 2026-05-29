@@ -17,6 +17,7 @@
 #include <utils.h>
 #include <wifi.h>
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,6 +50,7 @@ static PortfolioPosition g_positions[50];
 static uint8_t g_portfolio_count = 0;
 static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
+static volatile uint64_t g_fetch_start_ms = 0;
 static int g_scroll_offset = 0;
 static int g_url_scroll_offset = 0;
 static PortfolioMetric g_current_metric = METRIC_PL_ABSOLUTE;
@@ -58,13 +60,16 @@ static uint8_t g_scroll_type = 0;  // 0 = automatic (default), 1 = manual
 
 static void portfolio_response_callback(const char* body, size_t len, bool complete)
 {
-    print(TRACE, "portfolio_response_callback: len=%d, complete=%d", len, complete);
+    print(TRACE, "portfolio_response_callback: len=%zu, complete=%d", len, complete);
 
     if (!complete) return;
 
+    uint64_t elapsed_ms = get_current_time_ms() - g_fetch_start_ms;
+    print(INFO, "Batch response received: %zu bytes in %" PRIu64 "ms", len, elapsed_ms);
+
     if (!body || len == 0)
     {
-        print(ERROR, "Empty batch response for portfolio");
+        print(ERROR, "Empty batch response after %" PRIu64 "ms", elapsed_ms);
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
         return;
@@ -120,12 +125,18 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
 
     uint64_t ms_until_next_fetch = TKR_FETCH_INTERVAL_MINUTES * 60 * 1000;
     g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
-    print(INFO, "Batch fetch complete. Next fetch in %d minutes", TKR_FETCH_INTERVAL_MINUTES);
+    print(INFO, "Batch fetch complete: %u tickers in %" PRIu64 "ms, next fetch in %d min",
+          g_portfolio_count, elapsed_ms, TKR_FETCH_INTERVAL_MINUTES);
 }
 
 static void portfolio_fetch_prices(Matrix* mtrx, bool is_first_fetch)
 {
-    if (!wifi_is_connected() || g_portfolio_count == 0) return;
+    if (!wifi_is_connected())
+    {
+        print(ERROR, "WiFi not connected — portfolio fetch aborted");
+        return;
+    }
+    if (g_portfolio_count == 0) return;
 
     device_config_t config;
     flash_memory_read(&config);
@@ -144,17 +155,25 @@ static void portfolio_fetch_prices(Matrix* mtrx, bool is_first_fetch)
     char path[768];
     snprintf(path, sizeof(path), "/stocks/batch?symbols=%s&currency=%s", symbols, currency);
 
-    print(INFO, "Batch fetching %u tickers via proxy: %s:%s%s", g_portfolio_count, PROXY_HOST,
-          PROXY_PORT, path);
+    print(INFO, "Batch request: %u tickers, currency=%s, %zu byte URL",
+          g_portfolio_count, currency, strlen(path));
+    print(INFO, "Symbols: %s", symbols);
+    print(INFO, "Dispatching GET %s:%s%s", PROXY_HOST, PROXY_PORT, path);
+
+    g_fetch_start_ms = get_current_time_ms();
 
     uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
     ReturnCode rc =
         http_get(PROXY_HOST, proxy_port, path, portfolio_response_callback, mtrx, is_first_fetch);
     if (RC_FAILED(rc))
     {
-        print(ERROR, "Batch HTTP request failed: %s", rc_to_string(rc));
+        print(ERROR, "Batch HTTP request failed immediately: %s", rc_to_string(rc));
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
+    }
+    else
+    {
+        print(INFO, "Batch HTTP request accepted by TCP stack");
     }
 }
 
@@ -507,6 +526,12 @@ void portfolio_display(Matrix* mtrx, int* offset)
 
     if (should_fetch)
     {
+        if (is_first_fetch)
+            print(INFO, "Portfolio fetch triggered: first fetch since boot");
+        else
+            print(INFO, "Portfolio fetch triggered: cache expired at T+%" PRIu64 "ms",
+                  current_time_ms);
+
         portfolio_load_from_flash();
         if (g_portfolio_count > 0)
         {
@@ -624,6 +649,13 @@ bool portfolio_is_auto_scroll(void)
         g_scroll_type_loaded = true;
     }
     return (g_scroll_type == 0);
+}
+
+void portfolio_invalidate_cache(void)
+{
+    g_next_fetch_time_ms = 0;
+    g_data_fetched = false;
+    g_portfolio_count = 0;
 }
 
 void portfolio_cleanup(void)

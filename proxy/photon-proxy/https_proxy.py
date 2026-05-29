@@ -128,6 +128,54 @@ class FXRateCache:
 fx_cache = FXRateCache()
 
 
+class StockPriceCache:
+    """Per-ticker price cache with individual TTL entries (native currency)"""
+
+    def __init__(self, ttl: int = 60):
+        self.cache = {}
+        self.ttl = ttl
+        self._lock = asyncio.Lock()
+
+    async def get(self, symbol: str) -> Optional[dict]:
+        async with self._lock:
+            entry = self.cache.get(symbol)
+            if entry and time.time() - entry["ts"] < self.ttl:
+                return entry
+            if entry:
+                del self.cache[symbol]
+            return None
+
+    async def set(
+        self, symbol: str, current: float, prev_close: float, stock_currency: str
+    ):
+        async with self._lock:
+            self.cache[symbol] = {
+                "current": current,
+                "prev_close": prev_close,
+                "stock_currency": stock_currency,
+                "ts": time.time(),
+            }
+
+    async def get_many(self, symbols: list) -> tuple[dict, list]:
+        """Return (hits dict, misses list) for a batch of symbols."""
+        hits = {}
+        misses = []
+        async with self._lock:
+            now = time.time()
+            for sym in symbols:
+                entry = self.cache.get(sym)
+                if entry and now - entry["ts"] < self.ttl:
+                    hits[sym] = entry
+                else:
+                    if entry:
+                        del self.cache[sym]
+                    misses.append(sym)
+        return hits, misses
+
+
+stock_cache = StockPriceCache(ttl=60)
+
+
 # In-flight request tracking to prevent duplicate yfinance calls
 in_flight_requests = {}
 in_flight_lock = asyncio.Lock()
@@ -181,22 +229,23 @@ async def get_fx_rate(from_ccy: str, to_ccy: str) -> Optional[float]:
 
     # Check cache first
     if cached := await fx_cache.get(cache_key):
-        logger.print(f"FX rate {cache_key}: {cached} (cached)")
+        logger.debug(f"FX rate {cache_key}: {cached} (cached)")
         return cached
 
     # Check if another request is already fetching this rate
+    is_owner = False
     async with in_flight_lock:
         if cache_key in in_flight_requests:
-            logger.print(f"Waiting for in-flight FX request: {cache_key}")
+            logger.debug(f"Waiting for in-flight FX request: {cache_key}")
             future = in_flight_requests[cache_key]
         else:
             future = asyncio.Future()
             in_flight_requests[cache_key] = future
+            is_owner = True
 
-    # If we created the future, we're responsible for fetching
-    if not future.done():
+    # Only the coroutine that created the future is responsible for fetching
+    if is_owner:
         try:
-            # Run yfinance in thread pool (it's synchronous)
             rate = await asyncio.to_thread(_fetch_fx_rate_sync, from_ccy, to_ccy)
             if rate:
                 await fx_cache.set(cache_key, rate)
@@ -223,7 +272,7 @@ def _fetch_fx_rate_sync(from_ccy: str, to_ccy: str) -> Optional[float]:
             logger.info(f"FX rate {pair}: {rate} (fetched)")
             return rate
     except Exception as e:
-        logger.print(f"Direct FX pair {pair} failed: {e}")
+        logger.debug(f"Direct FX pair {pair} failed: {e}")
 
     # Try inverse pair
     pair = f"{to_ccy}{from_ccy}=X"
@@ -235,7 +284,7 @@ def _fetch_fx_rate_sync(from_ccy: str, to_ccy: str) -> Optional[float]:
             logger.info(f"FX rate {pair} (inverted): {inverted} (fetched)")
             return inverted
     except Exception as e:
-        logger.print(f"Inverse FX pair {pair} failed: {e}")
+        logger.debug(f"Inverse FX pair {pair} failed: {e}")
 
     logger.warning(f"Could not get FX rate for {from_ccy} to {to_ccy}")
     return None
@@ -257,7 +306,7 @@ async def convert_price(price: float, from_ccy: str, to_ccy: str) -> Optional[fl
         return price
 
     converted = price * rate
-    logger.info(
+    logger.debug(
         f"Converted {price:.4f} {from_ccy} -> {converted:.4f} {to_ccy} (rate: {rate:.6f})"
     )
     return converted
@@ -289,6 +338,9 @@ async def fetch_stock_data(symbol: str, target_currency: Optional[str], client_i
         "VUKE",
         "ISF",
         "IUKD",
+        "EQGB",
+        "VWCE",
+        "XUSE",
     }
 
     original_symbol = symbol.upper()
@@ -302,6 +354,7 @@ async def fetch_stock_data(symbol: str, target_currency: Optional[str], client_i
     cache_key = f"{yf_symbol}:{target_currency or 'native'}"
 
     # Check if request is in-flight
+    is_owner = False
     async with in_flight_lock:
         if cache_key in in_flight_requests:
             logger.info(f"Deduplicating request for {cache_key}")
@@ -309,9 +362,10 @@ async def fetch_stock_data(symbol: str, target_currency: Optional[str], client_i
         else:
             future = asyncio.Future()
             in_flight_requests[cache_key] = future
+            is_owner = True
 
-    # If we created the future, fetch the data
-    if not future.done():
+    # Only the coroutine that created the future fetches the data
+    if is_owner:
         try:
             result = await asyncio.to_thread(
                 _fetch_stock_data_sync,
@@ -338,16 +392,63 @@ def _fetch_stock_data_sync(
 
     try:
         ticker = yf.Ticker(yf_symbol)
-        fast_info = ticker.fast_info
-        current = fast_info.last_price
-        prev_close = fast_info.previous_close
+        try:
+            current = ticker.fast_info.last_price
+            prev_close = ticker.fast_info.previous_close
+        except Exception:
+            current = None
+            prev_close = None
 
         if current is None or prev_close is None:
-            raise ValueError(f"No data for symbol '{yf_symbol}'")
+            if not yf_symbol.endswith(".L"):
+                lse_symbol = f"{yf_symbol}.L"
+                logger.info(f"No data for {yf_symbol}, retrying as {lse_symbol}")
+                ticker = yf.Ticker(lse_symbol)
+                try:
+                    current = ticker.fast_info.last_price
+                    prev_close = ticker.fast_info.previous_close
+                except Exception:
+                    current = None
+                    prev_close = None
+                if current is not None and prev_close is not None:
+                    yf_symbol = lse_symbol
+                else:
+                    # fast_info unreliable for some LSE ETFs — fall back to download()
+                    import pandas as pd
+                    dl = yf.download(
+                        tickers=lse_symbol,
+                        period="5d",
+                        interval="1d",
+                        progress=False,
+                        threads=False,
+                    )
+                    if dl.empty:
+                        raise ValueError(f"No data for symbol '{original_symbol}'")
+                    try:
+                        close_series = (
+                            dl["Close"][lse_symbol]
+                            if isinstance(dl.columns, pd.MultiIndex)
+                            else dl["Close"]
+                        )
+                    except KeyError:
+                        raise ValueError(f"No data for symbol '{original_symbol}'")
+                    close_values = close_series.dropna()
+                    if close_values.empty:
+                        raise ValueError(f"No data for symbol '{original_symbol}'")
+                    current = float(close_values.iloc[-1])
+                    prev_close = float(close_values.iloc[-2]) if len(close_values) >= 2 else current
+                    yf_symbol = lse_symbol
+            else:
+                raise ValueError(f"No data for symbol '{yf_symbol}'")
 
-        # Get native currency
-        stock_currency = ticker.info.get("currency", "USD")
-        logger.info(f"Stock {yf_symbol} native currency: {stock_currency}")
+        # Infer currency from symbol (avoids a slow ticker.info HTTP call)
+        if yf_symbol.endswith(".L"):
+            stock_currency = "GBP"
+        elif yf_symbol.endswith((".DE", ".AS", ".PA", ".MI", ".BR", ".VX")):
+            stock_currency = "EUR"
+        else:
+            stock_currency = "USD"
+        logger.info(f"Stock {yf_symbol} native currency: {stock_currency} (inferred)")
 
         return {
             "current": current,
@@ -363,6 +464,19 @@ def _fetch_stock_data_sync(
 
 
 # Routes
+
+
+@app.post("/cache/clear")
+async def clear_cache(request: Request):
+    """Clear all stock price and FX rate caches"""
+    await check_rate_limit(request)
+    async with stock_cache._lock:
+        stock_cache.cache.clear()
+    async with fx_cache._lock:
+        fx_cache.cache.clear()
+        fx_cache.timestamp = 0
+    logger.info("Cache cleared manually")
+    return {"status": "cleared"}
 
 
 @app.get("/health")
@@ -398,6 +512,7 @@ async def get_stocks_batch(
     """
     await check_rate_limit(request)
     client_ip = await get_client_ip(request)
+    t_req_start = time.time()
 
     # Parse symbols
     symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
@@ -411,17 +526,57 @@ async def get_stocks_batch(
     target_currency = currency.upper() if currency else None
 
     try:
-        # Batch fetch using yfinance (runs in thread pool)
-        batch_data = await asyncio.to_thread(
-            _fetch_batch_stock_data_sync, symbol_list, client_ip
+        cache_hits, misses = await stock_cache.get_many(symbol_list)
+        logger.info(
+            f"Batch request from {client_ip}: {len(symbol_list)} symbols, "
+            f"{len(cache_hits)} cached, {len(misses)} fetching from yfinance "
+            f"(target_currency={target_currency})"
         )
+
+        # Only call yfinance for cache misses
+        fetched_data = []
+        if misses:
+            fetched_data = await asyncio.to_thread(
+                _fetch_batch_stock_data_sync, misses, client_ip
+            )
+            # Store fresh results in cache
+            for symbol_data in fetched_data:
+                if "error" not in symbol_data:
+                    await stock_cache.set(
+                        symbol_data["original_symbol"],
+                        symbol_data["current"],
+                        symbol_data["prev_close"],
+                        symbol_data["currency"],
+                    )
 
         # Build response in Kraken format
         result = {"result": {}}
 
-        for symbol_data in batch_data:
+        # Process cache hits
+        for original_symbol, entry in cache_hits.items():
+            current = entry["current"]
+            prev_close = entry["prev_close"]
+            stock_currency = entry["stock_currency"]
+
+            if target_currency and target_currency != stock_currency:
+                current = await convert_price(current, stock_currency, target_currency)
+                prev_close = await convert_price(
+                    prev_close, stock_currency, target_currency
+                )
+                if current is None or prev_close is None:
+                    result["result"][original_symbol] = {
+                        "error": f"Currency conversion failed from {stock_currency} to {target_currency}"
+                    }
+                    continue
+
+            result["result"][original_symbol] = {
+                "c": [str(current)],
+                "o": str(prev_close),
+            }
+
+        # Process freshly fetched results
+        for symbol_data in fetched_data:
             if "error" in symbol_data:
-                # Include failed tickers with error
                 result["result"][symbol_data["symbol"]] = {
                     "error": symbol_data["error"]
                 }
@@ -432,31 +587,32 @@ async def get_stocks_batch(
             prev_close = symbol_data["prev_close"]
             stock_currency = symbol_data["currency"]
 
-            # Convert currency if requested
             if target_currency and target_currency != stock_currency:
                 current = await convert_price(current, stock_currency, target_currency)
                 prev_close = await convert_price(
                     prev_close, stock_currency, target_currency
                 )
-
                 if current is None or prev_close is None:
                     result["result"][original_symbol] = {
                         "error": f"Currency conversion failed from {stock_currency} to {target_currency}"
                     }
                     continue
 
-            # Add to result
             result["result"][original_symbol] = {
                 "c": [str(current)],
                 "o": str(prev_close),
             }
 
-        logger.info(f"Batch request for {len(symbol_list)} symbols from {client_ip}")
+        elapsed = time.time() - t_req_start
+        logger.info(
+            f"Batch request complete for {client_ip}: "
+            f"{len(result['result'])} symbols returned in {elapsed:.2f}s"
+        )
         return result
 
     except Exception as e:
         logger.error(f"Batch request error from {client_ip}: {e}")
-        logger.print(traceback.format_exc())
+        logger.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Batch request failed: {str(e)}")
 
 
@@ -479,13 +635,20 @@ async def get_stock(
     target_currency = currency.upper() if currency else None
 
     try:
-        # Fetch stock data (with deduplication)
-        data = await fetch_stock_data(symbol, target_currency, client_ip)
-
-        current = data["current"]
-        prev_close = data["prev_close"]
-        stock_currency = data["currency"]
-        original_symbol = data["original_symbol"]
+        cached = await stock_cache.get(symbol.upper())
+        if cached:
+            logger.info(f"Stock {symbol} for {client_ip}: serving from cache")
+            current = cached["current"]
+            prev_close = cached["prev_close"]
+            stock_currency = cached["stock_currency"]
+            original_symbol = symbol.upper()
+        else:
+            data = await fetch_stock_data(symbol, target_currency, client_ip)
+            current = data["current"]
+            prev_close = data["prev_close"]
+            stock_currency = data["currency"]
+            original_symbol = data["original_symbol"]
+            await stock_cache.set(original_symbol, current, prev_close, stock_currency)
 
         # Convert currency if requested
         if target_currency and target_currency != stock_currency:
@@ -501,7 +664,6 @@ async def get_stock(
                     detail=f"Currency conversion failed from {stock_currency} to {target_currency}",
                 )
 
-        # Return in Kraken-compatible format
         result = {
             "result": {
                 original_symbol: {
@@ -520,7 +682,7 @@ async def get_stock(
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         logger.error(f"Error fetching {symbol}: {e}")
-        logger.print(traceback.format_exc())
+        logger.debug(traceback.format_exc())
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch data for '{symbol}'"
         )
@@ -557,6 +719,9 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
         "VUKE",
         "ISF",
         "IUKD",
+        "EQGB",
+        "VWCE",
+        "XUSE",
     }
 
     # Map symbols to yfinance format (add .L for LSE)
@@ -570,9 +735,19 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
 
     yf_symbols = list(symbol_map.values())
 
+    # Infer currency from the yfinance symbol name — avoids one extra ticker.info
+    # HTTP call per symbol (which was the main source of batch slowness).
+    def infer_currency(yf_sym: str) -> str:
+        if yf_sym.endswith(".L"):
+            return "GBP"
+        if yf_sym.endswith((".DE", ".AS", ".PA", ".MI", ".BR", ".VX")):
+            return "EUR"
+        return "USD"
+
+    t_batch_start = time.time()
     try:
         # Batch download - SINGLE API CALL
-        # 15m interval over 2 days: gives live-ish prices (within 15 minutes)
+        # 1m interval over 2 days: gives prices within ~1 minute of real-time
         # and lets us split on the date boundary to get a true prev_close.
         logger.info(
             f"Batch fetching {len(yf_symbols)} symbols: {', '.join(yf_symbols)}"
@@ -581,7 +756,7 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
         data = yf.download(
             tickers=" ".join(yf_symbols),
             period="2d",
-            interval="15m",
+            interval="1m",
             progress=False,
             threads=True,
         )
@@ -640,9 +815,11 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
                     if current is None:
                         raise ValueError("No valid price data")
 
-                    # Get currency from ticker info
-                    ticker_obj = yf.Ticker(yf_symbol)
-                    stock_currency = ticker_obj.info.get("currency", "USD")
+                    stock_currency = infer_currency(yf_symbol)
+                    logger.info(
+                        f"{original_symbol}: current={current:.4f}, "
+                        f"prev_close={prev_close:.4f}, currency={stock_currency}"
+                    )
 
                     results.append(
                         {
@@ -682,9 +859,11 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
                         )
                         continue
 
-                    # Get currency from ticker info
-                    ticker_obj = yf.Ticker(yf_symbol)
-                    stock_currency = ticker_obj.info.get("currency", "USD")
+                    stock_currency = infer_currency(yf_symbol)
+                    logger.info(
+                        f"{original_symbol}: current={current:.4f}, "
+                        f"prev_close={prev_close:.4f}, currency={stock_currency}"
+                    )
 
                     results.append(
                         {
@@ -700,7 +879,86 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
                     logger.error(f"Error processing {yf_symbol}: {e}")
                     results.append({"symbol": original_symbol, "error": str(e)})
 
-        logger.info(f"Batch fetch complete: {len(results)} results from 1 API call")
+        # Retry symbols that returned no data with .L suffix
+        retry_map = {
+            r["symbol"]: f"{symbol_map.get(r['symbol'], r['symbol'])}.L"
+            for r in results
+            if "error" in r
+            and not symbol_map.get(r["symbol"], r["symbol"]).endswith(".L")
+        }
+
+        if retry_map:
+            retry_yf_symbols = list(retry_map.values())
+            logger.info(
+                f"Retrying {len(retry_yf_symbols)} failed symbols with .L suffix: "
+                f"{', '.join(retry_yf_symbols)}"
+            )
+            try:
+                retry_data = yf.download(
+                    tickers=" ".join(retry_yf_symbols),
+                    period="2d",
+                    interval="1m",
+                    progress=False,
+                    threads=True,
+                )
+                retry_results = {}
+                if len(retry_yf_symbols) == 1:
+                    orig = next(iter(retry_map))
+                    yf_sym = retry_yf_symbols[0]
+                    if not retry_data.empty and "Close" in retry_data.columns:
+                        close_data = retry_data["Close"]
+                        if isinstance(close_data, pd.DataFrame):
+                            close_data = close_data.iloc[:, 0]
+                        current, prev_close = extract_current_and_prev_close(close_data)
+                        if current is not None:
+                            retry_results[orig] = {
+                                "original_symbol": orig,
+                                "yf_symbol": yf_sym,
+                                "current": current,
+                                "prev_close": prev_close,
+                                "currency": infer_currency(yf_sym),
+                            }
+                            logger.info(
+                                f"{orig} (.L retry): current={current:.4f}, prev_close={prev_close:.4f}"
+                            )
+                else:
+                    for orig, yf_sym in retry_map.items():
+                        try:
+                            close_data = (
+                                retry_data["Close"][yf_sym]
+                                if isinstance(retry_data.columns, pd.MultiIndex)
+                                else retry_data["Close"]
+                            )
+                            if not close_data.empty and not close_data.isna().all():
+                                current, prev_close = extract_current_and_prev_close(
+                                    close_data
+                                )
+                                if current is not None:
+                                    retry_results[orig] = {
+                                        "original_symbol": orig,
+                                        "yf_symbol": yf_sym,
+                                        "current": current,
+                                        "prev_close": prev_close,
+                                        "currency": infer_currency(yf_sym),
+                                    }
+                                    logger.info(
+                                        f"{orig} (.L retry): current={current:.4f}, prev_close={prev_close:.4f}"
+                                    )
+                        except Exception as e:
+                            logger.debug(f"Retry processing failed for {yf_sym}: {e}")
+
+                results = [
+                    retry_results.get(r.get("symbol"), r) if "error" in r else r
+                    for r in results
+                ]
+            except Exception as e:
+                logger.error(f"Retry batch download failed: {e}")
+
+        elapsed = time.time() - t_batch_start
+        logger.info(
+            f"Batch fetch complete: {len(results)} results from 1 API call "
+            f"in {elapsed:.2f}s"
+        )
         return results
 
     except Exception as e:
@@ -761,7 +1019,7 @@ async def proxy_request(full_path: str, request: Request):
         raise HTTPException(status_code=502, detail="Bad Gateway")
     except Exception as e:
         logger.error(f"Unexpected error for {client_ip}: {e}")
-        logger.print(traceback.format_exc())
+        logger.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

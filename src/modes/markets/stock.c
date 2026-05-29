@@ -16,6 +16,7 @@
 #include <utils.h>
 #include <wifi.h>
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,6 +32,7 @@ static bool g_tickers_loaded = false;
 
 static volatile bool g_data_fetched = false;
 static volatile uint64_t g_next_fetch_time_ms = 0;
+static volatile uint64_t g_fetch_start_ms = 0;
 static int g_scroll_offset = 0;
 static int g_url_scroll_offset = 0;
 
@@ -109,13 +111,16 @@ static bool stock_is_enabled(int idx)
 
 static void stock_response_callback(const char* body, size_t len, bool complete)
 {
-    print(TRACE, "stock_response_callback: len=%d, complete=%d", len, complete);
+    print(TRACE, "stock_response_callback: len=%zu, complete=%d", len, complete);
 
     if (!complete) return;
 
+    uint64_t elapsed_ms = get_current_time_ms() - g_fetch_start_ms;
+    print(INFO, "Batch response received: %zu bytes in %" PRIu64 "ms", len, elapsed_ms);
+
     if (!body || len == 0)
     {
-        print(ERROR, "Empty batch response");
+        print(ERROR, "Empty batch response after %" PRIu64 "ms", elapsed_ms);
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
         return;
@@ -179,12 +184,15 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
         uint64_t ms_until_next_fetch = TKR_FETCH_INTERVAL_MINUTES * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
 
-        print(INFO, "Batch fetch complete: %u/%u tickers parsed", parsed_count, enabled_count);
-        print(TRACE, "Next fetch scheduled in %d minutes", TKR_FETCH_INTERVAL_MINUTES);
+        print(INFO, "Batch fetch complete: %u/%u tickers parsed in %" PRIu64 "ms",
+              parsed_count, enabled_count, elapsed_ms);
+        print(INFO, "Next fetch in %d min (T+%" PRIu64 "ms)",
+              TKR_FETCH_INTERVAL_MINUTES, g_next_fetch_time_ms);
     }
     else
     {
-        print(ERROR, "Failed to parse any stock data from batch response");
+        print(ERROR, "Failed to parse any stock data from batch response (%" PRIu64 "ms elapsed)",
+              elapsed_ms);
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
     }
@@ -234,7 +242,10 @@ void stock_display(Matrix* mtrx, int* offset)
 
     if (should_fetch)
     {
-        print(INFO, "Starting batch stock data fetch");
+        if (is_first_fetch)
+            print(INFO, "Batch fetch triggered: first fetch since boot");
+        else
+            print(INFO, "Batch fetch triggered: cache expired at T+%" PRIu64 "ms", current_time_ms);
 
         if (wifi_is_connected())
         {
@@ -264,20 +275,28 @@ void stock_display(Matrix* mtrx, int* offset)
             char path[768];
             snprintf(path, sizeof(path), "/stocks/batch?symbols=%s", symbols);
 
-            print(INFO, "Fetching %u tickers via batch: %s:%s%s", ticker_count, PROXY_HOST,
-                  PROXY_PORT, path);
+            print(INFO, "Batch request: %u/%u tickers enabled, %zu byte URL",
+                  ticker_count, g_stock_count, strlen(path));
+            print(INFO, "Symbols: %s", symbols);
+            print(INFO, "Dispatching GET %s:%s%s", PROXY_HOST, PROXY_PORT, path);
+
+            g_fetch_start_ms = get_current_time_ms();
 
             uint16_t proxy_port = (uint16_t)atoi(PROXY_PORT);
             ReturnCode rc = http_get(PROXY_HOST, proxy_port, path, stock_response_callback, mtrx,
                                      is_first_fetch);
             if (RC_FAILED(rc))
             {
-                print(ERROR, "Batch HTTP request failed: %s", rc_to_string(rc));
+                print(ERROR, "Batch HTTP request failed immediately: %s", rc_to_string(rc));
+            }
+            else
+            {
+                print(INFO, "Batch HTTP request accepted by TCP stack");
             }
         }
         else
         {
-            print(ERROR, "WiFi connection failed");
+            print(ERROR, "WiFi not connected — batch fetch aborted");
         }
     }
 

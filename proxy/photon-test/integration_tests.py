@@ -427,6 +427,52 @@ class ProxyIntegrationTests:
         else:
             self.result.record_fail(test_name, "Invalid response for single ticker")
 
+    def test_lse_fallback_single(self):
+        """Test 16: Single-ticker .L fallback for ticker not in hardcoded LSE set"""
+        test_name = "LSE .L Fallback - Single Ticker (HMWO)"
+        data = self._make_request("/stocks/HMWO")
+
+        if self._validate_stock_response(data, "HMWO"):
+            price = float(data["result"]["HMWO"]["c"][0])
+            if price > 0:
+                logger.info(f"  HMWO price (via .L fallback): £{price:.2f}")
+                self.result.record_pass(test_name)
+            else:
+                self.result.record_fail(test_name, f"Non-positive price: {price}")
+        else:
+            self.result.record_fail(
+                test_name, f"No valid response — .L fallback may not be working: {data}"
+            )
+
+    def test_lse_fallback_batch(self):
+        """Test 17: Batch .L fallback for ticker not in hardcoded LSE set"""
+        test_name = "LSE .L Fallback - Batch (AAPL,HMWO)"
+        data = self._make_request("/stocks/batch", {"symbols": "AAPL,HMWO"})
+
+        if not data or "result" not in data:
+            self.result.record_fail(test_name, "Invalid response structure")
+            return
+
+        aapl_ok = self._validate_stock_response(data, "AAPL")
+        hmwo_ok = self._validate_stock_response(data, "HMWO")
+
+        if aapl_ok and hmwo_ok:
+            aapl_price = float(data["result"]["AAPL"]["c"][0])
+            hmwo_price = float(data["result"]["HMWO"]["c"][0])
+            logger.info(
+                f"  AAPL: ${aapl_price:.2f}, HMWO (via .L fallback): £{hmwo_price:.2f}"
+            )
+            self.result.record_pass(test_name)
+        else:
+            failures = []
+            if not aapl_ok:
+                failures.append("AAPL")
+            if not hmwo_ok:
+                failures.append("HMWO (.L fallback may not be working)")
+            self.result.record_fail(
+                test_name, f"Invalid response for: {', '.join(failures)}"
+            )
+
     def run_all_tests(self):
         """Run all integration tests"""
         logger.info("=" * 60)
@@ -454,6 +500,10 @@ class ProxyIntegrationTests:
         self.test_batch_lse_tickers()
         self.test_batch_mixed_markets()
         self.test_batch_single_ticker()
+
+        # .L fallback tests (ticker not in hardcoded LSE set)
+        self.test_lse_fallback_single()
+        self.test_lse_fallback_batch()
 
         self.result.end_time = datetime.now()
 

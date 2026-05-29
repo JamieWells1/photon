@@ -15,5 +15,6 @@ void portfolio_prev_metric(Matrix* mtrx);
 void portfolio_nudge_auto_scroll(int pixels);
 bool portfolio_is_auto_scroll(void);
 void portfolio_cleanup(void);
+void portfolio_invalidate_cache(void);
 
 #endif  // PORTFOLIO_H
