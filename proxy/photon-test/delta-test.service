@@ -1,12 +1,12 @@
 [Unit]
-Description=Photon Proxy Integration Tests
+Description=Delta Proxy Integration Tests
 After=network.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/photon-test
-ExecStart=/usr/bin/python3 /root/photon-test/integration_tests.py
+WorkingDirectory=/opt/delta-test
+ExecStart=/usr/bin/python3 /opt/delta-test/integration_tests.py
 Restart=always
 RestartSec=10
 
@@ -17,7 +17,7 @@ PrivateTmp=true
 # Logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=photon-test
+SyslogIdentifier=delta-test
 
 [Install]
 WantedBy=multi-user.target

@@ -47,6 +47,15 @@ for i in $(seq 0 $((NUM_INSTANCES - 1))); do
 done
 
 echo ""
+echo "Restarting delta-test..."
+if sudo systemctl restart delta-test; then
+    echo "  ✓ delta-test is running"
+else
+    echo "  ✗ delta-test FAILED"
+    sudo systemctl status delta-test --no-pager -n 5
+fi
+
+echo ""
 echo "======================================"
 echo "Deployment Complete!"
 echo "======================================"
@@ -56,5 +65,6 @@ echo "  Status:    sudo systemctl status delta-proxy@0"
 echo "  Stop:      sudo systemctl stop delta-proxy@0"
 echo "  Restart:   sudo systemctl restart delta-proxy@0"
 echo "  Logs:      sudo journalctl -u delta-proxy@0 -f"
+echo "  Test logs: sudo journalctl -u delta-test -f"
 echo ""
 echo "Direct access: http://YOUR_SERVER_IP:8080/"

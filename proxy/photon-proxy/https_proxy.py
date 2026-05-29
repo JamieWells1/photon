@@ -3,7 +3,7 @@
 # Proprietary and Confidential - Unauthorized copying or distribution prohibited.
 
 """
-FastAPI-based HTTPS proxy for Photon project
+FastAPI-based HTTPS proxy for Delta project
 High-performance async version with better concurrency
 """
 
@@ -40,7 +40,7 @@ except ImportError:
 
 
 def setup_logging():
-    logger = logging.getLogger("PhotonProxy")
+    logger = logging.getLogger("DeltaProxy")
     logger.setLevel(getattr(logging, LOG_LEVEL))
 
     formatter = logging.Formatter(
@@ -67,8 +67,8 @@ logger = setup_logging()
 
 # FastAPI app
 app = FastAPI(
-    title="Photon HTTPS Proxy",
-    description="High-performance async proxy for Photon devices",
+    title="Delta HTTPS Proxy",
+    description="High-performance async proxy for Delta devices",
     version="2.0.0",
 )
 
@@ -173,7 +173,42 @@ class StockPriceCache:
         return hits, misses
 
 
-stock_cache = StockPriceCache(ttl=60)
+stock_cache = StockPriceCache(ttl=600)
+
+# T212 ticker → yfinance base ticker (before exchange suffix is appended).
+TICKER_ALIASES = {}
+
+# LSE tickers (.L suffix)
+LSE_TICKERS = {
+    "VUAG", "VUSA", "VWRL", "VWRP", "VNRG", "VEUA", "VFEG", "VJPB",
+    "VDPG", "VAGS", "VHYL", "VEVE", "IWDA", "SWDA", "CSPX", "EQQQ",
+    "EMIM", "IITU", "VUKE", "ISF", "IUKD", "EQGB", "XUSE",
+}
+
+# Euronext Amsterdam tickers (.AS suffix)
+EURONEXT_TICKERS = {
+    "VWCE",  # Vanguard FTSE All-World (Acc)
+}
+
+# Module-level currency cache keyed by yf_symbol (e.g. "EQQQ.L").
+# A stock's currency never changes, so this is populated once per process lifetime
+# and avoids repeated fast_info calls on every batch request.
+_ticker_currency_cache: dict = {}
+
+
+def _get_exchange_ticker_currency(yf_sym: str) -> str:
+    """Return the currency for an exchange-listed ticker, using a persistent cache."""
+    if yf_sym in _ticker_currency_cache:
+        return _ticker_currency_cache[yf_sym]
+    try:
+        import yfinance as yf
+        ccy = yf.Ticker(yf_sym).fast_info.currency or "GBP"
+        _ticker_currency_cache[yf_sym] = ccy
+        logger.info(f"Currency cached for {yf_sym}: {ccy}")
+        return ccy
+    except Exception as e:
+        logger.warning(f"Could not get currency for {yf_sym}: {e}, defaulting to GBP")
+        return "GBP"
 
 
 # In-flight request tracking to prevent duplicate yfinance calls
@@ -295,6 +330,12 @@ async def convert_price(price: float, from_ccy: str, to_ccy: str) -> Optional[fl
     if not price or price <= 0:
         return price
 
+    # GBX / GBp = pence — divide by 100 to get GBP first
+    if from_ccy in ("GBX", "GBp"):
+        price = price / 100
+        from_ccy = "GBP"
+        logger.debug(f"GBX→GBP conversion: divided by 100 → {price:.4f}")
+
     if from_ccy == to_ccy:
         return price
 
@@ -315,40 +356,16 @@ async def convert_price(price: float, from_ccy: str, to_ccy: str) -> Optional[fl
 async def fetch_stock_data(symbol: str, target_currency: Optional[str], client_ip: str):
     """Fetch stock data with deduplication"""
 
-    # LSE tickers that need .L suffix
-    LSE_TICKERS = {
-        "VUAG",
-        "VUSA",
-        "VWRL",
-        "VWRP",
-        "VNRG",
-        "VEUA",
-        "VFEG",
-        "VJPB",
-        "VDPG",
-        "VAGS",
-        "VHYL",
-        "VEVE",
-        "IWDA",
-        "SWDA",
-        "CSPX",
-        "EQQQ",
-        "EMIM",
-        "IITU",
-        "VUKE",
-        "ISF",
-        "IUKD",
-        "EQGB",
-        "VWCE",
-        "XUSE",
-    }
-
     original_symbol = symbol.upper()
-    yf_symbol = original_symbol
+    yf_base = TICKER_ALIASES.get(original_symbol, original_symbol)
+    yf_symbol = yf_base
 
-    if original_symbol in LSE_TICKERS and not original_symbol.endswith(".L"):
-        yf_symbol = f"{original_symbol}.L"
+    if yf_base in LSE_TICKERS and not yf_base.endswith(".L"):
+        yf_symbol = f"{yf_base}.L"
         logger.info(f"Translated LSE ticker: {original_symbol} -> {yf_symbol}")
+    elif yf_base in EURONEXT_TICKERS and not yf_base.endswith(".AS"):
+        yf_symbol = f"{yf_base}.AS"
+        logger.info(f"Translated Euronext ticker: {original_symbol} -> {yf_symbol}")
 
     # Create cache key including currency conversion
     cache_key = f"{yf_symbol}:{target_currency or 'native'}"
@@ -399,56 +416,52 @@ def _fetch_stock_data_sync(
             current = None
             prev_close = None
 
-        if current is None or prev_close is None:
-            if not yf_symbol.endswith(".L"):
-                lse_symbol = f"{yf_symbol}.L"
-                logger.info(f"No data for {yf_symbol}, retrying as {lse_symbol}")
-                ticker = yf.Ticker(lse_symbol)
+        def try_suffixes(suffixes):
+            """Try a list of exchange suffixes, return (ticker, symbol, current, prev_close) or raise."""
+            import pandas as pd
+            for suffix in suffixes:
+                candidate = f"{yf_symbol}{suffix}"
+                logger.info(f"No data for {yf_symbol}, retrying as {candidate}")
+                t = yf.Ticker(candidate)
                 try:
-                    current = ticker.fast_info.last_price
-                    prev_close = ticker.fast_info.previous_close
+                    cur = t.fast_info.last_price
+                    prv = t.fast_info.previous_close
                 except Exception:
-                    current = None
-                    prev_close = None
-                if current is not None and prev_close is not None:
-                    yf_symbol = lse_symbol
-                else:
-                    # fast_info unreliable for some LSE ETFs — fall back to download()
-                    import pandas as pd
-                    dl = yf.download(
-                        tickers=lse_symbol,
-                        period="5d",
-                        interval="1d",
-                        progress=False,
-                        threads=False,
+                    cur = prv = None
+                if cur is not None and prv is not None:
+                    return t, candidate, cur, prv
+                # fast_info unreliable for some exchange ETFs — fall back to download()
+                dl = yf.download(candidate, period="5d", interval="1d", progress=False, threads=False)
+                if dl.empty:
+                    continue
+                try:
+                    close_series = (
+                        dl["Close"][candidate] if isinstance(dl.columns, pd.MultiIndex) else dl["Close"]
                     )
-                    if dl.empty:
-                        raise ValueError(f"No data for symbol '{original_symbol}'")
-                    try:
-                        close_series = (
-                            dl["Close"][lse_symbol]
-                            if isinstance(dl.columns, pd.MultiIndex)
-                            else dl["Close"]
-                        )
-                    except KeyError:
-                        raise ValueError(f"No data for symbol '{original_symbol}'")
-                    close_values = close_series.dropna()
-                    if close_values.empty:
-                        raise ValueError(f"No data for symbol '{original_symbol}'")
-                    current = float(close_values.iloc[-1])
-                    prev_close = float(close_values.iloc[-2]) if len(close_values) >= 2 else current
-                    yf_symbol = lse_symbol
+                except KeyError:
+                    continue
+                close_values = close_series.dropna()
+                if close_values.empty:
+                    continue
+                cur = float(close_values.iloc[-1])
+                prv = float(close_values.iloc[-2]) if len(close_values) >= 2 else cur
+                return t, candidate, cur, prv
+            raise ValueError(f"No data for symbol '{original_symbol}'")
+
+        if current is None or prev_close is None:
+            has_suffix = any(yf_symbol.endswith(s) for s in (".L", ".AS", ".DE", ".PA", ".MI"))
+            if not has_suffix:
+                ticker, yf_symbol, current, prev_close = try_suffixes([".L", ".AS", ".DE", ".PA"])
             else:
                 raise ValueError(f"No data for symbol '{yf_symbol}'")
 
-        # Infer currency from symbol (avoids a slow ticker.info HTTP call)
-        if yf_symbol.endswith(".L"):
-            stock_currency = "GBP"
-        elif yf_symbol.endswith((".DE", ".AS", ".PA", ".MI", ".BR", ".VX")):
-            stock_currency = "EUR"
+        # Use the module-level currency cache for exchange-listed tickers.
+        # For plain US tickers, infer USD directly (no API call needed).
+        if any(yf_symbol.endswith(s) for s in (".L", ".AS", ".DE", ".PA", ".MI")):
+            stock_currency = _get_exchange_ticker_currency(yf_symbol)
         else:
             stock_currency = "USD"
-        logger.info(f"Stock {yf_symbol} native currency: {stock_currency} (inferred)")
+        logger.info(f"Stock {yf_symbol} native currency: {stock_currency}")
 
         return {
             "current": current,
@@ -696,52 +709,29 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
     import yfinance as yf
     import pandas as pd
 
-    # LSE tickers mapping
-    LSE_TICKERS = {
-        "VUAG",
-        "VUSA",
-        "VWRL",
-        "VWRP",
-        "VNRG",
-        "VEUA",
-        "VFEG",
-        "VJPB",
-        "VDPG",
-        "VAGS",
-        "VHYL",
-        "VEVE",
-        "IWDA",
-        "SWDA",
-        "CSPX",
-        "EQQQ",
-        "EMIM",
-        "IITU",
-        "VUKE",
-        "ISF",
-        "IUKD",
-        "EQGB",
-        "VWCE",
-        "XUSE",
-    }
-
-    # Map symbols to yfinance format (add .L for LSE)
+    # Map symbols to yfinance format (apply aliases, then add exchange suffix)
     symbol_map = {}  # original -> yfinance
     for sym in symbol_list:
-        if sym in LSE_TICKERS and not sym.endswith(".L"):
-            symbol_map[sym] = f"{sym}.L"
-            logger.info(f"Translated LSE ticker: {sym} -> {sym}.L")
+        yf_base = TICKER_ALIASES.get(sym, sym)
+        if yf_base in LSE_TICKERS and not yf_base.endswith(".L"):
+            symbol_map[sym] = f"{yf_base}.L"
+            logger.info(f"Translated LSE ticker: {sym} -> {symbol_map[sym]}")
+        elif yf_base in EURONEXT_TICKERS and not yf_base.endswith(".AS"):
+            symbol_map[sym] = f"{yf_base}.AS"
+            logger.info(f"Translated Euronext ticker: {sym} -> {symbol_map[sym]}")
         else:
-            symbol_map[sym] = sym
+            symbol_map[sym] = yf_base
 
     yf_symbols = list(symbol_map.values())
 
-    # Infer currency from the yfinance symbol name — avoids one extra ticker.info
-    # HTTP call per symbol (which was the main source of batch slowness).
+    # Currency inference: exchange-listed tickers use the module-level cache
+    # (populated once per process, never expires). US tickers infer USD directly.
     def infer_currency(yf_sym: str) -> str:
-        if yf_sym.endswith(".L"):
-            return "GBP"
-        if yf_sym.endswith((".DE", ".AS", ".PA", ".MI", ".BR", ".VX")):
-            return "EUR"
+        # Any exchange-listed ticker needs a real currency lookup — .L can be
+        # GBX or GBP, .AS is EUR, .DE/.PA/.MI are EUR, etc.
+        for suffix in (".L", ".AS", ".DE", ".PA", ".MI"):
+            if yf_sym.endswith(suffix):
+                return _get_exchange_ticker_currency(yf_sym)
         return "USD"
 
     t_batch_start = time.time()
@@ -995,7 +985,7 @@ async def proxy_request(full_path: str, request: Request):
     try:
         async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
             response = await client.get(
-                https_url, headers={"User-Agent": "PhotonProxy/2.0"}
+                https_url, headers={"User-Agent": "DeltaProxy/2.0"}
             )
             response.raise_for_status()
 
@@ -1036,7 +1026,7 @@ if __name__ == "__main__":
     import argparse
     import uvicorn
 
-    parser = argparse.ArgumentParser(description="Photon HTTPS Proxy (FastAPI)")
+    parser = argparse.ArgumentParser(description="Delta HTTPS Proxy (FastAPI)")
     parser.add_argument(
         "--port",
         type=int,
@@ -1051,7 +1041,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    logger.info(f"Starting Photon FastAPI Proxy on {args.bind}:{args.port}")
+    logger.info(f"Starting Delta FastAPI Proxy on {args.bind}:{args.port}")
     logger.info(f"Allowed hosts: {', '.join(ALLOWED_HOSTS)}")
     logger.info(f"Rate limit: {RATE_LIMIT_REQUESTS} req/{RATE_LIMIT_WINDOW}s per IP")
 
