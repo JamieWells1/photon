@@ -9,6 +9,7 @@ TESTS_DIR="/opt/delta-test"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROXY_FILE="$SCRIPT_DIR/photon-proxy/https_proxy.py"
+PROXY_API_DIR="$SCRIPT_DIR/photon-proxy/api"
 TESTS_DIR_LOCAL="$SCRIPT_DIR/photon-test"
 
 TEST_FILES=(
@@ -30,6 +31,10 @@ echo "======================================"
 
 echo "  -> $PROXY_DIR/https_proxy.py"
 scp "$PROXY_FILE" "$VM_USER@$VM_HOST:$PROXY_DIR/https_proxy.py"
+
+echo "  -> $PROXY_DIR/api/"
+ssh "$VM_USER@$VM_HOST" "mkdir -p $PROXY_DIR/api"
+scp "$PROXY_API_DIR"/*.py "$VM_USER@$VM_HOST:$PROXY_DIR/api/"
 
 for f in "${TEST_FILES[@]}"; do
     if [[ "$f" == *.service ]]; then
