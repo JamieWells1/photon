@@ -20,9 +20,18 @@ from api.config import (
     REQUIRE_PROXY_PREFIX,
     logger,
 )
-from api.cache import fx_cache, rate_limiter, stock_cache
+from api.cache import fx_cache, history_cache, rate_limiter, stock_cache
 from api.fx import convert_price
-from api.stocks import _fetch_batch_stock_data_sync, fetch_stock_data
+from api.market_hours import market_status, should_fetch
+from api.stocks import _fetch_batch_stock_data_sync, fetch_history, fetch_stock_data
+
+_VALID_PERIODS = {
+    "1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max",
+}
+_VALID_INTERVALS = {
+    "1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h",
+    "1d", "5d", "1wk", "1mo", "3mo",
+}
 
 router = APIRouter()
 
@@ -68,15 +77,23 @@ def validate_path(path: str) -> None:
 
 @router.post("/cache/clear")
 async def clear_cache(request: Request):
-    """Clear all stock price and FX rate caches"""
+    """Clear all caches"""
     await check_rate_limit(request)
     async with stock_cache._lock:
         stock_cache.cache.clear()
     async with fx_cache._lock:
         fx_cache.cache.clear()
         fx_cache.timestamp = 0
-    logger.info("Cache cleared manually")
+    async with history_cache._lock:
+        history_cache.cache.clear()
+    logger.info("All caches cleared manually")
     return {"status": "cleared"}
+
+
+@router.get("/market-status")
+async def get_market_status():
+    """Return current open/closed state for each market segment."""
+    return market_status()
 
 
 @router.get("/health")
@@ -125,11 +142,29 @@ async def get_stocks_batch(
     target_currency = currency.upper() if currency else None
 
     try:
-        cache_hits, misses = await stock_cache.get_many(symbol_list)
+        fresh_hits, stale_hits, true_misses = await stock_cache.get_many(symbol_list)
+
+        # Stale entries: refetch if market is open, serve as-is if closed.
+        # Cap stale age at 24h — anything older is re-fetched regardless of market
+        # hours, since the data predates the most recent trading session.
+        _MAX_STALE_AGE = 86400
+        now = time.time()
+        fetch_symbols = list(true_misses)
+        market_closed_hits = {}
+        for sym in stale_hits:
+            entry_age = now - stale_hits[sym]["ts"]
+            if should_fetch(sym) or entry_age > _MAX_STALE_AGE:
+                fetch_symbols.append(sym)
+            else:
+                market_closed_hits[sym] = stale_hits[sym]
+
+        cache_hits = {**fresh_hits, **market_closed_hits}
+        misses = fetch_symbols
+
         logger.info(
-            f"Batch request from {client_ip}: {len(symbol_list)} symbols, "
-            f"{len(cache_hits)} cached, {len(misses)} fetching from yfinance "
-            f"(target_currency={target_currency})"
+            f"Batch request from {client_ip}: {len(symbol_list)} symbols — "
+            f"{len(fresh_hits)} fresh, {len(market_closed_hits)} stale/market-closed, "
+            f"{len(misses)} fetching (target_currency={target_currency})"
         )
 
         fetched_data = []
@@ -210,6 +245,81 @@ async def get_stocks_batch(
         raise HTTPException(status_code=500, detail=f"Batch request failed: {str(e)}")
 
 
+@router.get("/stocks/history")
+async def get_stocks_history(
+    symbols: str = Query(..., description="Comma-separated ticker symbols"),
+    period: str = Query("1y", description="yfinance period: 1d 5d 1mo 3mo 6mo 1y 2y 5y 10y ytd max"),
+    interval: str = Query("1d", description="yfinance interval: 1m 2m 5m 15m 30m 60m 90m 1h 1d 5d 1wk 1mo 3mo"),
+    request: Request = None,
+):
+    """Historical close prices for a list of symbols.
+
+    Returns per-symbol date + close arrays suitable for charting portfolio
+    value over time. Cached with a 12-hour TTL for daily/weekly data,
+    1-hour TTL for intraday intervals.
+
+    Example: /stocks/history?symbols=AAPL,VUAG&period=1y&interval=1d
+    """
+    await check_rate_limit(request)
+    client_ip = await get_client_ip(request)
+
+    if period not in _VALID_PERIODS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid period '{period}'. Valid: {sorted(_VALID_PERIODS)}",
+        )
+    if interval not in _VALID_INTERVALS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid interval '{interval}'. Valid: {sorted(_VALID_INTERVALS)}",
+        )
+
+    symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+    if not symbol_list:
+        raise HTTPException(status_code=400, detail="No symbols provided")
+    if len(symbol_list) > 100:
+        raise HTTPException(status_code=400, detail="Maximum 100 symbols per request")
+
+    t_start = time.time()
+
+    try:
+        result: dict = {}
+        misses: list = []
+
+        for sym in symbol_list:
+            cached = await history_cache.get(sym, period, interval)
+            if cached:
+                result[sym] = {k: v for k, v in cached.items() if k != "ts"}
+            else:
+                misses.append(sym)
+
+        if misses:
+            logger.info(
+                f"History request from {client_ip}: {len(misses)} misses for "
+                f"period={period} interval={interval}"
+            )
+            fetched = await fetch_history(misses, period, interval, client_ip)
+            for sym, data in fetched.items():
+                if "error" not in data:
+                    await history_cache.set(sym, period, interval, data)
+                result[sym] = data
+
+        elapsed = time.time() - t_start
+        logger.info(
+            f"History request complete from {client_ip}: {len(symbol_list)} symbols "
+            f"in {elapsed:.2f}s ({len(symbol_list) - len(misses)} cached, {len(misses)} fetched)"
+        )
+        return {
+            "result": result,
+            "meta": {"period": period, "interval": interval},
+        }
+
+    except Exception as e:
+        logger.error(f"History request error from {client_ip}: {e}")
+        logger.debug(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"History request failed: {str(e)}")
+
+
 @router.get("/stocks/{symbol}")
 async def get_stock(
     symbol: str,
@@ -230,11 +340,27 @@ async def get_stock(
     try:
         cached = await stock_cache.get(symbol.upper())
         if cached:
-            logger.info(f"Stock {symbol} for {client_ip}: serving from cache")
+            logger.info(f"Stock {symbol} for {client_ip}: serving from cache (fresh)")
             current = cached["current"]
             prev_close = cached["prev_close"]
             stock_currency = cached["stock_currency"]
             original_symbol = symbol.upper()
+        elif not should_fetch(symbol.upper()):
+            # Market closed — serve stale data if available rather than hitting yfinance
+            stale = await stock_cache.get(symbol.upper(), allow_stale=True)
+            if stale:
+                logger.info(f"Stock {symbol} for {client_ip}: serving stale (market closed)")
+                current = stale["current"]
+                prev_close = stale["prev_close"]
+                stock_currency = stale["stock_currency"]
+                original_symbol = symbol.upper()
+            else:
+                data = await fetch_stock_data(symbol, target_currency, client_ip)
+                current = data["current"]
+                prev_close = data["prev_close"]
+                stock_currency = data["currency"]
+                original_symbol = data["original_symbol"]
+                await stock_cache.set(original_symbol, current, prev_close, stock_currency)
         else:
             data = await fetch_stock_data(symbol, target_currency, client_ip)
             current = data["current"]

@@ -22,6 +22,8 @@ TEST_FILES=(
     "test_batch.py"
     "test_cache.py"
     "test_edge_cases.py"
+    "test_history.py"
+    "test_market_hours.py"
     "delta-test.service"
 )
 

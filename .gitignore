@@ -7,6 +7,7 @@ INSTRUCTIONS.md
 site/
 
 proxy/__pycache__/
+proxy/**/__pycache__/
 proxy/*.pyc
 proxy/*.log
 proxy/.env

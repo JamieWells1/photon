@@ -31,6 +31,8 @@ from test_single import SingleStockTests
 from test_batch import BatchTests
 from test_cache import CacheTests
 from test_edge_cases import EdgeCaseTests
+from test_history import HistoryTests
+from test_market_hours import MarketHoursTests
 
 logger = make_logger("IntegrationTests")
 
@@ -44,6 +46,8 @@ SUITES = [
     CurrencyTests,
     CacheTests,
     EdgeCaseTests,
+    HistoryTests,
+    MarketHoursTests,
 ]
 
 _suite_index = 0

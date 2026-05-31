@@ -14,6 +14,8 @@ from api.tickers import (
     _get_exchange_ticker_currency,
 )
 
+_INTRADAY_INTERVALS = {"1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h"}
+
 
 async def fetch_stock_data(symbol: str, target_currency: Optional[str], client_ip: str):
     """Fetch stock data with deduplication"""
@@ -378,3 +380,163 @@ def _fetch_batch_stock_data_sync(symbol_list: list, client_ip: str):
     except Exception as e:
         logger.error(f"Batch download failed: {e}")
         return [{"symbol": sym, "error": str(e)} for sym in symbol_list]
+
+
+async def fetch_history(
+    symbols: list, period: str, interval: str, client_ip: str
+) -> dict:
+    """Async wrapper — runs the synchronous yfinance download in a thread pool."""
+    return await asyncio.to_thread(
+        _fetch_history_sync, symbols, period, interval, client_ip
+    )
+
+
+def _fetch_history_sync(
+    symbols: list, period: str, interval: str, client_ip: str
+) -> dict:
+    """Fetch historical close prices for a list of symbols.
+
+    Returns dict keyed by original symbol:
+      { "dates": [...], "closes": [...] }   on success
+      { "error": "..." }                    on failure
+
+    Applies the same LSE/Euronext suffix translation and .L retry logic as
+    the batch price endpoint.
+    """
+    import yfinance as yf
+    import pandas as pd
+
+    # Translate display tickers to yfinance symbols
+    symbol_map: dict[str, str] = {}
+    for sym in symbols:
+        yf_base = TICKER_ALIASES.get(sym, sym)
+        if yf_base in LSE_TICKERS and not yf_base.endswith(".L"):
+            symbol_map[sym] = f"{yf_base}.L"
+            logger.info(f"History: LSE translation {sym} -> {symbol_map[sym]}")
+        elif yf_base in EURONEXT_TICKERS and not yf_base.endswith(".AS"):
+            symbol_map[sym] = f"{yf_base}.AS"
+            logger.info(f"History: Euronext translation {sym} -> {symbol_map[sym]}")
+        else:
+            symbol_map[sym] = yf_base
+
+    yf_symbols = list(symbol_map.values())
+    rev_map = {v: k for k, v in symbol_map.items()}
+
+    date_fmt = "%Y-%m-%dT%H:%M" if interval in _INTRADAY_INTERVALS else "%Y-%m-%d"
+
+    def extract_series(series, yf_sym: str) -> tuple[list, list] | tuple[None, None]:
+        series = series.dropna()
+        if series.empty:
+            return None, None
+        dates = [d.strftime(date_fmt) for d in series.index]
+        closes = [round(float(v), 4) for v in series.values]
+        # GBX-denominated LSE tickers return prices in pence — convert to pounds.
+        if any(yf_sym.endswith(s) for s in (".L", ".AS", ".DE", ".PA", ".MI")):
+            if _get_exchange_ticker_currency(yf_sym) == "GBX":
+                closes = [round(v / 100, 6) for v in closes]
+        return dates, closes
+
+    logger.info(
+        f"History fetch: {len(yf_symbols)} symbols period={period} interval={interval} "
+        f"from {client_ip}"
+    )
+
+    try:
+        data = yf.download(
+            tickers=" ".join(yf_symbols),
+            period=period,
+            interval=interval,
+            progress=False,
+            threads=True,
+        )
+    except Exception as e:
+        logger.error(f"History download failed: {e}")
+        return {sym: {"error": str(e)} for sym in symbols}
+
+    results: dict = {}
+    failed: list[str] = []
+
+    if len(yf_symbols) == 1:
+        yf_sym = yf_symbols[0]
+        orig = rev_map[yf_sym]
+        if data.empty or "Close" not in data.columns:
+            failed.append(orig)
+        else:
+            close_data = data["Close"]
+            if isinstance(close_data, pd.DataFrame):
+                close_data = close_data.iloc[:, 0]
+            dates, closes = extract_series(close_data, yf_sym)
+            if dates:
+                results[orig] = {"dates": dates, "closes": closes}
+            else:
+                failed.append(orig)
+    else:
+        for yf_sym in yf_symbols:
+            orig = rev_map[yf_sym]
+            try:
+                close_data = (
+                    data["Close"][yf_sym]
+                    if isinstance(data.columns, pd.MultiIndex)
+                    else data["Close"]
+                )
+                dates, closes = extract_series(close_data, yf_sym)
+                if dates:
+                    results[orig] = {"dates": dates, "closes": closes}
+                else:
+                    failed.append(orig)
+            except Exception as e:
+                logger.warning(f"History: no data for {yf_sym}: {e}")
+                failed.append(orig)
+
+    # Retry failed symbols with .L suffix (mirrors batch endpoint pattern)
+    retry_map = {
+        orig: f"{symbol_map.get(orig, orig)}.L"
+        for orig in failed
+        if not symbol_map.get(orig, orig).endswith(".L")
+    }
+
+    if retry_map:
+        retry_yf_symbols = list(retry_map.values())
+        logger.info(f"History retry with .L: {', '.join(retry_yf_symbols)}")
+        try:
+            retry_data = yf.download(
+                tickers=" ".join(retry_yf_symbols),
+                period=period,
+                interval=interval,
+                progress=False,
+                threads=True,
+            )
+            if len(retry_yf_symbols) == 1:
+                orig = next(iter(retry_map))
+                yf_sym = retry_yf_symbols[0]
+                if not retry_data.empty and "Close" in retry_data.columns:
+                    close_data = retry_data["Close"]
+                    if isinstance(close_data, pd.DataFrame):
+                        close_data = close_data.iloc[:, 0]
+                    dates, closes = extract_series(close_data, yf_sym)
+                    if dates:
+                        results[orig] = {"dates": dates, "closes": closes}
+                        logger.info(f"History retry success: {orig} as {yf_sym}")
+            else:
+                for orig, yf_sym in retry_map.items():
+                    try:
+                        close_data = (
+                            retry_data["Close"][yf_sym]
+                            if isinstance(retry_data.columns, pd.MultiIndex)
+                            else retry_data["Close"]
+                        )
+                        dates, closes = extract_series(close_data, yf_sym)
+                        if dates:
+                            results[orig] = {"dates": dates, "closes": closes}
+                            logger.info(f"History retry success: {orig} as {yf_sym}")
+                    except Exception as e:
+                        logger.debug(f"History retry failed for {yf_sym}: {e}")
+        except Exception as e:
+            logger.error(f"History retry batch failed: {e}")
+
+    # Any symbol still without data gets an error entry
+    for orig in failed:
+        if orig not in results:
+            results[orig] = {"error": f"No historical data available for '{orig}'"}
+
+    return results

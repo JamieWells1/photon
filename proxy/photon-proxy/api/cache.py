@@ -66,13 +66,14 @@ class StockPriceCache:
         self.ttl = ttl
         self._lock = asyncio.Lock()
 
-    async def get(self, symbol: str) -> Optional[dict]:
+    async def get(self, symbol: str, allow_stale: bool = False) -> Optional[dict]:
         async with self._lock:
             entry = self.cache.get(symbol)
-            if entry and time.time() - entry["ts"] < self.ttl:
+            if not entry:
+                return None
+            if time.time() - entry["ts"] < self.ttl or allow_stale:
                 return entry
-            if entry:
-                del self.cache[symbol]
+            del self.cache[symbol]
             return None
 
     async def set(
@@ -86,26 +87,66 @@ class StockPriceCache:
                 "ts": time.time(),
             }
 
-    async def get_many(self, symbols: list) -> tuple[dict, list]:
-        """Return (hits dict, misses list) for a batch of symbols."""
-        hits = {}
+    async def get_many(self, symbols: list) -> tuple[dict, dict, list]:
+        """Return (fresh_hits, stale_hits, true_misses) for a batch of symbols.
+
+        Stale entries are kept in cache so callers can decide whether to serve
+        them (market closed) or refetch (market open).
+        """
+        fresh = {}
+        stale = {}
         misses = []
         async with self._lock:
             now = time.time()
             for sym in symbols:
                 entry = self.cache.get(sym)
-                if entry and now - entry["ts"] < self.ttl:
-                    hits[sym] = entry
+                if entry:
+                    if now - entry["ts"] < self.ttl:
+                        fresh[sym] = entry
+                    else:
+                        stale[sym] = entry  # keep in cache, let caller decide
                 else:
-                    if entry:
-                        del self.cache[sym]
                     misses.append(sym)
-        return hits, misses
+        return fresh, stale, misses
+
+
+class HistoryCache:
+    """Per-(symbol, period, interval) cache for historical price series.
+
+    Historical daily/weekly closes are immutable once the session ends, so TTLs
+    are long. Intraday data (15m etc.) is shorter-lived since bars are still forming.
+    """
+
+    _INTRADAY = {"1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h"}
+
+    def __init__(self):
+        self.cache: dict = {}
+        self._lock = asyncio.Lock()
+
+    def _ttl(self, interval: str) -> int:
+        return 3600 if interval in self._INTRADAY else 43200  # 1h intraday, 12h daily+
+
+    async def get(self, symbol: str, period: str, interval: str) -> Optional[dict]:
+        key = (symbol, period, interval)
+        async with self._lock:
+            entry = self.cache.get(key)
+            if not entry:
+                return None
+            if time.time() - entry["ts"] < self._ttl(interval):
+                return entry
+            del self.cache[key]
+            return None
+
+    async def set(self, symbol: str, period: str, interval: str, data: dict):
+        key = (symbol, period, interval)
+        async with self._lock:
+            self.cache[key] = {**data, "ts": time.time()}
 
 
 rate_limiter = AsyncRateLimiter(RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW)
 fx_cache = FXRateCache()
 stock_cache = StockPriceCache(ttl=600)
+history_cache = HistoryCache()
 
 # Shared in-flight request deduplication state
 in_flight_requests = {}
