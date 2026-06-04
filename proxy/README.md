@@ -22,14 +22,6 @@ sudo systemctl enable photon-proxy
 sudo systemctl disable photon-proxy
 ```
 
-## Upload New .uf2 File
-
-```bash
-scp /Users/jamie/Code/Projects/photon/build/photon.uf2 root@138.68.190.163:/var/www/firmware/latest.uf2
-```
-
-Then update `/var/www/firmware/version.txt` to be today's date.
-
 ## Monitoring Logs
 
 ```bash
