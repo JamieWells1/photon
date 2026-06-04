@@ -17,7 +17,6 @@
 #include <utils.h>
 #include <wifi.h>
 
-#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -65,11 +64,11 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
     if (!complete) return;
 
     uint64_t elapsed_ms = get_current_time_ms() - g_fetch_start_ms;
-    print(INFO, "Batch response received: %zu bytes in %" PRIu64 "ms", len, elapsed_ms);
+    print(INFO, "Batch response received: %zu bytes in %llums", len, (unsigned long long)elapsed_ms);
 
     if (!body || len == 0)
     {
-        print(ERROR, "Empty batch response after %" PRIu64 "ms", elapsed_ms);
+        print(ERROR, "Empty batch response after %llums", (unsigned long long)elapsed_ms);
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
         return;
@@ -125,8 +124,8 @@ static void portfolio_response_callback(const char* body, size_t len, bool compl
 
     uint64_t ms_until_next_fetch = TKR_FETCH_INTERVAL_MINUTES * 60 * 1000;
     g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
-    print(INFO, "Batch fetch complete: %u tickers in %" PRIu64 "ms, next fetch in %d min",
-          g_portfolio_count, elapsed_ms, TKR_FETCH_INTERVAL_MINUTES);
+    print(INFO, "Batch fetch complete: %u tickers in %llums, next fetch in %d min",
+          g_portfolio_count, (unsigned long long)elapsed_ms, TKR_FETCH_INTERVAL_MINUTES);
 }
 
 static void portfolio_fetch_prices(Matrix* mtrx, bool is_first_fetch)
@@ -529,8 +528,8 @@ void portfolio_display(Matrix* mtrx, int* offset)
         if (is_first_fetch)
             print(INFO, "Portfolio fetch triggered: first fetch since boot");
         else
-            print(INFO, "Portfolio fetch triggered: cache expired at T+%" PRIu64 "ms",
-                  current_time_ms);
+            print(INFO, "Portfolio fetch triggered: cache expired at T+%llums",
+                  (unsigned long long)current_time_ms);
 
         portfolio_load_from_flash();
         if (g_portfolio_count > 0)

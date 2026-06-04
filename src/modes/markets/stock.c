@@ -16,7 +16,6 @@
 #include <utils.h>
 #include <wifi.h>
 
-#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -116,11 +115,11 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
     if (!complete) return;
 
     uint64_t elapsed_ms = get_current_time_ms() - g_fetch_start_ms;
-    print(INFO, "Batch response received: %zu bytes in %" PRIu64 "ms", len, elapsed_ms);
+    print(INFO, "Batch response received: %zu bytes in %llums", len, (unsigned long long)elapsed_ms);
 
     if (!body || len == 0)
     {
-        print(ERROR, "Empty batch response after %" PRIu64 "ms", elapsed_ms);
+        print(ERROR, "Empty batch response after %llums", (unsigned long long)elapsed_ms);
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
         return;
@@ -184,15 +183,15 @@ static void stock_response_callback(const char* body, size_t len, bool complete)
         uint64_t ms_until_next_fetch = TKR_FETCH_INTERVAL_MINUTES * 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_next_fetch;
 
-        print(INFO, "Batch fetch complete: %u/%u tickers parsed in %" PRIu64 "ms",
-              parsed_count, enabled_count, elapsed_ms);
-        print(INFO, "Next fetch in %d min (T+%" PRIu64 "ms)",
-              TKR_FETCH_INTERVAL_MINUTES, g_next_fetch_time_ms);
+        print(INFO, "Batch fetch complete: %u/%u tickers parsed in %llums",
+              parsed_count, enabled_count, (unsigned long long)elapsed_ms);
+        print(INFO, "Next fetch in %d min (T+%llums)",
+              TKR_FETCH_INTERVAL_MINUTES, (unsigned long long)g_next_fetch_time_ms);
     }
     else
     {
-        print(ERROR, "Failed to parse any stock data from batch response (%" PRIu64 "ms elapsed)",
-              elapsed_ms);
+        print(ERROR, "Failed to parse any stock data from batch response (%llums elapsed)",
+              (unsigned long long)elapsed_ms);
         uint64_t ms_until_retry = 60 * 1000;
         g_next_fetch_time_ms = get_current_time_ms() + ms_until_retry;
     }
@@ -245,7 +244,7 @@ void stock_display(Matrix* mtrx, int* offset)
         if (is_first_fetch)
             print(INFO, "Batch fetch triggered: first fetch since boot");
         else
-            print(INFO, "Batch fetch triggered: cache expired at T+%" PRIu64 "ms", current_time_ms);
+            print(INFO, "Batch fetch triggered: cache expired at T+%llums", (unsigned long long)current_time_ms);
 
         if (wifi_is_connected())
         {
