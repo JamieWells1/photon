@@ -2,8 +2,8 @@
 
 Delta is a firmware application for the Raspberry Pi Pico 2 W that transforms a 32x8 WS2812B LED matrix into a real-time financial and weather display. It shows live stock prices, cryptocurrency tickers, FX currency pairs, portfolio tracking, and weather data, all controlled through a rotary encoder and push buttons.
 
-![Gemini_Generated_Image_tscd4utscd4utscd Medium](https://github.com/user-attachments/assets/11c758ab-5cbd-4271-a3f6-5426cf373bc0)
-> The intended final design
+<img width="4284" height="4284" alt="delta_product_image_pnl" src="https://github.com/user-attachments/assets/1d6c8ad0-f9fc-468b-bebb-393c72552d7e" />
+> Final design
 
 ## Overview
 
