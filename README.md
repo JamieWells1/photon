@@ -5,6 +5,7 @@ Delta is a firmware application for the Raspberry Pi Pico 2 W that transforms a 
 This YouTube short shows me building it: https://youtube.com/shorts/3UFcVyQCaM8?is=NoLdcOTymxzJ_TZh
 
 <img width="4284" height="4284" alt="delta_product_image_pnl" src="https://github.com/user-attachments/assets/1d6c8ad0-f9fc-468b-bebb-393c72552d7e" />
+
 > Final design
 
 ## Overview
