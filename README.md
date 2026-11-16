@@ -68,10 +68,6 @@ Complete documentation is available at [jamiewells1.github.io/photon](https://ja
 
 Detailed instructions are available in the [getting started documentation](https://jamiewells1.github.io/photon/getting-started/flashing/).
 
-## License
-
-MIT License
-
 ## Contributing
 
 Contributions are welcome. Please refer to the [contributing guide](https://jamiewells1.github.io/photon/contributing/) for information on building custom modes and extending the firmware.
